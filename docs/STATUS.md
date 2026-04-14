@@ -27,7 +27,7 @@ Replace demo-only batch input with real text/file ingest, then land the first pr
 - Local heuristic ranking works for movie/episode happy paths
 - Plex-style rename-plan generation works
 - Exportable plan sets and local config/history scaffolding exist
-- Provider request shaping exists, first live OMDb lookup wiring is present when an API key is configured, provider candidates now feed the preview-selection path, manual candidate override is wired into the desktop flow, config editing for destination roots and OMDb key is wired into the desktop flow, local execution steps are modeled as explicit dry-run/apply/undo execution batches, and the Tauri side now exposes a native execution-batch preview command
+- Provider request shaping exists, first live OMDb lookup wiring is present when an API key is configured, provider candidates now feed the preview-selection path, manual candidate override is wired into the desktop flow, config editing for destination roots and OMDb key is wired into the desktop flow, TV parsing now separates series title from episode title for better preview naming, local execution steps are modeled as explicit dry-run/apply/undo execution batches, and the Tauri side now exposes a native execution-batch preview command
 - WebDAV is represented honestly as a phase-3 destination stub, not fake functionality
 
 ## Recovery note

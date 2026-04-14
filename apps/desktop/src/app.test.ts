@@ -26,8 +26,9 @@ describe("Namera MVP flow", () => {
     const plan = buildPlan(parsed, candidate);
 
     expect(parsed.kind).toBe("episode");
-    expect(plan.proposedPath).toContain("TV Shows/");
-    expect(plan.proposedPath).toContain("S01E01");
+    expect(parsed.episode?.seriesTitle).toBe("Severance");
+    expect(parsed.episode?.episodeTitle).toBe("Good News About Hell");
+    expect(plan.proposedPath).toBe("TV Shows/Severance/Season 01/Severance - S01E01 - Good News About Hell.mkv");
   });
 
   it("exposes a phase 3 destination stub without pretending it works", () => {

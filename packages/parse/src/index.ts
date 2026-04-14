@@ -9,6 +9,7 @@ const KNOWN_NOISE = new Set([
   "webrip",
   "web-dl",
   "webdl",
+  "dl",
   "bluray",
   "brrip",
   "dvdrip",
@@ -82,11 +83,17 @@ function normalizeSeparators(input: string): string {
 }
 
 function detectEpisode(tokens: string[]): EpisodeInfo | undefined {
-  const token = tokens.find((candidate) => /^S\d{2}E\d{2}$/i.test(candidate));
-  if (!token) return undefined;
+  const markerIndex = tokens.findIndex((candidate) => /^S\d{2}E\d{2}$/i.test(candidate));
+  if (markerIndex === -1) return undefined;
+  const token = tokens[markerIndex]!;
+  const seriesTokens = tokens.slice(0, markerIndex).filter((candidate) => !isNoiseToken(candidate));
+  const episodeTitleTokens = tokens.slice(markerIndex + 1).filter((candidate) => !isNoiseToken(candidate));
+
   return {
     season: Number(token.slice(1, 3)),
     episode: Number(token.slice(4, 6)),
+    seriesTitle: cleanupTitle(seriesTokens.join(" ")) || undefined,
+    episodeTitle: cleanupTitle(episodeTitleTokens.join(" ")) || undefined,
   };
 }
 

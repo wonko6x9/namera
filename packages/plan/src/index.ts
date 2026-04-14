@@ -13,7 +13,9 @@ export function buildPlan(parsed: ParsedMedia, candidate?: MatchCandidate): Rena
     const ext = parsed.extension ?? "mkv";
     const season = String(parsed.episode.season).padStart(2, "0");
     const episode = String(parsed.episode.episode).padStart(2, "0");
-    proposedPath = `TV Shows/${candidateName}/Season ${season}/${candidateName} - S${season}E${episode}.${ext}`;
+    const seriesTitle = parsed.episode.seriesTitle ?? candidateName;
+    const episodeTitle = parsed.episode.episodeTitle ? ` - ${parsed.episode.episodeTitle}` : "";
+    proposedPath = `TV Shows/${seriesTitle}/Season ${season}/${seriesTitle} - S${season}E${episode}${episodeTitle}.${ext}`;
   } else {
     const ext = parsed.extension ?? "bin";
     proposedPath = `Unsorted/${parsed.title}.${ext}`;

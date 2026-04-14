@@ -3,6 +3,8 @@ export type MediaKind = "movie" | "episode" | "music" | "unknown";
 export interface EpisodeInfo {
   season: number;
   episode: number;
+  seriesTitle?: string;
+  episodeTitle?: string;
 }
 
 export interface MovieInfo {

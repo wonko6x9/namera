@@ -22,7 +22,7 @@ A cross-platform desktop app and local engine for:
 
 ## Current status
 
-Real TypeScript/Vite MVP in progress. Parser, local heuristic matching, rename-plan generation, preview UI, editable config for destination roots and OMDb key, config/history scaffolding, exportable plan sets, real file/folder ingest, first OMDb live-lookup wiring, provider-backed preview selection, manual candidate override controls, and an explicit local execution contract with dry-run/apply/undo batch modeling are all working. The Tauri/native side now exposes an execution-batch preview command, with a phase-3 WebDAV destination stub held separately. The next useful step is real native filesystem apply/undo backed by persistent logs.
+Real TypeScript/Vite MVP in progress. Parser, local heuristic matching, rename-plan generation, preview UI, editable config for destination roots and OMDb key, config/history scaffolding, exportable plan sets, real file/folder ingest, first OMDb live-lookup wiring, provider-backed preview selection, manual candidate override controls, richer TV episode parsing/naming, and an explicit local execution contract with dry-run/apply/undo batch modeling are all working. The Tauri/native side now exposes an execution-batch preview command, with a phase-3 WebDAV destination stub held separately. The next useful step is real native filesystem apply/undo backed by persistent logs and richer provider-backed episode metadata.
 
 ## Key docs
 
