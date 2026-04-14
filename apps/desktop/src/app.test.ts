@@ -68,6 +68,32 @@ describe("Namera MVP flow", () => {
     expect(preview.plan.proposedPath).toBe("Movies/The Matrix (1999)/The Matrix (1999).mkv");
   });
 
+  it("allows manual candidate override by index", () => {
+    const preview = buildPreview(
+      "The.Matrix.1999.1080p.BluRay.mkv",
+      [
+        {
+          provider: "omdb",
+          providerId: "tt0133093",
+          score: 97,
+          displayName: "The Matrix (1999)",
+          reason: "Live OMDb match by exact title and year",
+        },
+        {
+          provider: "omdb",
+          providerId: "tt0234215",
+          score: 74,
+          displayName: "The Matrix Reloaded (2003)",
+          reason: "Live OMDb candidate from title search",
+        },
+      ],
+      "omdb:tt0234215",
+    );
+
+    expect(preview.candidate.displayName).toBe("The Matrix Reloaded (2003)");
+    expect(preview.plan.proposedPath).toBe("Movies/The Matrix Reloaded (2003)/The Matrix Reloaded (2003).mkv");
+  });
+
   it("creates an actionable execution plan scaffold from a preview", () => {
     const preview = buildPreview("The.Matrix.1999.1080p.BluRay.mkv");
     const actions = createPlannedExecutions(preview.plan);
@@ -83,8 +109,9 @@ describe("Namera MVP flow", () => {
     const controller = createAppController((markup) => renders.push(markup));
 
     await controller.refreshProviders();
+    controller.chooseCandidate("The.Matrix.1999.1080p.BluRay.mkv", "local-heuristic:The Matrix (1999)");
 
-    expect(renders.at(-1)).toContain("Live provider");
+    expect(renders.at(-1)).toContain("Candidate override");
   });
 
   it("exports plan sets and reports provider status honestly", () => {

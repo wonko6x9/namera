@@ -17,6 +17,7 @@ export interface AppController {
   rerender: (markup: string) => void;
   ingestFiles: (files: File[]) => Promise<void>;
   refreshProviders: () => Promise<void>;
+  chooseCandidate: (input: string, candidateKey: string) => void;
 }
 
 interface AppState {
@@ -24,6 +25,7 @@ interface AppState {
   ingestedItems: IngestItem[];
   liveProviderMessage: string;
   providerCandidatesByInput: Record<string, MatchCandidate[]>;
+  selectedCandidateKeyByInput: Record<string, string>;
 }
 
 const state: AppState = {
@@ -31,6 +33,7 @@ const state: AppState = {
   ingestedItems: parseTextIngest(DEFAULT_INPUT),
   liveProviderMessage: "No live provider lookup attempted yet",
   providerCandidatesByInput: {},
+  selectedCandidateKeyByInput: {},
 };
 
 export function App(): string {
@@ -68,12 +71,18 @@ export function createAppController(rerender: (markup: string) => void): AppCont
           : "Live provider lookup unavailable until an OMDb API key is configured";
       rerender(renderApp(state));
     },
+    chooseCandidate(input: string, candidateKey: string) {
+      state.selectedCandidateKeyByInput[input] = candidateKey;
+      rerender(renderApp(state));
+    },
   };
 }
 
 function renderApp(appState: AppState): string {
   const config = loadConfig();
-  const previews = appState.ingestedItems.map((item) => buildPreview(item.name, appState.providerCandidatesByInput[item.name] ?? []));
+  const previews = appState.ingestedItems.map((item) =>
+    buildPreview(item.name, appState.providerCandidatesByInput[item.name] ?? [], appState.selectedCandidateKeyByInput[item.name]),
+  );
   const persistedHistory = previews.map((preview) => pushHistory(createExecutionRecord(preview.plan)));
   const history = persistedHistory.at(-1) ?? loadHistory();
   const exportedPlans = exportPlanSet(previews.map((preview) => preview.plan));
@@ -94,9 +103,12 @@ function renderApp(appState: AppState): string {
       const warningText = preview.plan.warnings.length ? preview.plan.warnings.join("; ") : "none";
       const executionActions = createPlannedExecutions(preview.plan);
       const candidateList = (preview.candidates ?? [])
-        .slice(0, 3)
-        .map((candidate) => `${candidate.displayName} (${candidate.provider}, ${candidate.score}%)`)
-        .join(" • ");
+        .slice(0, 5)
+        .map(
+          (candidate, index) =>
+            `<button data-role="candidate-pick" data-input="${escapeHtmlAttribute(preview.input)}" data-key="${escapeHtmlAttribute(getCandidateKey(candidate))}" type="button">${escapeHtml(candidate.displayName)} (${escapeHtml(candidate.provider)}, ${candidate.score}%)</button>`,
+        )
+        .join(" ");
 
       return `
         <article>
@@ -106,7 +118,7 @@ function renderApp(appState: AppState): string {
           <p><strong>Title:</strong> ${escapeHtml(preview.parsed.title)}</p>
           <p><strong>Proposed path:</strong> ${escapeHtml(preview.plan.proposedPath)}</p>
           <p><strong>Warnings:</strong> ${escapeHtml(warningText)}</p>
-          <p><strong>Candidate stack:</strong> ${escapeHtml(candidateList || "none")}</p>
+          <p><strong>Candidate override:</strong> ${candidateList || "none"}</p>
           <p><strong>Execution plan:</strong> ${escapeHtml(summarizeExecutionActions(executionActions))}</p>
           <ul>${executionActions
             .map(
@@ -178,17 +190,44 @@ function renderApp(appState: AppState): string {
   `;
 }
 
-export function buildPreview(input: string, providerCandidates: MatchCandidate[] = []): PreviewResult {
+export function buildPreview(
+  input: string,
+  providerCandidates: MatchCandidate[] = [],
+  selectedCandidateKey?: string,
+): PreviewResult {
   const parsed = parseFilename(input);
-  const candidates = rankCandidates(parsed, providerCandidates);
-  const candidate = candidates[0];
-  const plan = buildPlan(parsed, candidate);
-  return { input, parsed, candidate, plan, candidates };
+  const rankedCandidates = rankCandidates(parsed, providerCandidates);
+  const candidates = reorderCandidates(rankedCandidates, selectedCandidateKey);
+  const selectedCandidate = candidates[0] ?? rankedCandidates[0]!;
+  const plan = buildPlan(parsed, selectedCandidate);
+  return { input, parsed, candidate: selectedCandidate, plan, candidates };
 }
 
 export function summarizeIngest(items: IngestItem[]): string {
   if (!items.length) return "No inputs ingested";
   return `${items.length} input${items.length === 1 ? "" : "s"} ingested`;
+}
+
+function reorderCandidates(candidates: MatchCandidate[], selectedKey?: string): MatchCandidate[] {
+  if (!selectedKey) {
+    return candidates;
+  }
+
+  const selectedIndex = candidates.findIndex((candidate) => getCandidateKey(candidate) === selectedKey);
+  if (selectedIndex <= 0) {
+    return candidates;
+  }
+
+  const next = [...candidates];
+  const [selected] = next.splice(selectedIndex, 1);
+  if (selected) {
+    next.unshift(selected);
+  }
+  return next;
+}
+
+function getCandidateKey(candidate: MatchCandidate): string {
+  return `${candidate.provider}:${candidate.providerId ?? candidate.displayName}`;
 }
 
 function escapeHtml(value: string): string {
@@ -198,4 +237,8 @@ function escapeHtml(value: string): string {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+function escapeHtmlAttribute(value: string): string {
+  return escapeHtml(value).replaceAll("`", "&#96;");
 }

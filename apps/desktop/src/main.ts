@@ -12,6 +12,7 @@ function wireApp(root: HTMLElement): void {
   const fileInput = root.querySelector<HTMLInputElement>("[data-role='file-input']");
   const folderInput = root.querySelector<HTMLInputElement>("[data-role='folder-input']");
   const providerButton = root.querySelector<HTMLButtonElement>("[data-role='refresh-providers']");
+  const candidateButtons = root.querySelectorAll<HTMLButtonElement>("[data-role='candidate-pick']");
 
   fileInput?.addEventListener("change", async (event) => {
     const files = Array.from((event.currentTarget as HTMLInputElement).files ?? []);
@@ -25,6 +26,14 @@ function wireApp(root: HTMLElement): void {
 
   providerButton?.addEventListener("click", async () => {
     await controller.refreshProviders();
+  });
+
+  candidateButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const input = button.dataset.input ?? "";
+      const candidateKey = button.dataset.key ?? "";
+      controller.chooseCandidate(input, candidateKey);
+    });
   });
 }
 
