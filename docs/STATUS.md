@@ -1,7 +1,7 @@
 # STATUS
 
 ## Current phase
-Phase 2 working, Phase 3 scaffold started
+Phase 2 working, Phase 3 scaffold started, ingest lane now being pushed beyond demo-only input
 
 ## Project name
 - **Namera**
@@ -18,7 +18,17 @@ Phase 2 working, Phase 3 scaffold started
 - Product direction is primarily media matching, renaming, and tagging, with Plex-friendly organization as an important workflow target
 
 ## Current next step
-Replace demo batch input with real file/folder ingest, then land the first provider-backed metadata lookup and local execution wiring.
+Replace demo-only batch input with real text/file ingest, then land the first provider-backed metadata lookup and local execution wiring.
+
+## Working implementation snapshot
+- TypeScript/Vite desktop MVP is real and runnable
+- Filename normalization handles dotted/ugly separators and basic release noise
+- Movie year extraction and `SxxExx` TV parsing work
+- Local heuristic ranking works for movie/episode happy paths
+- Plex-style rename-plan generation works
+- Exportable plan sets and local config/history scaffolding exist
+- Provider request shaping exists, but live provider fetch is still stubbed
+- WebDAV is represented honestly as a phase-3 destination stub, not fake functionality
 
 ## Recovery note
 If work resumes after interruption, start by reading:

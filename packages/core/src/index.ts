@@ -35,6 +35,13 @@ export interface RenamePlan {
   confidence: number;
 }
 
+export interface IngestItem {
+  source: "text" | "file";
+  name: string;
+  size?: number;
+  pathHint?: string;
+}
+
 export interface PreviewResult {
   input: string;
   parsed: ParsedMedia;

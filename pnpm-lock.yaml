@@ -22,6 +22,9 @@ importers:
       '@namera/exec':
         specifier: workspace:*
         version: link:../../packages/exec
+      '@namera/ingest':
+        specifier: workspace:*
+        version: link:../../packages/ingest
       '@namera/match':
         specifier: workspace:*
         version: link:../../packages/match
@@ -60,6 +63,12 @@ importers:
         version: link:../core
 
   packages/exec:
+    dependencies:
+      '@namera/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/ingest:
     dependencies:
       '@namera/core':
         specifier: workspace:*

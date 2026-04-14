@@ -22,7 +22,7 @@ A cross-platform desktop app and local engine for:
 
 ## Current status
 
-Implementation scaffold started.
+Real TypeScript/Vite MVP in progress. Parser, local heuristic matching, rename-plan generation, preview UI, config/history scaffolding, exportable plan sets, provider request scaffolding, and a phase-3 WebDAV destination stub are all working. The next useful step is replacing the demo-only input lane with real ingest and then wiring the first live metadata provider.
 
 ## Key docs
 
@@ -69,4 +69,4 @@ Still intentionally stubbed:
 
 ## Immediate next implementation step
 
-Replace demo input with real file/folder ingest and add the first live metadata provider integration.
+Replace the demo-only sample list with real text/file ingest, then add the first live metadata provider integration.

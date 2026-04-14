@@ -1,26 +1,34 @@
 import { loadConfig, loadHistory, pushHistory } from "@namera/config";
-import type { PreviewResult } from "@namera/core";
+import type { IngestItem, PreviewResult } from "@namera/core";
 import { createPhase3DestinationPlan } from "@namera/destination";
 import { createExecutionRecord, exportPlanSet } from "@namera/exec";
+import { parseTextIngest } from "@namera/ingest";
 import { rankCandidates } from "@namera/match";
 import { parseFilename } from "@namera/parse";
 import { buildPlan } from "@namera/plan";
 import { buildProviderRequest, providerStatus } from "@namera/provider";
 
-const SAMPLE_INPUTS = [
-  "The.Matrix.1999.1080p.BluRay.mkv",
-  "Severance.S01E01.Good.News.About.Hell.2160p.WEB-DL.mkv",
-  "Andor__S01E03---Reckoning..WEBRip.mp4",
-  "Some.Confusing.File.Name.Thing.bin",
-];
+const DEFAULT_INPUT = `The.Matrix.1999.1080p.BluRay.mkv
+Severance.S01E01.Good.News.About.Hell.2160p.WEB-DL.mkv
+Andor__S01E03---Reckoning..WEBRip.mp4
+Some.Confusing.File.Name.Thing.bin`;
 
 export function App(): string {
   const config = loadConfig();
-  const previews = SAMPLE_INPUTS.map(buildPreview);
+  const ingestedItems = parseTextIngest(DEFAULT_INPUT);
+  const previews = ingestedItems.map((item) => buildPreview(item.name));
   const persistedHistory = previews.map((preview) => pushHistory(createExecutionRecord(preview.plan)));
   const history = persistedHistory.at(-1) ?? loadHistory();
   const exportedPlans = exportPlanSet(previews.map((preview) => preview.plan));
   const providerSummary = providerStatus(config.providers);
+
+  const ingestMarkup = ingestedItems
+    .map(
+      (item) => `
+        <li>${escapeHtml(item.name)} <small>(${escapeHtml(item.source)})</small></li>
+      `,
+    )
+    .join("");
 
   const previewMarkup = previews
     .map((preview) => {
@@ -60,6 +68,13 @@ export function App(): string {
         <h2>Status</h2>
         <p><strong>Destination roots:</strong> Movies=${escapeHtml(config.destinations.movieRoot)}, TV=${escapeHtml(config.destinations.tvRoot)}, Music=${escapeHtml(config.destinations.musicRoot)}</p>
         <p><strong>Providers:</strong> ${escapeHtml(providerSummary)}</p>
+        <p><strong>Ingest summary:</strong> ${escapeHtml(summarizeIngest(ingestedItems))}</p>
+      </section>
+      <section>
+        <h2>Ingest</h2>
+        <p>Current MVP accepts newline-separated filenames as a real ingest lane, instead of a hardcoded sample array. File picker wiring is the next UI step.</p>
+        <textarea rows="6" cols="80">${escapeHtml(DEFAULT_INPUT)}</textarea>
+        <ul>${ingestMarkup}</ul>
       </section>
       <section>
         <h2>Batch preview</h2>
@@ -77,11 +92,16 @@ export function App(): string {
   `;
 }
 
-function buildPreview(input: string): PreviewResult {
+export function buildPreview(input: string): PreviewResult {
   const parsed = parseFilename(input);
   const candidate = rankCandidates(parsed)[0];
   const plan = buildPlan(parsed, candidate);
   return { input, parsed, candidate, plan };
+}
+
+export function summarizeIngest(items: IngestItem[]): string {
+  if (!items.length) return "No inputs ingested";
+  return `${items.length} input${items.length === 1 ? "" : "s"} ingested`;
 }
 
 function escapeHtml(value: string): string {

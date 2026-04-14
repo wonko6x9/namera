@@ -5,6 +5,8 @@ import { buildPlan } from "@namera/plan";
 import { createPhase3DestinationPlan } from "@namera/destination";
 import { providerStatus } from "@namera/provider";
 import { exportPlanSet } from "@namera/exec";
+import { parseTextIngest } from "@namera/ingest";
+import { summarizeIngest } from "./App";
 
 describe("Namera MVP flow", () => {
   it("builds a movie rename preview", () => {
@@ -35,6 +37,14 @@ describe("Namera MVP flow", () => {
 
     expect(destination.backend).toBe("webdav");
     expect(destination.status).toBe("stub");
+  });
+
+  it("parses newline-separated ingest input for the preview lane", () => {
+    const items = parseTextIngest("The.Matrix.1999.1080p.BluRay.mkv\n\nAndor__S01E03---Reckoning..WEBRip.mp4");
+
+    expect(items).toHaveLength(2);
+    expect(items[0]?.name).toBe("The.Matrix.1999.1080p.BluRay.mkv");
+    expect(summarizeIngest(items)).toBe("2 inputs ingested");
   });
 
   it("exports plan sets and reports provider status honestly", () => {
