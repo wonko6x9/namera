@@ -1,4 +1,4 @@
-import type { ExecutionAction, HistoryEntry, RenamePlan } from "@namera/core";
+import type { ExecutionAction, ExecutionBatch, HistoryEntry, RenamePlan } from "@namera/core";
 
 export function createExecutionRecord(plan: RenamePlan): HistoryEntry {
   return {
@@ -34,9 +34,33 @@ export function createPlannedExecutions(plan: RenamePlan): ExecutionAction[] {
   return actions;
 }
 
+export function createExecutionBatch(plan: RenamePlan, mode: ExecutionBatch["mode"] = "dry-run"): ExecutionBatch {
+  const actions = createPlannedExecutions(plan).map((action) => ({
+    ...action,
+    status: mode === "undo" ? "reverted" : "planned",
+    note:
+      mode === "dry-run"
+        ? "Dry-run only. No filesystem changes executed."
+        : mode === "apply"
+          ? "Apply contract ready for Tauri/native filesystem implementation."
+          : "Undo contract ready once execution logs exist.",
+  }));
+
+  return {
+    mode,
+    actions,
+    summary: summarizeExecutionBatch(mode, actions),
+  };
+}
+
 export function summarizeExecutionActions(actions: ExecutionAction[]): string {
   if (!actions.length) return "No execution actions planned";
   return actions.map((action) => `${action.type}:${action.toPath}`).join(" | ");
+}
+
+export function summarizeExecutionBatch(mode: ExecutionBatch["mode"], actions: ExecutionAction[]): string {
+  const verb = mode === "dry-run" ? "Would run" : mode === "apply" ? "Ready to apply" : "Would undo";
+  return `${verb} ${actions.length} action${actions.length === 1 ? "" : "s"}`;
 }
 
 export function exportPlanSet(plans: RenamePlan[]): string {

@@ -62,8 +62,14 @@ export interface ExecutionAction {
   type: "rename" | "move" | "mkdir";
   fromPath?: string;
   toPath: string;
-  status: "planned" | "applied" | "failed";
+  status: "planned" | "applied" | "failed" | "reverted";
   note?: string;
+}
+
+export interface ExecutionBatch {
+  mode: "dry-run" | "apply" | "undo";
+  actions: ExecutionAction[];
+  summary: string;
 }
 
 export interface DestinationProfile {

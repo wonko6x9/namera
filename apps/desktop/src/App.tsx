@@ -1,7 +1,7 @@
 import { loadConfig, loadHistory, pushHistory } from "@namera/config";
 import type { IngestItem, MatchCandidate, PreviewResult } from "@namera/core";
 import { createPhase3DestinationPlan } from "@namera/destination";
-import { createExecutionRecord, createPlannedExecutions, exportPlanSet, summarizeExecutionActions } from "@namera/exec";
+import { createExecutionBatch, createExecutionRecord, createPlannedExecutions, exportPlanSet, summarizeExecutionActions } from "@namera/exec";
 import { parseFileListIngest, parseTextIngest } from "@namera/ingest";
 import { rankCandidates } from "@namera/match";
 import { parseFilename } from "@namera/parse";
@@ -102,6 +102,9 @@ function renderApp(appState: AppState): string {
       const request = buildProviderRequest(preview.parsed, config.providers);
       const warningText = preview.plan.warnings.length ? preview.plan.warnings.join("; ") : "none";
       const executionActions = createPlannedExecutions(preview.plan);
+      const dryRunBatch = createExecutionBatch(preview.plan, "dry-run");
+      const applyBatch = createExecutionBatch(preview.plan, "apply");
+      const undoBatch = createExecutionBatch(preview.plan, "undo");
       const candidateList = (preview.candidates ?? [])
         .slice(0, 5)
         .map(
@@ -120,6 +123,9 @@ function renderApp(appState: AppState): string {
           <p><strong>Warnings:</strong> ${escapeHtml(warningText)}</p>
           <p><strong>Candidate override:</strong> ${candidateList || "none"}</p>
           <p><strong>Execution plan:</strong> ${escapeHtml(summarizeExecutionActions(executionActions))}</p>
+          <p><strong>Dry run:</strong> ${escapeHtml(dryRunBatch.summary)}</p>
+          <p><strong>Apply contract:</strong> ${escapeHtml(applyBatch.summary)}</p>
+          <p><strong>Undo contract:</strong> ${escapeHtml(undoBatch.summary)}</p>
           <ul>${executionActions
             .map(
               (action) =>
