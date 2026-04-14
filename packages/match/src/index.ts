@@ -2,12 +2,12 @@ import type { MatchCandidate, ParsedMedia } from "@namera/core";
 
 export function rankCandidates(parsed: ParsedMedia, providerCandidates: MatchCandidate[] = []): MatchCandidate[] {
   const localCandidates = buildLocalCandidates(parsed);
-  return [...providerCandidates, ...localCandidates]
+  return dedupeCandidates([...providerCandidates, ...localCandidates])
     .map((candidate) => ({
       ...candidate,
       confidenceLabel: labelConfidence(candidate.score),
     }))
-    .sort((left, right) => right.score - left.score);
+    .sort(compareCandidates);
 }
 
 function buildLocalCandidates(parsed: ParsedMedia): MatchCandidate[] {
@@ -45,6 +45,37 @@ function buildLocalCandidates(parsed: ParsedMedia): MatchCandidate[] {
       reason: "Insufficient structure for confident match",
     },
   ];
+}
+
+function dedupeCandidates(candidates: MatchCandidate[]): MatchCandidate[] {
+  const seen = new Map<string, MatchCandidate>();
+
+  for (const candidate of candidates) {
+    const key = normalizeCandidateKey(candidate.displayName);
+    const current = seen.get(key);
+    if (!current || compareCandidates(candidate, current) < 0) {
+      seen.set(key, candidate);
+    }
+  }
+
+  return Array.from(seen.values());
+}
+
+function compareCandidates(left: MatchCandidate, right: MatchCandidate): number {
+  if (left.score !== right.score) {
+    return right.score - left.score;
+  }
+
+  if (left.provider !== right.provider) {
+    if (left.provider === "local-heuristic") return 1;
+    if (right.provider === "local-heuristic") return -1;
+  }
+
+  return left.displayName.localeCompare(right.displayName);
+}
+
+function normalizeCandidateKey(value: string): string {
+  return value.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
 function labelConfidence(score: number): "high" | "medium" | "low" {

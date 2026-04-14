@@ -158,6 +158,22 @@ describe("Namera MVP flow", () => {
     expect(candidate?.confidenceLabel).toBe("low");
   });
 
+  it("deduplicates equivalent provider and heuristic candidates", () => {
+    const parsed = parseFilename("The.Matrix.1999.1080p.BluRay.mkv");
+    const candidates = rankCandidates(parsed, [
+      {
+        provider: "omdb",
+        providerId: "tt0133093",
+        score: 92,
+        displayName: "The Matrix (1999)",
+        reason: "Live OMDb match by exact title and year",
+      },
+    ]);
+
+    expect(candidates.filter((candidate) => candidate.displayName === "The Matrix (1999)")).toHaveLength(1);
+    expect(candidates[0]?.provider).toBe("omdb");
+  });
+
   it("exports plan sets and reports provider status honestly", () => {
     const parsed = parseFilename("The.Matrix.1999.1080p.BluRay.mkv");
     const candidate = rankCandidates(parsed)[0];
