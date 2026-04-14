@@ -11,27 +11,27 @@ export const DEFAULT_CONFIG: AppConfig = {
 
 const CONFIG_KEY = "namera.config";
 const HISTORY_KEY = "namera.history";
+const fallbackMemoryStorage = new Map<string, string>();
 
 function getStorage(): Storage {
   if (typeof localStorage !== "undefined") {
     return localStorage;
   }
 
-  const memory = new Map<string, string>();
   return {
-    getItem: (key) => memory.get(key) ?? null,
+    getItem: (key) => fallbackMemoryStorage.get(key) ?? null,
     setItem: (key, value) => {
-      memory.set(key, value);
+      fallbackMemoryStorage.set(key, value);
     },
     removeItem: (key) => {
-      memory.delete(key);
+      fallbackMemoryStorage.delete(key);
     },
     clear: () => {
-      memory.clear();
+      fallbackMemoryStorage.clear();
     },
-    key: (index) => Array.from(memory.keys())[index] ?? null,
+    key: (index) => Array.from(fallbackMemoryStorage.keys())[index] ?? null,
     get length() {
-      return memory.size;
+      return fallbackMemoryStorage.size;
     },
   } satisfies Storage;
 }

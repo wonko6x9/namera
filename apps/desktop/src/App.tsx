@@ -1,5 +1,5 @@
-import { loadConfig, loadHistory, pushHistory } from "@namera/config";
-import type { IngestItem, MatchCandidate, PreviewResult } from "@namera/core";
+import { loadConfig, loadHistory, pushHistory, saveConfig } from "@namera/config";
+import type { AppConfig, IngestItem, MatchCandidate, PreviewResult } from "@namera/core";
 import { createPhase3DestinationPlan } from "@namera/destination";
 import { createExecutionBatch, createExecutionRecord, createPlannedExecutions, exportPlanSet, summarizeExecutionActions } from "@namera/exec";
 import { parseFileListIngest, parseTextIngest } from "@namera/ingest";
@@ -18,6 +18,7 @@ export interface AppController {
   ingestFiles: (files: File[]) => Promise<void>;
   refreshProviders: () => Promise<void>;
   chooseCandidate: (input: string, candidateKey: string) => void;
+  updateConfig: (patch: Partial<AppConfig>) => void;
 }
 
 interface AppState {
@@ -26,6 +27,7 @@ interface AppState {
   liveProviderMessage: string;
   providerCandidatesByInput: Record<string, MatchCandidate[]>;
   selectedCandidateKeyByInput: Record<string, string>;
+  config: AppConfig;
 }
 
 const state: AppState = {
@@ -34,6 +36,7 @@ const state: AppState = {
   liveProviderMessage: "No live provider lookup attempted yet",
   providerCandidatesByInput: {},
   selectedCandidateKeyByInput: {},
+  config: loadConfig(),
 };
 
 export function App(): string {
@@ -49,7 +52,6 @@ export function createAppController(rerender: (markup: string) => void): AppCont
       rerender(renderApp(state));
     },
     async refreshProviders() {
-      const config = loadConfig();
       if (!state.ingestedItems.length) {
         state.liveProviderMessage = "Nothing ingested yet";
         rerender(renderApp(state));
@@ -59,14 +61,14 @@ export function createAppController(rerender: (markup: string) => void): AppCont
       const providerCandidatesByInput: Record<string, MatchCandidate[]> = {};
       for (const item of state.ingestedItems.slice(0, 10)) {
         const parsed = parseFilename(item.name);
-        providerCandidatesByInput[item.name] = await fetchProviderCandidates(parsed, config.providers);
+        providerCandidatesByInput[item.name] = await fetchProviderCandidates(parsed, state.config.providers);
       }
 
       state.providerCandidatesByInput = providerCandidatesByInput;
       const totalLiveCandidates = Object.values(providerCandidatesByInput).reduce((sum, candidates) => sum + candidates.length, 0);
       state.liveProviderMessage = totalLiveCandidates
         ? `Live provider lookup loaded ${totalLiveCandidates} candidate${totalLiveCandidates === 1 ? "" : "s"}`
-        : config.providers.omdbApiKey
+        : state.config.providers.omdbApiKey
           ? "Live provider lookup ran, but found no candidates"
           : "Live provider lookup unavailable until an OMDb API key is configured";
       rerender(renderApp(state));
@@ -75,18 +77,22 @@ export function createAppController(rerender: (markup: string) => void): AppCont
       state.selectedCandidateKeyByInput[input] = candidateKey;
       rerender(renderApp(state));
     },
+    updateConfig(patch: Partial<AppConfig>) {
+      state.config = mergeConfig(state.config, patch);
+      saveConfig(state.config);
+      rerender(renderApp(state));
+    },
   };
 }
 
 function renderApp(appState: AppState): string {
-  const config = loadConfig();
   const previews = appState.ingestedItems.map((item) =>
     buildPreview(item.name, appState.providerCandidatesByInput[item.name] ?? [], appState.selectedCandidateKeyByInput[item.name]),
   );
   const persistedHistory = previews.map((preview) => pushHistory(createExecutionRecord(preview.plan)));
   const history = persistedHistory.at(-1) ?? loadHistory();
   const exportedPlans = exportPlanSet(previews.map((preview) => preview.plan));
-  const providerSummary = providerStatus(config.providers);
+  const providerSummary = providerStatus(appState.config.providers);
 
   const ingestMarkup = appState.ingestedItems
     .map(
@@ -99,7 +105,7 @@ function renderApp(appState: AppState): string {
   const previewMarkup = previews
     .map((preview) => {
       const destination = createPhase3DestinationPlan(preview.plan, "webdav");
-      const request = buildProviderRequest(preview.parsed, config.providers);
+      const request = buildProviderRequest(preview.parsed, appState.config.providers);
       const warningText = preview.plan.warnings.length ? preview.plan.warnings.join("; ") : "none";
       const executionActions = createPlannedExecutions(preview.plan);
       const dryRunBatch = createExecutionBatch(preview.plan, "dry-run");
@@ -108,7 +114,7 @@ function renderApp(appState: AppState): string {
       const candidateList = (preview.candidates ?? [])
         .slice(0, 5)
         .map(
-          (candidate, index) =>
+          (candidate) =>
             `<button data-role="candidate-pick" data-input="${escapeHtmlAttribute(preview.input)}" data-key="${escapeHtmlAttribute(getCandidateKey(candidate))}" type="button">${escapeHtml(candidate.displayName)} (${escapeHtml(candidate.provider)}, ${candidate.score}%)</button>`,
         )
         .join(" ");
@@ -154,10 +160,26 @@ function renderApp(appState: AppState): string {
       <p>MVP desktop shell for turning ugly media filenames into batch rename previews.</p>
       <section>
         <h2>Status</h2>
-        <p><strong>Destination roots:</strong> Movies=${escapeHtml(config.destinations.movieRoot)}, TV=${escapeHtml(config.destinations.tvRoot)}, Music=${escapeHtml(config.destinations.musicRoot)}</p>
+        <p><strong>Destination roots:</strong> Movies=${escapeHtml(appState.config.destinations.movieRoot)}, TV=${escapeHtml(appState.config.destinations.tvRoot)}, Music=${escapeHtml(appState.config.destinations.musicRoot)}</p>
         <p><strong>Providers:</strong> ${escapeHtml(providerSummary)}</p>
         <p><strong>Ingest summary:</strong> ${escapeHtml(summarizeIngest(appState.ingestedItems))}</p>
         <p><strong>Live provider state:</strong> ${escapeHtml(appState.liveProviderMessage)}</p>
+      </section>
+      <section>
+        <h2>Configuration</h2>
+        <div>
+          <label>Movie root <input data-role="config-movie-root" value="${escapeHtmlAttribute(appState.config.destinations.movieRoot)}" /></label>
+        </div>
+        <div>
+          <label>TV root <input data-role="config-tv-root" value="${escapeHtmlAttribute(appState.config.destinations.tvRoot)}" /></label>
+        </div>
+        <div>
+          <label>Music root <input data-role="config-music-root" value="${escapeHtmlAttribute(appState.config.destinations.musicRoot)}" /></label>
+        </div>
+        <div>
+          <label>OMDb API key <input data-role="config-omdb-key" value="${escapeHtmlAttribute(appState.config.providers.omdbApiKey ?? "")}" /></label>
+        </div>
+        <button data-role="save-config" type="button">Save config</button>
       </section>
       <section>
         <h2>Ingest</h2>
@@ -230,6 +252,19 @@ function reorderCandidates(candidates: MatchCandidate[], selectedKey?: string): 
     next.unshift(selected);
   }
   return next;
+}
+
+function mergeConfig(current: AppConfig, patch: Partial<AppConfig>): AppConfig {
+  return {
+    destinations: {
+      ...current.destinations,
+      ...patch.destinations,
+    },
+    providers: {
+      ...current.providers,
+      ...patch.providers,
+    },
+  };
 }
 
 function getCandidateKey(candidate: MatchCandidate): string {

@@ -7,6 +7,7 @@ import { providerStatus } from "@namera/provider";
 import { createExecutionBatch, createPlannedExecutions, exportPlanSet, summarizeExecutionActions } from "@namera/exec";
 import { looksLikeMediaFile, parseTextIngest } from "@namera/ingest";
 import { buildPreview, createAppController, summarizeIngest } from "./App";
+import { loadConfig } from "@namera/config";
 
 describe("Namera MVP flow", () => {
   it("builds a movie rename preview", () => {
@@ -104,6 +105,27 @@ describe("Namera MVP flow", () => {
     expect(actions[1]?.type).toBe("rename");
     expect(summarizeExecutionActions(actions)).toContain("rename:Movies/The Matrix (1999)/The Matrix (1999).mkv");
     expect(batch.summary).toBe("Would run 2 actions");
+  });
+
+  it("persists config updates through the controller", () => {
+    const renders: string[] = [];
+    const controller = createAppController((markup) => renders.push(markup));
+
+    controller.updateConfig({
+      destinations: {
+        movieRoot: "Films",
+        tvRoot: "Series",
+        musicRoot: "Tracks",
+      },
+      providers: {
+        omdbApiKey: "test-key",
+      },
+    });
+
+    const config = loadConfig();
+    expect(config.destinations.movieRoot).toBe("Films");
+    expect(config.providers.omdbApiKey).toBe("test-key");
+    expect(renders.at(-1)).toContain("Configuration");
   });
 
   it("exposes a controller for live-provider refresh flow", async () => {
