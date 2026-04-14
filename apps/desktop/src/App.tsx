@@ -1,4 +1,4 @@
-import { loadConfig, loadHistory, pushHistory, saveConfig } from "@namera/config";
+import { loadConfig, loadExecutionLog, loadHistory, pushHistory, saveConfig } from "@namera/config";
 import type { AppConfig, IngestItem, MatchCandidate, PreviewResult } from "@namera/core";
 import { createPhase3DestinationPlan } from "@namera/destination";
 import { createExecutionBatch, createExecutionRecord, createPlannedExecutions, exportPlanSet, summarizeExecutionActions } from "@namera/exec";
@@ -96,6 +96,7 @@ function renderApp(appState: AppState): string {
   );
   const persistedHistory = previews.map((preview) => pushHistory(createExecutionRecord(preview.plan)));
   const history = persistedHistory.at(-1) ?? loadHistory();
+  const executionLog = loadExecutionLog();
   const exportedPlans = exportPlanSet(previews.map((preview) => preview.plan));
   const providerSummary = providerStatus(appState.config.providers);
 
@@ -160,6 +161,15 @@ function renderApp(appState: AppState): string {
     )
     .join("");
 
+  const executionLogMarkup = executionLog
+    .slice(0, 5)
+    .map(
+      (entry) => `
+        <li>${escapeHtml(entry.mode)} • ${escapeHtml(entry.sourceName)} → ${escapeHtml(entry.proposedPath)} <small>${escapeHtml(entry.createdAt)}${entry.undoneAt ? ` • undone ${escapeHtml(entry.undoneAt)}` : ""}</small></li>
+      `,
+    )
+    .join("");
+
   return `
     <main>
       <h1>Namera</h1>
@@ -215,6 +225,11 @@ function renderApp(appState: AppState): string {
       <section>
         <h2>Recent history</h2>
         <ul>${historyMarkup}</ul>
+      </section>
+      <section>
+        <h2>Execution log</h2>
+        <p>Apply and undo actions are now persisted as an honest local log, even before native filesystem execution lands.</p>
+        <ul>${executionLogMarkup || "<li>No execution records yet</li>"}</ul>
       </section>
       <section>
         <h2>Exported plan set</h2>

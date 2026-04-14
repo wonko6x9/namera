@@ -1,7 +1,7 @@
 # STATUS
 
 ## Current phase
-Phase 2 working, Phase 3 scaffold started, ingest lane now being pushed beyond demo-only input
+Phase 1 and Phase 2 wrapped to a defendable MVP baseline, Phase 3 scaffold started
 
 ## Project name
 - **Namera**
@@ -18,7 +18,7 @@ Phase 2 working, Phase 3 scaffold started, ingest lane now being pushed beyond d
 - Product direction is primarily media matching, renaming, and tagging, with Plex-friendly organization as an important workflow target
 
 ## Current next step
-Replace demo-only batch input with real text/file ingest, then land the first provider-backed metadata lookup and local execution wiring.
+Land native filesystem apply/undo in Tauri/Rust, then replace the honest execution-log scaffold with real end-to-end file operations.
 
 ## Working implementation snapshot
 - TypeScript/Vite desktop MVP is real and runnable
@@ -27,7 +27,11 @@ Replace demo-only batch input with real text/file ingest, then land the first pr
 - Local heuristic ranking works for movie/episode happy paths
 - Plex-style rename-plan generation works
 - Exportable plan sets and local config/history scaffolding exist
-- Provider request shaping exists, first live OMDb lookup wiring is present when an API key is configured, provider candidates now feed the preview-selection path, candidate stacks are deduplicated and biased toward live-provider results over equivalent heuristics, match reasons and confidence labels are surfaced visibly in the desktop flow, manual candidate override is wired into the desktop flow, config editing for destination roots and OMDb key is wired into the desktop flow, configured destination roots now affect generated plans, TV parsing now separates series title from episode title for better preview naming, local execution steps are modeled as explicit dry-run/apply/undo execution batches, and the Tauri side now exposes a native execution-batch preview command
+- Real text/file/folder ingest is wired into the desktop flow
+- Provider request shaping exists, first live OMDb lookup wiring is present when an API key is configured, provider candidates now feed the preview-selection path, provider results are cached locally, candidate stacks are deduplicated and biased toward live-provider results over equivalent heuristics, match reasons and confidence labels are surfaced visibly in the desktop flow, and manual candidate override is wired into the desktop flow
+- Config editing for destination roots and OMDb key is wired into the desktop flow, and configured destination roots now affect generated plans
+- TV parsing now separates series title from episode title for better preview naming
+- Local execution steps are modeled as explicit dry-run/apply/undo execution batches, apply/undo actions are persisted into a local execution log, and the Tauri side now exposes a native execution-batch preview command
 - WebDAV is represented honestly as a phase-3 destination stub, not fake functionality
 
 ## Recovery note

@@ -1,3 +1,4 @@
+import { getProviderCacheEntry, setProviderCacheEntry } from "@namera/config";
 import type { MatchCandidate, ParsedMedia, ProviderConfig } from "@namera/core";
 
 interface ProviderRequest {
@@ -50,7 +51,25 @@ export async function fetchProviderCandidates(
     return [];
   }
 
-  return fetchOmdbCandidates(parsed, config.omdbApiKey, fetchImpl);
+  const cacheKey = buildProviderCacheKey(parsed);
+  const cached = getProviderCacheEntry(cacheKey);
+  if (cached) {
+    try {
+      return JSON.parse(cached) as MatchCandidate[];
+    } catch {
+      // fall through and refresh
+    }
+  }
+
+  const candidates = await fetchOmdbCandidates(parsed, config.omdbApiKey, fetchImpl);
+  setProviderCacheEntry(cacheKey, JSON.stringify(candidates));
+  return candidates;
+}
+
+export function buildProviderCacheKey(parsed: ParsedMedia): string {
+  return [parsed.kind, parsed.title, parsed.movie?.year ?? "", parsed.episode?.season ?? "", parsed.episode?.episode ?? ""]
+    .map((part) => String(part).trim().toLowerCase())
+    .join("|");
 }
 
 async function fetchOmdbCandidates(

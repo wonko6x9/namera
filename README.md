@@ -22,7 +22,7 @@ A cross-platform desktop app and local engine for:
 
 ## Current status
 
-Real TypeScript/Vite MVP in progress. Parser, local heuristic matching, rename-plan generation, preview UI, editable config for destination roots and OMDb key, config/history scaffolding, exportable plan sets, real file/folder ingest, first OMDb live-lookup wiring, provider-backed preview selection, cleaner deduplicated candidate stacks, visible match explanations and confidence labels, manual candidate override controls, richer TV episode parsing/naming, and an explicit local execution contract with dry-run/apply/undo batch modeling are all working. Configured destination roots now affect actual plan generation. The Tauri/native side now exposes an execution-batch preview command, with a phase-3 WebDAV destination stub held separately. The next useful step is real native filesystem apply/undo backed by persistent logs and richer provider-backed episode metadata.
+Real TypeScript/Vite MVP in progress. Parser, local heuristic matching, rename-plan generation, preview UI, editable config for destination roots and OMDb key, config/history scaffolding, exportable plan sets, real file/folder ingest, first OMDb live-lookup wiring, provider-backed preview selection, local provider-response caching, cleaner deduplicated candidate stacks, visible match explanations and confidence labels, manual candidate override controls, richer TV episode parsing/naming, and an explicit local execution contract with dry-run/apply/undo batch modeling are all working. Configured destination roots now affect actual plan generation. Apply/undo actions are now persisted into an honest local execution log, and the Tauri/native side exposes an execution-batch preview command, with a phase-3 WebDAV destination stub held separately. The next useful step is real native filesystem apply/undo replacing the scaffolded log-only execution layer, plus richer provider-backed episode metadata.
 
 ## Key docs
 
@@ -56,17 +56,16 @@ Working now:
 - honest phase-3 WebDAV destination stub
 
 Still intentionally stubbed:
-- real metadata provider integrations
-- actual filesystem execution/undo in the UI
-- real file/folder ingest instead of sample/demo batch input
+- broader metadata provider integrations beyond the first OMDb lane
+- actual native filesystem execution/undo in the UI, beyond the persisted execution-log scaffold
 - verified remote transfer behavior
 
 ## Phase progress
 
-- Phase 1: parser + planner MVP, working
-- Phase 2: batch preview + settings/history/provider scaffolding, working
+- Phase 1: parser + planner MVP, wrapped to a solid baseline
+- Phase 2: batch preview + settings/history/provider scaffolding, wrapped to a solid baseline
 - Phase 3: destination backend shape stubbed so WebDAV can land without redesign
 
 ## Immediate next implementation step
 
-Replace the demo-only sample list with real text/file ingest, then add the first live metadata provider integration.
+Replace log-only execution scaffolding with real Tauri/Rust filesystem apply/undo, then deepen TV/provider metadata.

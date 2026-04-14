@@ -1,4 +1,5 @@
-import type { ExecutionAction, ExecutionBatch, HistoryEntry, RenamePlan } from "@namera/core";
+import { loadExecutionLog, markExecutionUndone, pushExecutionLog } from "@namera/config";
+import type { ExecutionAction, ExecutionBatch, ExecutionLogEntry, HistoryEntry, RenamePlan } from "@namera/core";
 
 export function createExecutionRecord(plan: RenamePlan): HistoryEntry {
   return {
@@ -37,20 +38,28 @@ export function createPlannedExecutions(plan: RenamePlan): ExecutionAction[] {
 export function createExecutionBatch(plan: RenamePlan, mode: ExecutionBatch["mode"] = "dry-run"): ExecutionBatch {
   const actions = createPlannedExecutions(plan).map((action) => ({
     ...action,
-    status: mode === "undo" ? "reverted" : "planned",
+    status: mode === "undo" ? "reverted" : mode === "apply" ? "applied" : "planned",
     note:
       mode === "dry-run"
         ? "Dry-run only. No filesystem changes executed."
         : mode === "apply"
-          ? "Apply contract ready for Tauri/native filesystem implementation."
-          : "Undo contract ready once execution logs exist.",
+          ? "Apply contract recorded and ready for native filesystem implementation."
+          : "Undo contract recorded against the most recent matching execution log.",
   }));
 
-  return {
+  const batch: ExecutionBatch = {
     mode,
     actions,
     summary: summarizeExecutionBatch(mode, actions),
   };
+
+  if (mode === "apply") {
+    batch.logEntry = persistExecutionLog(plan, actions, "apply");
+  } else if (mode === "undo") {
+    batch.logEntry = recordUndo(plan, actions);
+  }
+
+  return batch;
 }
 
 export function summarizeExecutionActions(actions: ExecutionAction[]): string {
@@ -59,10 +68,54 @@ export function summarizeExecutionActions(actions: ExecutionAction[]): string {
 }
 
 export function summarizeExecutionBatch(mode: ExecutionBatch["mode"], actions: ExecutionAction[]): string {
-  const verb = mode === "dry-run" ? "Would run" : mode === "apply" ? "Ready to apply" : "Would undo";
+  const verb = mode === "dry-run" ? "Would run" : mode === "apply" ? "Recorded apply for" : "Recorded undo for";
   return `${verb} ${actions.length} action${actions.length === 1 ? "" : "s"}`;
 }
 
 export function exportPlanSet(plans: RenamePlan[]): string {
   return JSON.stringify(plans, null, 2);
+}
+
+export function listExecutionLog(): ExecutionLogEntry[] {
+  return loadExecutionLog();
+}
+
+function persistExecutionLog(plan: RenamePlan, actions: ExecutionAction[], mode: "apply"): ExecutionLogEntry {
+  const entry: ExecutionLogEntry = {
+    id: createExecutionId(plan),
+    mode,
+    sourceName: plan.sourceName,
+    proposedPath: plan.proposedPath,
+    actions,
+    createdAt: new Date().toISOString(),
+  };
+  pushExecutionLog(entry);
+  return entry;
+}
+
+function recordUndo(plan: RenamePlan, actions: ExecutionAction[]): ExecutionLogEntry {
+  const existing = loadExecutionLog().find((entry) => entry.proposedPath === plan.proposedPath && !entry.undoneAt);
+  if (existing) {
+    markExecutionUndone(existing.id);
+    return {
+      ...existing,
+      actions,
+      mode: "undo",
+      undoneAt: new Date().toISOString(),
+    };
+  }
+
+  return {
+    id: createExecutionId(plan),
+    mode: "undo",
+    sourceName: plan.sourceName,
+    proposedPath: plan.proposedPath,
+    actions,
+    createdAt: new Date().toISOString(),
+    undoneAt: new Date().toISOString(),
+  };
+}
+
+function createExecutionId(plan: RenamePlan): string {
+  return `${plan.sourceName}=>${plan.proposedPath}=>${Date.now()}`;
 }

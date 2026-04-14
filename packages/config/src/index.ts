@@ -1,4 +1,4 @@
-import type { AppConfig, HistoryEntry } from "@namera/core";
+import type { AppConfig, ExecutionLogEntry, HistoryEntry } from "@namera/core";
 
 export const DEFAULT_CONFIG: AppConfig = {
   destinations: {
@@ -11,6 +11,8 @@ export const DEFAULT_CONFIG: AppConfig = {
 
 const CONFIG_KEY = "namera.config";
 const HISTORY_KEY = "namera.history";
+const EXECUTION_LOG_KEY = "namera.execution-log";
+const PROVIDER_CACHE_KEY = "namera.provider-cache";
 const fallbackMemoryStorage = new Map<string, string>();
 
 function getStorage(): Storage {
@@ -67,5 +69,67 @@ export function saveHistory(entries: HistoryEntry[], storage: Storage = getStora
 export function pushHistory(entry: HistoryEntry, storage: Storage = getStorage()): HistoryEntry[] {
   const next = [entry, ...loadHistory(storage)].slice(0, 20);
   saveHistory(next, storage);
+  return next;
+}
+
+export type ProviderCache = Record<string, string>;
+
+export function loadExecutionLog(storage: Storage = getStorage()): ExecutionLogEntry[] {
+  try {
+    const raw = storage.getItem(EXECUTION_LOG_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw) as ExecutionLogEntry[];
+  } catch {
+    return [];
+  }
+}
+
+export function saveExecutionLog(entries: ExecutionLogEntry[], storage: Storage = getStorage()): void {
+  storage.setItem(EXECUTION_LOG_KEY, JSON.stringify(entries));
+}
+
+export function pushExecutionLog(entry: ExecutionLogEntry, storage: Storage = getStorage()): ExecutionLogEntry[] {
+  const next = [entry, ...loadExecutionLog(storage)].slice(0, 100);
+  saveExecutionLog(next, storage);
+  return next;
+}
+
+export function markExecutionUndone(id: string, storage: Storage = getStorage()): ExecutionLogEntry[] {
+  const next = loadExecutionLog(storage).map((entry) =>
+    entry.id === id
+      ? {
+          ...entry,
+          undoneAt: entry.undoneAt ?? new Date().toISOString(),
+        }
+      : entry,
+  );
+  saveExecutionLog(next, storage);
+  return next;
+}
+
+export function loadProviderCache(storage: Storage = getStorage()): ProviderCache {
+  try {
+    const raw = storage.getItem(PROVIDER_CACHE_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw) as ProviderCache;
+  } catch {
+    return {};
+  }
+}
+
+export function saveProviderCache(cache: ProviderCache, storage: Storage = getStorage()): void {
+  storage.setItem(PROVIDER_CACHE_KEY, JSON.stringify(cache));
+}
+
+export function getProviderCacheEntry(key: string, storage: Storage = getStorage()): string | undefined {
+  return loadProviderCache(storage)[key];
+}
+
+export function setProviderCacheEntry(key: string, value: string, storage: Storage = getStorage()): ProviderCache {
+  const next = {
+    ...loadProviderCache(storage),
+    [key]: value,
+  };
+  saveProviderCache(next, storage);
   return next;
 }

@@ -75,10 +75,21 @@ export interface ExecutionAction {
   note?: string;
 }
 
+export interface ExecutionLogEntry {
+  id: string;
+  mode: "apply" | "undo";
+  sourceName: string;
+  proposedPath: string;
+  actions: ExecutionAction[];
+  createdAt: string;
+  undoneAt?: string;
+}
+
 export interface ExecutionBatch {
   mode: "dry-run" | "apply" | "undo";
   actions: ExecutionAction[];
   summary: string;
+  logEntry?: ExecutionLogEntry;
 }
 
 export interface DestinationProfile {

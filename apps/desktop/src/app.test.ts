@@ -1,15 +1,20 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { parseFilename } from "@namera/parse";
 import { rankCandidates } from "@namera/match";
 import { buildPlan } from "@namera/plan";
 import { createPhase3DestinationPlan } from "@namera/destination";
-import { buildProviderRequest, providerStatus } from "@namera/provider";
-import { createExecutionBatch, createPlannedExecutions, exportPlanSet, summarizeExecutionActions } from "@namera/exec";
+import { buildProviderCacheKey, buildProviderRequest, fetchProviderCandidates, providerStatus } from "@namera/provider";
+import { createExecutionBatch, createPlannedExecutions, exportPlanSet, listExecutionLog, summarizeExecutionActions } from "@namera/exec";
 import { looksLikeMediaFile, parseTextIngest } from "@namera/ingest";
 import { buildPreview, createAppController, summarizeIngest } from "./App";
-import { loadConfig } from "@namera/config";
+import { loadConfig, loadExecutionLog, pushExecutionLog } from "@namera/config";
 
 describe("Namera MVP flow", () => {
+  beforeEach(() => {
+    if (typeof localStorage !== "undefined") {
+      localStorage.clear();
+    }
+  });
   it("builds a movie rename preview", () => {
     const parsed = parseFilename("The.Matrix.1999.1080p.BluRay.mkv");
     const candidate = rankCandidates(parsed)[0];
@@ -110,6 +115,18 @@ describe("Namera MVP flow", () => {
     expect(batch.summary).toBe("Would run 2 actions");
   });
 
+  it("records apply and undo batches in the execution log scaffold", () => {
+    const preview = buildPreview("The.Matrix.1999.1080p.BluRay.mkv");
+    const applyBatch = createExecutionBatch(preview.plan, "apply");
+    pushExecutionLog(applyBatch.logEntry!);
+    const undoBatch = createExecutionBatch(preview.plan, "undo");
+
+    expect(applyBatch.logEntry?.mode).toBe("apply");
+    expect(undoBatch.logEntry?.mode).toBe("undo");
+    expect(loadExecutionLog().length).toBeGreaterThan(0);
+    expect(listExecutionLog()[0]?.proposedPath).toContain("The Matrix");
+  });
+
   it("uses configured destination roots in generated plans", () => {
     const preview = buildPreview(
       "The.Matrix.1999.1080p.BluRay.mkv",
@@ -199,5 +216,48 @@ describe("Namera MVP flow", () => {
 
     expect(exportPlanSet([plan])).toContain("The Matrix");
     expect(providerStatus({})).toContain("No live metadata providers configured yet");
+  });
+
+  it("builds deterministic provider cache keys", () => {
+    const parsed = parseFilename("The.Matrix.1999.1080p.BluRay.mkv");
+    const key = buildProviderCacheKey(parsed);
+
+    expect(key).toContain("movie|the matrix|1999");
+  });
+
+  it("reuses cached provider results before network fetch", async () => {
+    const parsed = parseFilename("The.Matrix.1999.1080p.BluRay.mkv");
+    const key = buildProviderCacheKey(parsed);
+    const payload = JSON.stringify([
+      {
+        provider: "omdb",
+        providerId: "tt0133093",
+        score: 98,
+        displayName: "The Matrix (1999)",
+        reason: "Live OMDb match by exact title and year",
+      },
+    ]);
+
+    const storage = {
+      getItem: (name: string) => (name === "namera.provider-cache" ? JSON.stringify({ [key]: payload }) : null),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+      key: vi.fn(),
+      length: 1,
+    } as unknown as Storage;
+
+    Object.defineProperty(globalThis, "localStorage", {
+      value: storage,
+      configurable: true,
+    });
+
+    const fetchMock = vi.fn();
+    const first = await fetchProviderCandidates(parsed, { omdbApiKey: "x" }, fetchMock as unknown as typeof fetch);
+    const second = await fetchProviderCandidates(parsed, { omdbApiKey: "x" }, fetchMock as unknown as typeof fetch);
+
+    expect(first[0]?.displayName).toBe("The Matrix (1999)");
+    expect(second[0]?.displayName).toBe("The Matrix (1999)");
+    expect(fetchMock).toHaveBeenCalledTimes(0);
   });
 });
