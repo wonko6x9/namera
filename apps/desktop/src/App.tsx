@@ -6,7 +6,7 @@ import { parseFileListIngest, parseTextIngest } from "@namera/ingest";
 import { rankCandidates } from "@namera/match";
 import { parseFilename } from "@namera/parse";
 import { buildPlan } from "@namera/plan";
-import { buildProviderRequest, providerStatus } from "@namera/provider";
+import { buildProviderRequest, fetchProviderCandidates, providerStatus } from "@namera/provider";
 
 const DEFAULT_INPUT = `The.Matrix.1999.1080p.BluRay.mkv
 Severance.S01E01.Good.News.About.Hell.2160p.WEB-DL.mkv
@@ -16,16 +16,19 @@ Some.Confusing.File.Name.Thing.bin`;
 export interface AppController {
   rerender: (markup: string) => void;
   ingestFiles: (files: File[]) => Promise<void>;
+  refreshProviders: () => Promise<void>;
 }
 
 interface AppState {
   textInput: string;
   ingestedItems: IngestItem[];
+  liveProviderMessage: string;
 }
 
 const state: AppState = {
   textInput: DEFAULT_INPUT,
   ingestedItems: parseTextIngest(DEFAULT_INPUT),
+  liveProviderMessage: "No live provider lookup attempted yet",
 };
 
 export function App(): string {
@@ -38,6 +41,23 @@ export function createAppController(rerender: (markup: string) => void): AppCont
     async ingestFiles(files: File[]) {
       const fileItems = await parseFileListIngest(files);
       state.ingestedItems = fileItems.length ? fileItems : parseTextIngest(state.textInput);
+      rerender(renderApp(state));
+    },
+    async refreshProviders() {
+      const parsed = state.ingestedItems[0] ? parseFilename(state.ingestedItems[0].name) : undefined;
+      if (!parsed) {
+        state.liveProviderMessage = "Nothing ingested yet";
+        rerender(renderApp(state));
+        return;
+      }
+
+      const config = loadConfig();
+      const candidates = await fetchProviderCandidates(parsed, config.providers);
+      state.liveProviderMessage = candidates.length
+        ? `Live provider candidates: ${candidates.map((candidate) => candidate.displayName).join(", ")}`
+        : config.providers.omdbApiKey
+          ? "Live provider lookup ran, but found no candidates"
+          : "Live provider lookup unavailable until an OMDb API key is configured";
       rerender(renderApp(state));
     },
   };
@@ -98,6 +118,7 @@ function renderApp(appState: AppState): string {
         <p><strong>Destination roots:</strong> Movies=${escapeHtml(config.destinations.movieRoot)}, TV=${escapeHtml(config.destinations.tvRoot)}, Music=${escapeHtml(config.destinations.musicRoot)}</p>
         <p><strong>Providers:</strong> ${escapeHtml(providerSummary)}</p>
         <p><strong>Ingest summary:</strong> ${escapeHtml(summarizeIngest(appState.ingestedItems))}</p>
+        <p><strong>Live provider state:</strong> ${escapeHtml(appState.liveProviderMessage)}</p>
       </section>
       <section>
         <h2>Ingest</h2>
@@ -114,6 +135,9 @@ function renderApp(appState: AppState): string {
             <strong>Pick folder:</strong>
             <input data-role="folder-input" type="file" webkitdirectory directory multiple />
           </label>
+        </div>
+        <div>
+          <button data-role="refresh-providers" type="button">Try live metadata lookup</button>
         </div>
         <ul>${ingestMarkup}</ul>
       </section>

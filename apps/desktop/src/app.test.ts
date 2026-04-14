@@ -6,7 +6,7 @@ import { createPhase3DestinationPlan } from "@namera/destination";
 import { providerStatus } from "@namera/provider";
 import { exportPlanSet } from "@namera/exec";
 import { looksLikeMediaFile, parseTextIngest } from "@namera/ingest";
-import { summarizeIngest } from "./App";
+import { createAppController, summarizeIngest } from "./App";
 
 describe("Namera MVP flow", () => {
   it("builds a movie rename preview", () => {
@@ -51,6 +51,15 @@ describe("Namera MVP flow", () => {
     expect(looksLikeMediaFile("movie.mkv")).toBe(true);
     expect(looksLikeMediaFile("cover.jpg")).toBe(false);
     expect(looksLikeMediaFile("notes.txt")).toBe(false);
+  });
+
+  it("exposes a controller for live-provider refresh flow", async () => {
+    const renders: string[] = [];
+    const controller = createAppController((markup) => renders.push(markup));
+
+    await controller.refreshProviders();
+
+    expect(renders.at(-1)).toContain("Live provider");
   });
 
   it("exports plan sets and reports provider status honestly", () => {

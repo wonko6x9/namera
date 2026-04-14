@@ -1,4 +1,4 @@
-import { App, type AppController } from "./App";
+import { App, createAppController, type AppController } from "./App";
 
 const root = document.getElementById("app");
 
@@ -8,9 +8,10 @@ if (root) {
 }
 
 function wireApp(root: HTMLElement): void {
-  const controller = createAppController(root);
+  const controller = createController(root);
   const fileInput = root.querySelector<HTMLInputElement>("[data-role='file-input']");
   const folderInput = root.querySelector<HTMLInputElement>("[data-role='folder-input']");
+  const providerButton = root.querySelector<HTMLButtonElement>("[data-role='refresh-providers']");
 
   fileInput?.addEventListener("change", async (event) => {
     const files = Array.from((event.currentTarget as HTMLInputElement).files ?? []);
@@ -21,15 +22,17 @@ function wireApp(root: HTMLElement): void {
     const files = Array.from((event.currentTarget as HTMLInputElement).files ?? []);
     await controller.ingestFiles(files);
   });
+
+  providerButton?.addEventListener("click", async () => {
+    await controller.refreshProviders();
+  });
 }
 
-function createAppController(root: HTMLElement): AppController {
+function createController(root: HTMLElement): AppController {
   const rerender = (markup: string) => {
     root.innerHTML = markup;
     wireApp(root);
   };
 
-  return {
-    rerender,
-  };
+  return createAppController(rerender);
 }

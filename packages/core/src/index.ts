@@ -26,6 +26,7 @@ export interface MatchCandidate {
   score: number;
   displayName: string;
   reason: string;
+  providerId?: string;
 }
 
 export interface RenamePlan {
