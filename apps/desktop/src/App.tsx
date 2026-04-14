@@ -115,14 +115,14 @@ function renderApp(appState: AppState): string {
         .slice(0, 5)
         .map(
           (candidate) =>
-            `<button data-role="candidate-pick" data-input="${escapeHtmlAttribute(preview.input)}" data-key="${escapeHtmlAttribute(getCandidateKey(candidate))}" type="button" title="${escapeHtmlAttribute(candidate.reason)}">${escapeHtml(candidate.displayName)} (${escapeHtml(candidate.provider)}, ${candidate.score}%)</button>`,
+            `<button data-role="candidate-pick" data-input="${escapeHtmlAttribute(preview.input)}" data-key="${escapeHtmlAttribute(getCandidateKey(candidate))}" type="button" title="${escapeHtmlAttribute(candidate.reason)}">${escapeHtml(candidate.displayName)} (${escapeHtml(candidate.provider)}, ${candidate.score}%, ${escapeHtml(candidate.confidenceLabel ?? "unknown")})</button>`,
         )
         .join(" ");
 
       return `
         <article>
           <h3>${escapeHtml(preview.input)}</h3>
-          <p><strong>Detected:</strong> ${escapeHtml(preview.candidate.displayName)} (${preview.candidate.score}%)</p>
+          <p><strong>Detected:</strong> ${escapeHtml(preview.candidate.displayName)} (${preview.candidate.score}%, ${escapeHtml(preview.candidate.confidenceLabel ?? "unknown")})</p>
           <p><strong>Why this match:</strong> ${escapeHtml(preview.candidate.reason)}</p>
           <p><strong>Kind:</strong> ${escapeHtml(preview.parsed.kind)}</p>
           <p><strong>Title:</strong> ${escapeHtml(preview.parsed.title)}</p>

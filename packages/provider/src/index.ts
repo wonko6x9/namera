@@ -95,6 +95,7 @@ async function fetchOmdbCandidates(
       provider: "omdb",
       providerId: result.imdbID,
       score,
+      confidenceLabel: score >= 90 ? "high" : score >= 70 ? "medium" : "low",
       displayName: result.Year ? `${result.Title} (${result.Year})` : result.Title,
       reason: exactTitle
         ? sameYear

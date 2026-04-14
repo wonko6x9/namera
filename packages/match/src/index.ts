@@ -2,7 +2,12 @@ import type { MatchCandidate, ParsedMedia } from "@namera/core";
 
 export function rankCandidates(parsed: ParsedMedia, providerCandidates: MatchCandidate[] = []): MatchCandidate[] {
   const localCandidates = buildLocalCandidates(parsed);
-  return [...providerCandidates, ...localCandidates].sort((left, right) => right.score - left.score);
+  return [...providerCandidates, ...localCandidates]
+    .map((candidate) => ({
+      ...candidate,
+      confidenceLabel: labelConfidence(candidate.score),
+    }))
+    .sort((left, right) => right.score - left.score);
 }
 
 function buildLocalCandidates(parsed: ParsedMedia): MatchCandidate[] {
@@ -40,4 +45,10 @@ function buildLocalCandidates(parsed: ParsedMedia): MatchCandidate[] {
       reason: "Insufficient structure for confident match",
     },
   ];
+}
+
+function labelConfidence(score: number): "high" | "medium" | "low" {
+  if (score >= 90) return "high";
+  if (score >= 70) return "medium";
+  return "low";
 }

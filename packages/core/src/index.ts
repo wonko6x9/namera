@@ -29,6 +29,7 @@ export interface MatchCandidate {
   displayName: string;
   reason: string;
   providerId?: string;
+  confidenceLabel?: "high" | "medium" | "low";
 }
 
 export interface RenamePlan {

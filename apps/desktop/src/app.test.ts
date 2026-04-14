@@ -68,6 +68,7 @@ describe("Namera MVP flow", () => {
     ]);
 
     expect(preview.candidate.provider).toBe("omdb");
+    expect(preview.candidate.confidenceLabel).toBe("high");
     expect(preview.plan.proposedPath).toBe("Movies/The Matrix (1999)/The Matrix (1999).mkv");
   });
 
@@ -148,6 +149,13 @@ describe("Namera MVP flow", () => {
     expect(request.title).toBe("Severance");
     expect(request.season).toBe(1);
     expect(request.episode).toBe(1);
+  });
+
+  it("labels low-confidence fallback candidates honestly", () => {
+    const parsed = parseFilename("Some.Confusing.File.Name.Thing.bin");
+    const candidate = rankCandidates(parsed)[0];
+
+    expect(candidate?.confidenceLabel).toBe("low");
   });
 
   it("exports plan sets and reports provider status honestly", () => {
