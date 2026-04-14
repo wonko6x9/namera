@@ -2,7 +2,7 @@ import { loadConfig, loadHistory, pushHistory } from "@namera/config";
 import type { IngestItem, PreviewResult } from "@namera/core";
 import { createPhase3DestinationPlan } from "@namera/destination";
 import { createExecutionRecord, exportPlanSet } from "@namera/exec";
-import { parseTextIngest } from "@namera/ingest";
+import { parseFileListIngest, parseTextIngest } from "@namera/ingest";
 import { rankCandidates } from "@namera/match";
 import { parseFilename } from "@namera/parse";
 import { buildPlan } from "@namera/plan";
@@ -13,19 +13,48 @@ Severance.S01E01.Good.News.About.Hell.2160p.WEB-DL.mkv
 Andor__S01E03---Reckoning..WEBRip.mp4
 Some.Confusing.File.Name.Thing.bin`;
 
+export interface AppController {
+  rerender: (markup: string) => void;
+  ingestFiles: (files: File[]) => Promise<void>;
+}
+
+interface AppState {
+  textInput: string;
+  ingestedItems: IngestItem[];
+}
+
+const state: AppState = {
+  textInput: DEFAULT_INPUT,
+  ingestedItems: parseTextIngest(DEFAULT_INPUT),
+};
+
 export function App(): string {
+  return renderApp(state);
+}
+
+export function createAppController(rerender: (markup: string) => void): AppController {
+  return {
+    rerender,
+    async ingestFiles(files: File[]) {
+      const fileItems = await parseFileListIngest(files);
+      state.ingestedItems = fileItems.length ? fileItems : parseTextIngest(state.textInput);
+      rerender(renderApp(state));
+    },
+  };
+}
+
+function renderApp(appState: AppState): string {
   const config = loadConfig();
-  const ingestedItems = parseTextIngest(DEFAULT_INPUT);
-  const previews = ingestedItems.map((item) => buildPreview(item.name));
+  const previews = appState.ingestedItems.map((item) => buildPreview(item.name));
   const persistedHistory = previews.map((preview) => pushHistory(createExecutionRecord(preview.plan)));
   const history = persistedHistory.at(-1) ?? loadHistory();
   const exportedPlans = exportPlanSet(previews.map((preview) => preview.plan));
   const providerSummary = providerStatus(config.providers);
 
-  const ingestMarkup = ingestedItems
+  const ingestMarkup = appState.ingestedItems
     .map(
       (item) => `
-        <li>${escapeHtml(item.name)} <small>(${escapeHtml(item.source)})</small></li>
+        <li>${escapeHtml(item.name)} <small>(${escapeHtml(item.source)}${item.pathHint ? ` • ${escapeHtml(item.pathHint)}` : ""})</small></li>
       `,
     )
     .join("");
@@ -68,12 +97,24 @@ export function App(): string {
         <h2>Status</h2>
         <p><strong>Destination roots:</strong> Movies=${escapeHtml(config.destinations.movieRoot)}, TV=${escapeHtml(config.destinations.tvRoot)}, Music=${escapeHtml(config.destinations.musicRoot)}</p>
         <p><strong>Providers:</strong> ${escapeHtml(providerSummary)}</p>
-        <p><strong>Ingest summary:</strong> ${escapeHtml(summarizeIngest(ingestedItems))}</p>
+        <p><strong>Ingest summary:</strong> ${escapeHtml(summarizeIngest(appState.ingestedItems))}</p>
       </section>
       <section>
         <h2>Ingest</h2>
-        <p>Current MVP accepts newline-separated filenames as a real ingest lane, instead of a hardcoded sample array. File picker wiring is the next UI step.</p>
-        <textarea rows="6" cols="80">${escapeHtml(DEFAULT_INPUT)}</textarea>
+        <p>Text input still works, but the MVP now has actual file and folder pickers driving the same preview flow.</p>
+        <textarea rows="6" cols="80">${escapeHtml(appState.textInput)}</textarea>
+        <div>
+          <label>
+            <strong>Pick files:</strong>
+            <input data-role="file-input" type="file" multiple accept=".mkv,.mp4,.avi,.mov,.m4v,.mp3,.flac,.wav" />
+          </label>
+        </div>
+        <div>
+          <label>
+            <strong>Pick folder:</strong>
+            <input data-role="folder-input" type="file" webkitdirectory directory multiple />
+          </label>
+        </div>
         <ul>${ingestMarkup}</ul>
       </section>
       <section>

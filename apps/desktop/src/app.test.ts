@@ -5,7 +5,7 @@ import { buildPlan } from "@namera/plan";
 import { createPhase3DestinationPlan } from "@namera/destination";
 import { providerStatus } from "@namera/provider";
 import { exportPlanSet } from "@namera/exec";
-import { parseTextIngest } from "@namera/ingest";
+import { looksLikeMediaFile, parseTextIngest } from "@namera/ingest";
 import { summarizeIngest } from "./App";
 
 describe("Namera MVP flow", () => {
@@ -45,6 +45,12 @@ describe("Namera MVP flow", () => {
     expect(items).toHaveLength(2);
     expect(items[0]?.name).toBe("The.Matrix.1999.1080p.BluRay.mkv");
     expect(summarizeIngest(items)).toBe("2 inputs ingested");
+  });
+
+  it("filters obvious non-media names for file picker ingest", () => {
+    expect(looksLikeMediaFile("movie.mkv")).toBe(true);
+    expect(looksLikeMediaFile("cover.jpg")).toBe(false);
+    expect(looksLikeMediaFile("notes.txt")).toBe(false);
   });
 
   it("exports plan sets and reports provider status honestly", () => {

@@ -1,5 +1,7 @@
 import type { IngestItem } from "@namera/core";
 
+const MEDIA_EXTENSIONS = new Set(["mkv", "mp4", "avi", "mov", "m4v", "mp3", "flac", "wav"]);
+
 export function parseTextIngest(input: string): IngestItem[] {
   return input
     .split(/\r?\n/)
@@ -17,7 +19,12 @@ export async function parseFileListIngest(files: Iterable<File>): Promise<Ingest
     name: normalizeInputName(file.name),
     size: file.size,
     pathHint: file.webkitRelativePath || file.name,
-  }));
+  })).filter((item) => looksLikeMediaFile(item.name));
+}
+
+export function looksLikeMediaFile(name: string): boolean {
+  const extension = name.split(".").pop()?.toLowerCase();
+  return Boolean(extension && MEDIA_EXTENSIONS.has(extension));
 }
 
 function normalizeInputName(name: string): string {
