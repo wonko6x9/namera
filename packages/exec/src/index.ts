@@ -9,14 +9,34 @@ export function createExecutionRecord(plan: RenamePlan): HistoryEntry {
   };
 }
 
-export function createPlannedExecution(plan: RenamePlan): ExecutionAction {
-  return {
+export function createPlannedExecutions(plan: RenamePlan): ExecutionAction[] {
+  const actions: ExecutionAction[] = [];
+  const segments = plan.proposedPath.split("/");
+
+  if (segments.length > 1) {
+    const directoryPath = segments.slice(0, -1).join("/");
+    actions.push({
+      type: "mkdir",
+      toPath: directoryPath,
+      status: "planned",
+      note: "Ensure target directory exists before rename/move",
+    });
+  }
+
+  actions.push({
     type: "rename",
     fromPath: plan.sourceName,
     toPath: plan.proposedPath,
     status: "planned",
     note: "Execution scaffold only. Real filesystem apply/undo still pending.",
-  };
+  });
+
+  return actions;
+}
+
+export function summarizeExecutionActions(actions: ExecutionAction[]): string {
+  if (!actions.length) return "No execution actions planned";
+  return actions.map((action) => `${action.type}:${action.toPath}`).join(" | ");
 }
 
 export function exportPlanSet(plans: RenamePlan[]): string {

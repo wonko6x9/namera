@@ -1,7 +1,7 @@
 import { loadConfig, loadHistory, pushHistory } from "@namera/config";
 import type { IngestItem, MatchCandidate, PreviewResult } from "@namera/core";
 import { createPhase3DestinationPlan } from "@namera/destination";
-import { createExecutionRecord, createPlannedExecution, exportPlanSet } from "@namera/exec";
+import { createExecutionRecord, createPlannedExecutions, exportPlanSet, summarizeExecutionActions } from "@namera/exec";
 import { parseFileListIngest, parseTextIngest } from "@namera/ingest";
 import { rankCandidates } from "@namera/match";
 import { parseFilename } from "@namera/parse";
@@ -92,7 +92,7 @@ function renderApp(appState: AppState): string {
       const destination = createPhase3DestinationPlan(preview.plan, "webdav");
       const request = buildProviderRequest(preview.parsed, config.providers);
       const warningText = preview.plan.warnings.length ? preview.plan.warnings.join("; ") : "none";
-      const execution = createPlannedExecution(preview.plan);
+      const executionActions = createPlannedExecutions(preview.plan);
       const candidateList = (preview.candidates ?? [])
         .slice(0, 3)
         .map((candidate) => `${candidate.displayName} (${candidate.provider}, ${candidate.score}%)`)
@@ -107,7 +107,13 @@ function renderApp(appState: AppState): string {
           <p><strong>Proposed path:</strong> ${escapeHtml(preview.plan.proposedPath)}</p>
           <p><strong>Warnings:</strong> ${escapeHtml(warningText)}</p>
           <p><strong>Candidate stack:</strong> ${escapeHtml(candidateList || "none")}</p>
-          <p><strong>Execution scaffold:</strong> ${escapeHtml(execution.type)} / ${escapeHtml(execution.status)} / ${escapeHtml(execution.note ?? "")}</p>
+          <p><strong>Execution plan:</strong> ${escapeHtml(summarizeExecutionActions(executionActions))}</p>
+          <ul>${executionActions
+            .map(
+              (action) =>
+                `<li>${escapeHtml(action.type)} → ${escapeHtml(action.toPath)}${action.fromPath ? ` <small>from ${escapeHtml(action.fromPath)}</small>` : ""}</li>`,
+            )
+            .join("")}</ul>
           <p><strong>Provider request:</strong> <code>${escapeHtml(JSON.stringify(request))}</code></p>
           <p><strong>Phase 3 destination:</strong> ${escapeHtml(destination.backend)} / ${escapeHtml(destination.status)} / ${escapeHtml(destination.note)}</p>
         </article>

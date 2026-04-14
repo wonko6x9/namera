@@ -59,8 +59,8 @@ export interface HistoryEntry {
 }
 
 export interface ExecutionAction {
-  type: "rename" | "move";
-  fromPath: string;
+  type: "rename" | "move" | "mkdir";
+  fromPath?: string;
   toPath: string;
   status: "planned" | "applied" | "failed";
   note?: string;

@@ -22,7 +22,7 @@ A cross-platform desktop app and local engine for:
 
 ## Current status
 
-Real TypeScript/Vite MVP in progress. Parser, local heuristic matching, rename-plan generation, preview UI, config/history scaffolding, exportable plan sets, real file/folder ingest, first OMDb live-lookup wiring, provider-backed preview selection, and a phase-3 WebDAV destination stub are all working. The next useful step is deeper provider ranking, manual correction flow, and real execution wiring.
+Real TypeScript/Vite MVP in progress. Parser, local heuristic matching, rename-plan generation, preview UI, config/history scaffolding, exportable plan sets, real file/folder ingest, first OMDb live-lookup wiring, provider-backed preview selection, and an explicit local execution-plan scaffold are all working, with a phase-3 WebDAV destination stub held separately. The next useful step is manual correction flow and real filesystem execution/undo wiring.
 
 ## Key docs
 

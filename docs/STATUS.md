@@ -27,7 +27,7 @@ Replace demo-only batch input with real text/file ingest, then land the first pr
 - Local heuristic ranking works for movie/episode happy paths
 - Plex-style rename-plan generation works
 - Exportable plan sets and local config/history scaffolding exist
-- Provider request shaping exists, first live OMDb lookup wiring is present when an API key is configured, and provider candidates now feed the preview-selection path
+- Provider request shaping exists, first live OMDb lookup wiring is present when an API key is configured, provider candidates now feed the preview-selection path, and local execution steps are now rendered as an explicit action plan scaffold
 - WebDAV is represented honestly as a phase-3 destination stub, not fake functionality
 
 ## Recovery note
