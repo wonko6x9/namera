@@ -1,0 +1,18 @@
+{
+  "name": "namera",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Cross-platform Plex-focused media matching, renaming, and tagging tool.",
+  "packageManager": "pnpm@10.32.1",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "pnpm --filter desktop dev",
+    "build": "pnpm --filter desktop build",
+    "lint": "pnpm --filter desktop lint",
+    "test": "pnpm --filter desktop test",
+    "test:ui": "pnpm --filter desktop test"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "desktop",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@namera/core": "workspace:*",
+    "@namera/parse": "workspace:*",
+    "@namera/match": "workspace:*",
+    "@namera/plan": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^7.1.10",
+    "vitest": "^3.2.4"
+  }
+}

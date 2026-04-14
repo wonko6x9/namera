@@ -1,0 +1,9 @@
+[package]
+name = "namera-plan"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { workspace = true }
+namera-parse = { path = "../namera-parse" }
+namera-match = { path = "../namera-match" }
