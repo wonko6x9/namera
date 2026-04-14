@@ -10,10 +10,14 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@namera/config": "workspace:*",
     "@namera/core": "workspace:*",
-    "@namera/parse": "workspace:*",
+    "@namera/destination": "workspace:*",
+    "@namera/exec": "workspace:*",
     "@namera/match": "workspace:*",
-    "@namera/plan": "workspace:*"
+    "@namera/parse": "workspace:*",
+    "@namera/plan": "workspace:*",
+    "@namera/provider": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

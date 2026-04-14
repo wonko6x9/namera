@@ -35,8 +35,40 @@ export interface RenamePlan {
   confidence: number;
 }
 
+export interface PreviewResult {
+  input: string;
+  parsed: ParsedMedia;
+  candidate: MatchCandidate;
+  plan: RenamePlan;
+}
+
 export interface HistoryEntry {
   sourceName: string;
   proposedPath: string;
   confidence: number;
+  createdAt: string;
+}
+
+export interface DestinationProfile {
+  movieRoot: string;
+  tvRoot: string;
+  musicRoot: string;
+}
+
+export interface ProviderConfig {
+  tmdbApiKey?: string;
+  tvdbApiKey?: string;
+  omdbApiKey?: string;
+}
+
+export interface AppConfig {
+  destinations: DestinationProfile;
+  providers: ProviderConfig;
+}
+
+export interface Phase3DestinationPlan {
+  backend: "local" | "webdav";
+  targetPath: string;
+  status: "ready" | "stub";
+  note: string;
 }

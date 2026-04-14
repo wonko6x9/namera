@@ -50,14 +50,23 @@ Working now:
 - basic `SxxExx` TV parsing
 - local heuristic candidate ranking
 - previewable Plex-style rename plan generation
-- simple desktop sample UI flow
+- batch-style desktop sample flow
+- local history/config scaffolding in the browser
+- provider request scaffolding
+- honest phase-3 WebDAV destination stub
 
 Still intentionally stubbed:
 - real metadata provider integrations
 - actual filesystem execution/undo in the UI
-- ingest, queueing, settings persistence, and history UI
-- WebDAV and anything beyond MVP
+- real file/folder ingest instead of sample/demo batch input
+- verified remote transfer behavior
+
+## Phase progress
+
+- Phase 1: parser + planner MVP, working
+- Phase 2: batch preview + settings/history/provider scaffolding, working
+- Phase 3: destination backend shape stubbed so WebDAV can land without redesign
 
 ## Immediate next implementation step
 
-Hook the current TypeScript MVP flow to file/folder ingest and then replace heuristic matching with real metadata providers.
+Replace demo input with real file/folder ingest and add the first live metadata provider integration.

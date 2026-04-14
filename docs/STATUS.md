@@ -1,7 +1,7 @@
 # STATUS
 
 ## Current phase
-Early MVP implementation in progress
+Phase 2 working, Phase 3 scaffold started
 
 ## Project name
 - **Namera**
@@ -18,7 +18,7 @@ Early MVP implementation in progress
 - Product direction is primarily media matching, renaming, and tagging, with Plex-friendly organization as an important workflow target
 
 ## Current next step
-Connect the current parser/matcher/planner MVP flow to real file ingest, then swap heuristic matching for real provider-backed lookup.
+Replace demo batch input with real file/folder ingest, then land the first provider-backed metadata lookup and local execution wiring.
 
 ## Recovery note
 If work resumes after interruption, start by reading:
