@@ -1,4 +1,4 @@
-import type { HistoryEntry, RenamePlan } from "@namera/core";
+import type { ExecutionAction, HistoryEntry, RenamePlan } from "@namera/core";
 
 export function createExecutionRecord(plan: RenamePlan): HistoryEntry {
   return {
@@ -6,6 +6,16 @@ export function createExecutionRecord(plan: RenamePlan): HistoryEntry {
     proposedPath: plan.proposedPath,
     confidence: plan.confidence,
     createdAt: new Date().toISOString(),
+  };
+}
+
+export function createPlannedExecution(plan: RenamePlan): ExecutionAction {
+  return {
+    type: "rename",
+    fromPath: plan.sourceName,
+    toPath: plan.proposedPath,
+    status: "planned",
+    note: "Execution scaffold only. Real filesystem apply/undo still pending.",
   };
 }
 

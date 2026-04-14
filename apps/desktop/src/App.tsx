@@ -1,7 +1,7 @@
 import { loadConfig, loadHistory, pushHistory } from "@namera/config";
-import type { IngestItem, PreviewResult } from "@namera/core";
+import type { IngestItem, MatchCandidate, PreviewResult } from "@namera/core";
 import { createPhase3DestinationPlan } from "@namera/destination";
-import { createExecutionRecord, exportPlanSet } from "@namera/exec";
+import { createExecutionRecord, createPlannedExecution, exportPlanSet } from "@namera/exec";
 import { parseFileListIngest, parseTextIngest } from "@namera/ingest";
 import { rankCandidates } from "@namera/match";
 import { parseFilename } from "@namera/parse";
@@ -23,12 +23,14 @@ interface AppState {
   textInput: string;
   ingestedItems: IngestItem[];
   liveProviderMessage: string;
+  providerCandidatesByInput: Record<string, MatchCandidate[]>;
 }
 
 const state: AppState = {
   textInput: DEFAULT_INPUT,
   ingestedItems: parseTextIngest(DEFAULT_INPUT),
   liveProviderMessage: "No live provider lookup attempted yet",
+  providerCandidatesByInput: {},
 };
 
 export function App(): string {
@@ -44,17 +46,23 @@ export function createAppController(rerender: (markup: string) => void): AppCont
       rerender(renderApp(state));
     },
     async refreshProviders() {
-      const parsed = state.ingestedItems[0] ? parseFilename(state.ingestedItems[0].name) : undefined;
-      if (!parsed) {
+      const config = loadConfig();
+      if (!state.ingestedItems.length) {
         state.liveProviderMessage = "Nothing ingested yet";
         rerender(renderApp(state));
         return;
       }
 
-      const config = loadConfig();
-      const candidates = await fetchProviderCandidates(parsed, config.providers);
-      state.liveProviderMessage = candidates.length
-        ? `Live provider candidates: ${candidates.map((candidate) => candidate.displayName).join(", ")}`
+      const providerCandidatesByInput: Record<string, MatchCandidate[]> = {};
+      for (const item of state.ingestedItems.slice(0, 10)) {
+        const parsed = parseFilename(item.name);
+        providerCandidatesByInput[item.name] = await fetchProviderCandidates(parsed, config.providers);
+      }
+
+      state.providerCandidatesByInput = providerCandidatesByInput;
+      const totalLiveCandidates = Object.values(providerCandidatesByInput).reduce((sum, candidates) => sum + candidates.length, 0);
+      state.liveProviderMessage = totalLiveCandidates
+        ? `Live provider lookup loaded ${totalLiveCandidates} candidate${totalLiveCandidates === 1 ? "" : "s"}`
         : config.providers.omdbApiKey
           ? "Live provider lookup ran, but found no candidates"
           : "Live provider lookup unavailable until an OMDb API key is configured";
@@ -65,7 +73,7 @@ export function createAppController(rerender: (markup: string) => void): AppCont
 
 function renderApp(appState: AppState): string {
   const config = loadConfig();
-  const previews = appState.ingestedItems.map((item) => buildPreview(item.name));
+  const previews = appState.ingestedItems.map((item) => buildPreview(item.name, appState.providerCandidatesByInput[item.name] ?? []));
   const persistedHistory = previews.map((preview) => pushHistory(createExecutionRecord(preview.plan)));
   const history = persistedHistory.at(-1) ?? loadHistory();
   const exportedPlans = exportPlanSet(previews.map((preview) => preview.plan));
@@ -84,6 +92,11 @@ function renderApp(appState: AppState): string {
       const destination = createPhase3DestinationPlan(preview.plan, "webdav");
       const request = buildProviderRequest(preview.parsed, config.providers);
       const warningText = preview.plan.warnings.length ? preview.plan.warnings.join("; ") : "none";
+      const execution = createPlannedExecution(preview.plan);
+      const candidateList = (preview.candidates ?? [])
+        .slice(0, 3)
+        .map((candidate) => `${candidate.displayName} (${candidate.provider}, ${candidate.score}%)`)
+        .join(" • ");
 
       return `
         <article>
@@ -93,6 +106,8 @@ function renderApp(appState: AppState): string {
           <p><strong>Title:</strong> ${escapeHtml(preview.parsed.title)}</p>
           <p><strong>Proposed path:</strong> ${escapeHtml(preview.plan.proposedPath)}</p>
           <p><strong>Warnings:</strong> ${escapeHtml(warningText)}</p>
+          <p><strong>Candidate stack:</strong> ${escapeHtml(candidateList || "none")}</p>
+          <p><strong>Execution scaffold:</strong> ${escapeHtml(execution.type)} / ${escapeHtml(execution.status)} / ${escapeHtml(execution.note ?? "")}</p>
           <p><strong>Provider request:</strong> <code>${escapeHtml(JSON.stringify(request))}</code></p>
           <p><strong>Phase 3 destination:</strong> ${escapeHtml(destination.backend)} / ${escapeHtml(destination.status)} / ${escapeHtml(destination.note)}</p>
         </article>
@@ -157,11 +172,12 @@ function renderApp(appState: AppState): string {
   `;
 }
 
-export function buildPreview(input: string): PreviewResult {
+export function buildPreview(input: string, providerCandidates: MatchCandidate[] = []): PreviewResult {
   const parsed = parseFilename(input);
-  const candidate = rankCandidates(parsed)[0];
+  const candidates = rankCandidates(parsed, providerCandidates);
+  const candidate = candidates[0];
   const plan = buildPlan(parsed, candidate);
-  return { input, parsed, candidate, plan };
+  return { input, parsed, candidate, plan, candidates };
 }
 
 export function summarizeIngest(items: IngestItem[]): string {

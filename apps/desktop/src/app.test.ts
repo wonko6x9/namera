@@ -6,7 +6,7 @@ import { createPhase3DestinationPlan } from "@namera/destination";
 import { providerStatus } from "@namera/provider";
 import { exportPlanSet } from "@namera/exec";
 import { looksLikeMediaFile, parseTextIngest } from "@namera/ingest";
-import { createAppController, summarizeIngest } from "./App";
+import { buildPreview, createAppController, summarizeIngest } from "./App";
 
 describe("Namera MVP flow", () => {
   it("builds a movie rename preview", () => {
@@ -51,6 +51,21 @@ describe("Namera MVP flow", () => {
     expect(looksLikeMediaFile("movie.mkv")).toBe(true);
     expect(looksLikeMediaFile("cover.jpg")).toBe(false);
     expect(looksLikeMediaFile("notes.txt")).toBe(false);
+  });
+
+  it("prefers live provider candidates over local heuristics when available", () => {
+    const preview = buildPreview("The.Matrix.1999.1080p.BluRay.mkv", [
+      {
+        provider: "omdb",
+        providerId: "tt0133093",
+        score: 97,
+        displayName: "The Matrix (1999)",
+        reason: "Live OMDb match by exact title and year",
+      },
+    ]);
+
+    expect(preview.candidate.provider).toBe("omdb");
+    expect(preview.plan.proposedPath).toBe("Movies/The Matrix (1999)/The Matrix (1999).mkv");
   });
 
   it("exposes a controller for live-provider refresh flow", async () => {

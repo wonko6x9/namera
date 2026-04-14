@@ -48,6 +48,7 @@ export interface PreviewResult {
   parsed: ParsedMedia;
   candidate: MatchCandidate;
   plan: RenamePlan;
+  candidates?: MatchCandidate[];
 }
 
 export interface HistoryEntry {
@@ -55,6 +56,14 @@ export interface HistoryEntry {
   proposedPath: string;
   confidence: number;
   createdAt: string;
+}
+
+export interface ExecutionAction {
+  type: "rename" | "move";
+  fromPath: string;
+  toPath: string;
+  status: "planned" | "applied" | "failed";
+  note?: string;
 }
 
 export interface DestinationProfile {

@@ -1,6 +1,11 @@
 import type { MatchCandidate, ParsedMedia } from "@namera/core";
 
-export function rankCandidates(parsed: ParsedMedia): MatchCandidate[] {
+export function rankCandidates(parsed: ParsedMedia, providerCandidates: MatchCandidate[] = []): MatchCandidate[] {
+  const localCandidates = buildLocalCandidates(parsed);
+  return [...providerCandidates, ...localCandidates].sort((left, right) => right.score - left.score);
+}
+
+function buildLocalCandidates(parsed: ParsedMedia): MatchCandidate[] {
   if (parsed.kind === "movie") {
     return [
       {
