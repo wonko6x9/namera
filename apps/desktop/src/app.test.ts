@@ -3,7 +3,7 @@ import { parseFilename } from "@namera/parse";
 import { rankCandidates } from "@namera/match";
 import { buildPlan } from "@namera/plan";
 import { createPhase3DestinationPlan } from "@namera/destination";
-import { providerStatus } from "@namera/provider";
+import { buildProviderRequest, providerStatus } from "@namera/provider";
 import { createExecutionBatch, createPlannedExecutions, exportPlanSet, summarizeExecutionActions } from "@namera/exec";
 import { looksLikeMediaFile, parseTextIngest } from "@namera/ingest";
 import { buildPreview, createAppController, summarizeIngest } from "./App";
@@ -29,6 +29,7 @@ describe("Namera MVP flow", () => {
     expect(parsed.episode?.seriesTitle).toBe("Severance");
     expect(parsed.episode?.episodeTitle).toBe("Good News About Hell");
     expect(plan.proposedPath).toBe("TV Shows/Severance/Season 01/Severance - S01E01 - Good News About Hell.mkv");
+    expect(candidate.reason).toContain("episode title");
   });
 
   it("exposes a phase 3 destination stub without pretending it works", () => {
@@ -137,6 +138,16 @@ describe("Namera MVP flow", () => {
     controller.chooseCandidate("The.Matrix.1999.1080p.BluRay.mkv", "local-heuristic:The Matrix (1999)");
 
     expect(renders.at(-1)).toContain("Candidate override");
+  });
+
+  it("shapes episode provider requests around the series title", () => {
+    const parsed = parseFilename("Severance.S01E01.Good.News.About.Hell.2160p.WEB-DL.mkv");
+    const request = buildProviderRequest(parsed, { omdbApiKey: "x" });
+
+    expect(parsed.episode?.seriesTitle).toBe("Severance");
+    expect(request.title).toBe("Severance");
+    expect(request.season).toBe(1);
+    expect(request.episode).toBe(1);
   });
 
   it("exports plan sets and reports provider status honestly", () => {

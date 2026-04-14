@@ -23,7 +23,7 @@ interface OmdbSearchResponse {
 export function buildProviderRequest(parsed: ParsedMedia, config: ProviderConfig): ProviderRequest {
   return {
     kind: parsed.kind,
-    title: parsed.title,
+    title: parsed.kind === "episode" ? parsed.episode?.seriesTitle ?? parsed.title : parsed.title,
     year: parsed.movie?.year,
     season: parsed.episode?.season,
     episode: parsed.episode?.episode,
@@ -60,7 +60,7 @@ async function fetchOmdbCandidates(
 ): Promise<MatchCandidate[]> {
   const url = new URL("https://www.omdbapi.com/");
   url.searchParams.set("apikey", omdbApiKey);
-  url.searchParams.set("s", parsed.title);
+  url.searchParams.set("s", parsed.kind === "episode" ? parsed.episode?.seriesTitle ?? parsed.title : parsed.title);
 
   if (parsed.kind === "movie") {
     url.searchParams.set("type", "movie");
@@ -85,7 +85,8 @@ async function fetchOmdbCandidates(
   }
 
   return data.Search.slice(0, 5).map((result, index) => {
-    const exactTitle = result.Title.toLowerCase() === parsed.title.toLowerCase();
+    const requestTitle = parsed.kind === "episode" ? parsed.episode?.seriesTitle ?? parsed.title : parsed.title;
+    const exactTitle = result.Title.toLowerCase() === requestTitle.toLowerCase();
     const sameYear = parsed.movie?.year ? result.Year.includes(String(parsed.movie.year)) : false;
     const baseScore = parsed.kind === "movie" ? 72 : 68;
     const score = Math.min(98, baseScore + (exactTitle ? 18 : 8) + (sameYear ? 8 : 0) - index * 3);

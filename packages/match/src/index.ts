@@ -18,12 +18,16 @@ function buildLocalCandidates(parsed: ParsedMedia): MatchCandidate[] {
   }
 
   if (parsed.kind === "episode" && parsed.episode) {
+    const seriesTitle = parsed.episode.seriesTitle ?? parsed.title;
+    const episodeTitle = parsed.episode.episodeTitle ? ` - ${parsed.episode.episodeTitle}` : "";
     return [
       {
         provider: "local-heuristic",
         score: 90,
-        displayName: `${parsed.title} - S${String(parsed.episode.season).padStart(2, "0")}E${String(parsed.episode.episode).padStart(2, "0")}`,
-        reason: "Series title and episode pattern extracted from filename",
+        displayName: `${seriesTitle} - S${String(parsed.episode.season).padStart(2, "0")}E${String(parsed.episode.episode).padStart(2, "0")}${episodeTitle}`,
+        reason: parsed.episode.episodeTitle
+          ? "Series title, episode number, and episode title extracted from filename"
+          : "Series title and episode pattern extracted from filename",
       },
     ];
   }

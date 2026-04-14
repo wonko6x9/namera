@@ -115,7 +115,7 @@ function renderApp(appState: AppState): string {
         .slice(0, 5)
         .map(
           (candidate) =>
-            `<button data-role="candidate-pick" data-input="${escapeHtmlAttribute(preview.input)}" data-key="${escapeHtmlAttribute(getCandidateKey(candidate))}" type="button">${escapeHtml(candidate.displayName)} (${escapeHtml(candidate.provider)}, ${candidate.score}%)</button>`,
+            `<button data-role="candidate-pick" data-input="${escapeHtmlAttribute(preview.input)}" data-key="${escapeHtmlAttribute(getCandidateKey(candidate))}" type="button" title="${escapeHtmlAttribute(candidate.reason)}">${escapeHtml(candidate.displayName)} (${escapeHtml(candidate.provider)}, ${candidate.score}%)</button>`,
         )
         .join(" ");
 
@@ -123,6 +123,7 @@ function renderApp(appState: AppState): string {
         <article>
           <h3>${escapeHtml(preview.input)}</h3>
           <p><strong>Detected:</strong> ${escapeHtml(preview.candidate.displayName)} (${preview.candidate.score}%)</p>
+          <p><strong>Why this match:</strong> ${escapeHtml(preview.candidate.reason)}</p>
           <p><strong>Kind:</strong> ${escapeHtml(preview.parsed.kind)}</p>
           <p><strong>Title:</strong> ${escapeHtml(preview.parsed.title)}</p>
           <p><strong>Proposed path:</strong> ${escapeHtml(preview.plan.proposedPath)}</p>
