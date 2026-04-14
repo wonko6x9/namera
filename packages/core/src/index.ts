@@ -39,6 +39,12 @@ export interface RenamePlan {
   confidence: number;
 }
 
+export interface PlanOptions {
+  movieRoot?: string;
+  tvRoot?: string;
+  musicRoot?: string;
+}
+
 export interface IngestItem {
   source: "text" | "file";
   name: string;

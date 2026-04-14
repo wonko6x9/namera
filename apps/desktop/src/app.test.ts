@@ -110,6 +110,24 @@ describe("Namera MVP flow", () => {
     expect(batch.summary).toBe("Would run 2 actions");
   });
 
+  it("uses configured destination roots in generated plans", () => {
+    const preview = buildPreview(
+      "The.Matrix.1999.1080p.BluRay.mkv",
+      [],
+      undefined,
+      {
+        destinations: {
+          movieRoot: "Films",
+          tvRoot: "Series",
+          musicRoot: "Tracks",
+        },
+        providers: {},
+      },
+    );
+
+    expect(preview.plan.proposedPath).toBe("Films/The Matrix (1999)/The Matrix (1999).mkv");
+  });
+
   it("persists config updates through the controller", () => {
     const renders: string[] = [];
     const controller = createAppController((markup) => renders.push(markup));

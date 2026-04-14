@@ -87,7 +87,12 @@ export function createAppController(rerender: (markup: string) => void): AppCont
 
 function renderApp(appState: AppState): string {
   const previews = appState.ingestedItems.map((item) =>
-    buildPreview(item.name, appState.providerCandidatesByInput[item.name] ?? [], appState.selectedCandidateKeyByInput[item.name]),
+    buildPreview(
+      item.name,
+      appState.providerCandidatesByInput[item.name] ?? [],
+      appState.selectedCandidateKeyByInput[item.name],
+      appState.config,
+    ),
   );
   const persistedHistory = previews.map((preview) => pushHistory(createExecutionRecord(preview.plan)));
   const history = persistedHistory.at(-1) ?? loadHistory();
@@ -223,12 +228,13 @@ export function buildPreview(
   input: string,
   providerCandidates: MatchCandidate[] = [],
   selectedCandidateKey?: string,
+  config?: AppConfig,
 ): PreviewResult {
   const parsed = parseFilename(input);
   const rankedCandidates = rankCandidates(parsed, providerCandidates);
   const candidates = reorderCandidates(rankedCandidates, selectedCandidateKey);
   const selectedCandidate = candidates[0] ?? rankedCandidates[0]!;
-  const plan = buildPlan(parsed, selectedCandidate);
+  const plan = buildPlan(parsed, selectedCandidate, config?.destinations);
   return { input, parsed, candidate: selectedCandidate, plan, candidates };
 }
 

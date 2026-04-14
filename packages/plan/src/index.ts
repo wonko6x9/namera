@@ -1,21 +1,27 @@
-import type { MatchCandidate, ParsedMedia, RenamePlan } from "@namera/core";
+import type { MatchCandidate, ParsedMedia, PlanOptions, RenamePlan } from "@namera/core";
 
-export function buildPlan(parsed: ParsedMedia, candidate?: MatchCandidate): RenamePlan {
+export function buildPlan(parsed: ParsedMedia, candidate?: MatchCandidate, options: PlanOptions = {}): RenamePlan {
   let proposedPath: string;
   const candidateName = extractCandidateTitle(candidate?.displayName) ?? parsed.title;
+  const movieRoot = options.movieRoot ?? "Movies";
+  const tvRoot = options.tvRoot ?? "TV Shows";
+  const musicRoot = options.musicRoot ?? "Music";
 
   if (parsed.kind === "movie") {
     const year = extractCandidateYear(candidate?.displayName) ?? parsed.movie?.year;
     const yearSuffix = year ? ` (${year})` : "";
     const ext = parsed.extension ?? "mkv";
-    proposedPath = `Movies/${candidateName}${yearSuffix}/${candidateName}${yearSuffix}.${ext}`;
+    proposedPath = `${movieRoot}/${candidateName}${yearSuffix}/${candidateName}${yearSuffix}.${ext}`;
   } else if (parsed.kind === "episode" && parsed.episode) {
     const ext = parsed.extension ?? "mkv";
     const season = String(parsed.episode.season).padStart(2, "0");
     const episode = String(parsed.episode.episode).padStart(2, "0");
     const seriesTitle = parsed.episode.seriesTitle ?? candidateName;
     const episodeTitle = parsed.episode.episodeTitle ? ` - ${parsed.episode.episodeTitle}` : "";
-    proposedPath = `TV Shows/${seriesTitle}/Season ${season}/${seriesTitle} - S${season}E${episode}${episodeTitle}.${ext}`;
+    proposedPath = `${tvRoot}/${seriesTitle}/Season ${season}/${seriesTitle} - S${season}E${episode}${episodeTitle}.${ext}`;
+  } else if (parsed.kind === "music") {
+    const ext = parsed.extension ?? "mp3";
+    proposedPath = `${musicRoot}/${parsed.title}.${ext}`;
   } else {
     const ext = parsed.extension ?? "bin";
     proposedPath = `Unsorted/${parsed.title}.${ext}`;
