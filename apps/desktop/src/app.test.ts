@@ -7,7 +7,7 @@ import { createPhase3DestinationPlan } from "@namera/destination";
 import { buildProviderCacheKey, buildProviderRequest, fetchProviderCandidates, fetchProviderLookup, providerStatus } from "@namera/provider";
 import { createExecutionBatch, createPlannedExecutions, exportPlanSet, listExecutionLog, summarizeExecutionActions } from "@namera/exec";
 import { looksLikeMediaFile, parseTextIngest } from "@namera/ingest";
-import { buildPreview, createAppController, summarizeIngest, summarizeReview } from "./App";
+import { buildPreview, createAppController, resetAppState, summarizeIngest, summarizeReview } from "./App";
 import { getCorrection, loadConfig, loadExecutionLog, pushExecutionLog } from "@namera/config";
 
 describe("Namera MVP flow", () => {
@@ -15,6 +15,7 @@ describe("Namera MVP flow", () => {
     if (typeof localStorage !== "undefined") {
       localStorage.clear();
     }
+    resetAppState();
   });
   it("builds a movie rename preview", () => {
     const parsed = parseFilename("The.Matrix.1999.1080p.BluRay.mkv");
@@ -440,6 +441,59 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("<strong>applied:</strong> The.Matrix.1999.1080p.BluRay.mkv");
     expect(renders.at(-1)).toContain("<strong>failed:</strong> Severance.S01E01.Good.News.About.Hell.2160p.WEB-DL.mkv");
     expect(renders.at(-1)).toContain("<strong>skipped:</strong> Andor__S01E03---Reckoning..WEBRip.mp4");
+  });
+
+  it("retries only previously failed batch items", async () => {
+    const renders: string[] = [];
+    const controller = createAppController((markup) => renders.push(markup));
+    controller.setReviewFilter("all");
+    const invoke = vi
+      .fn()
+      .mockImplementationOnce(async () => ({
+        mode: "apply",
+        summary: "Applied 2 actions",
+        actions: [{ action_type: "rename", to_path: "Movies/The Matrix (1999)/The Matrix (1999).mkv", status: "applied" }],
+        log_entry: null,
+      }))
+      .mockRejectedValueOnce(new Error("boom"))
+      .mockImplementationOnce(async () => ({
+        mode: "apply",
+        summary: "Skipped apply because destination already exists",
+        actions: [{ action_type: "rename", to_path: "TV Shows/Andor/Season 01/Andor - S01E03 - Reckoning.mp4", status: "skipped" }],
+        log_entry: null,
+      }))
+      .mockImplementationOnce(async () => ({
+        mode: "apply",
+        summary: "Skipped apply because destination already exists",
+        actions: [{ action_type: "rename", to_path: "Unsorted/Some Confusing File Name Thing.bin", status: "skipped" }],
+        log_entry: null,
+      }))
+      .mockImplementationOnce(async () => ({
+        mode: "apply",
+        summary: "Applied 2 actions",
+        actions: [{ action_type: "rename", to_path: "TV Shows/Severance/Season 01/Severance - S01E01 - Good News About Hell.mkv", status: "applied" }],
+        log_entry: null,
+      }));
+
+    const fakeWindow = { __TAURI__: { core: { invoke } } };
+    Object.defineProperty(globalThis, "window", {
+      value: fakeWindow,
+      configurable: true,
+    });
+
+    await controller.applyVisibleNativeBatch();
+    await controller.retryFailedNativeBatch();
+
+    expect(invoke).toHaveBeenCalledTimes(5);
+    expect(invoke.mock.calls.at(-1)?.[1]).toMatchObject({ input: "Severance.S01E01.Good.News.About.Hell.2160p.WEB-DL.mkv" });
+    expect(renders.at(-1)).toContain("Retry failed batch finished: 1 applied, 0 skipped, 0 failed");
+    expect(renders.at(-1)).toContain("<strong>applied:</strong> Severance.S01E01.Good.News.About.Hell.2160p.WEB-DL.mkv");
+  });
+
+  it("disables retry failed batch when there is nothing failed to retry", async () => {
+    const { App } = await import("./App");
+
+    expect(App()).toContain('data-role="retry-failed-batch" type="button" disabled');
   });
 
   it("surfaces configured collision policy in preview warnings", () => {

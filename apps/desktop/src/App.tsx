@@ -25,6 +25,7 @@ export interface AppController {
   applyNativeExecution: (input: string) => Promise<void>;
   undoNativeExecution: (input: string) => Promise<void>;
   applyVisibleNativeBatch: () => Promise<void>;
+  retryFailedNativeBatch: () => Promise<void>;
 }
 
 interface NativeBatchResultItem {
@@ -61,11 +62,70 @@ const state: AppState = {
   nativeBatchResults: [],
 };
 
+export function resetAppState(): void {
+  state.textInput = DEFAULT_INPUT;
+  state.ingestedItems = parseTextIngest(DEFAULT_INPUT);
+  state.liveProviderMessage = "No live provider lookup attempted yet";
+  state.providerCandidatesByInput = {};
+  state.providerDiagnosticsByInput = {};
+  state.selectedCandidateKeyByInput = {};
+  state.reviewFilter = "all";
+  state.config = loadConfig();
+  state.nativeExecutionMessage = hasTauriInvoke()
+    ? "Native execution available in Tauri runtime"
+    : "Native execution unavailable in browser-only runtime";
+  state.nativeBatchResults = [];
+}
+
 export function App(): string {
   return renderApp(state);
 }
 
 export function createAppController(rerender: (markup: string) => void): AppController {
+  async function runNativeBatch(previews: PreviewResult[], summaryLabel = "Batch apply finished"): Promise<void> {
+    if (!previews.length) {
+      state.nativeExecutionMessage = "No visible items to apply";
+      state.nativeBatchResults = [];
+      return;
+    }
+
+    let applied = 0;
+    let skipped = 0;
+    let failed = 0;
+    const batchResults: NativeBatchResultItem[] = [];
+
+    for (const preview of previews) {
+      try {
+        const batch = await applyExecutionBatchNative(
+          state.config.destinations.sourceRoot || ".",
+          state.config.destinations.targetRoot || ".",
+          preview.input,
+          state.config.destinations.collisionPolicy,
+        );
+        if (batch.log_entry) {
+          pushExecutionLog(mapNativeLogEntry(batch.log_entry));
+        }
+        if (batch.actions.some((action) => action.status === "skipped")) {
+          skipped += 1;
+          batchResults.push({ input: preview.input, outcome: "skipped", summary: batch.summary });
+        } else {
+          applied += 1;
+          batchResults.push({ input: preview.input, outcome: "applied", summary: batch.summary });
+        }
+      } catch (error) {
+        failed += 1;
+        batchResults.push({
+          input: preview.input,
+          outcome: "failed",
+          summary: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    state.nativeExecutionMessage = `${summaryLabel}: ${applied} applied, ${skipped} skipped, ${failed} failed`;
+    state.nativeBatchResults = batchResults;
+  }
+
   return {
     rerender,
     async ingestFiles(files: File[]) {
@@ -173,49 +233,22 @@ export function createAppController(rerender: (markup: string) => void): AppCont
       rerender(renderApp(state));
     },
     async applyVisibleNativeBatch() {
-      const previews = getVisiblePreviews(state);
+      await runNativeBatch(getVisiblePreviews(state));
+      rerender(renderApp(state));
+    },
+    async retryFailedNativeBatch() {
+      const failedInputs = new Set(
+        state.nativeBatchResults.filter((result) => result.outcome === "failed").map((result) => result.input),
+      );
+      const previews = getAllPreviews(state).filter((preview) => failedInputs.has(preview.input));
       if (!previews.length) {
-        state.nativeExecutionMessage = "No visible items to apply";
+        state.nativeExecutionMessage = "No failed batch items to retry";
         state.nativeBatchResults = [];
         rerender(renderApp(state));
         return;
       }
 
-      let applied = 0;
-      let skipped = 0;
-      let failed = 0;
-      const batchResults: NativeBatchResultItem[] = [];
-
-      for (const preview of previews) {
-        try {
-          const batch = await applyExecutionBatchNative(
-            state.config.destinations.sourceRoot || ".",
-            state.config.destinations.targetRoot || ".",
-            preview.input,
-            state.config.destinations.collisionPolicy,
-          );
-          if (batch.log_entry) {
-            pushExecutionLog(mapNativeLogEntry(batch.log_entry));
-          }
-          if (batch.actions.some((action) => action.status === "skipped")) {
-            skipped += 1;
-            batchResults.push({ input: preview.input, outcome: "skipped", summary: batch.summary });
-          } else {
-            applied += 1;
-            batchResults.push({ input: preview.input, outcome: "applied", summary: batch.summary });
-          }
-        } catch (error) {
-          failed += 1;
-          batchResults.push({
-            input: preview.input,
-            outcome: "failed",
-            summary: error instanceof Error ? error.message : String(error),
-          });
-        }
-      }
-
-      state.nativeExecutionMessage = `Batch apply finished: ${applied} applied, ${skipped} skipped, ${failed} failed`;
-      state.nativeBatchResults = batchResults;
+      await runNativeBatch(previews, "Retry failed batch finished");
       rerender(renderApp(state));
     },
   };
@@ -231,6 +264,7 @@ function renderApp(appState: AppState): string {
   const corrections = loadCorrections();
   const exportedPlans = exportPlanSet(previews.map((preview) => preview.plan));
   const providerSummary = providerStatus(appState.config.providers);
+  const failedBatchCount = appState.nativeBatchResults.filter((result) => result.outcome === "failed").length;
   const batchResultsMarkup = appState.nativeBatchResults.length
     ? `<ul>${appState.nativeBatchResults
         .map(
@@ -408,6 +442,7 @@ function renderApp(appState: AppState): string {
           <button data-role="filter-needs-review" type="button">Needs review</button>
           <button data-role="filter-provider-backed" type="button">Provider-backed</button>
           <button data-role="apply-visible-batch" type="button" ${hasTauriInvoke() ? "" : "disabled"}>Apply visible batch</button>
+          <button data-role="retry-failed-batch" type="button" ${hasTauriInvoke() && failedBatchCount ? "" : "disabled"}>Retry failed batch</button>
         </div>
         <p><strong>Current filter:</strong> ${escapeHtml(appState.reviewFilter)}</p>
         ${previewMarkup || "<p>No items match the current review filter.</p>"}

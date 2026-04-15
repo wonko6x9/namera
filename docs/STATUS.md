@@ -18,7 +18,7 @@ Phases 1 and 2 are at a defendable MVP baseline, Phase 4 local execution is now 
 - Product direction is primarily media matching, renaming, and tagging, with Plex-friendly organization as an important workflow target
 
 ## Current next step
-Harden execution semantics beyond the first native apply/undo lane, especially selective batch retry/recovery behavior, clearer collision reporting, and broader log-backed undo validation.
+Harden execution semantics beyond the first native apply/undo lane, especially better collision reporting, broader log-backed undo validation, and richer batch recovery/reporting beyond the first selective retry path.
 
 ## Working implementation snapshot
 - TypeScript/Vite desktop MVP is real and runnable
@@ -31,7 +31,7 @@ Harden execution semantics beyond the first native apply/undo lane, especially s
 - Provider request shaping exists, live provider lookup is no longer movie-only: OMDb remains wired when configured, TVmaze now adds a TV-specific provider lane for episode searches, provider candidates now feed the preview-selection path, provider results are cached locally, provider diagnostics now surface idle / empty / cached / error states visibly, remembered corrections now persist and can bias future ranking for matching parsed items, the batch review flow now exposes summary counts and review filters, candidate stacks are deduplicated and biased toward live-provider results over equivalent heuristics, match reasons and confidence labels are surfaced visibly in the desktop flow, and manual candidate override is wired into the desktop flow
 - Config editing for destination roots, execution roots, collision policy, and OMDb key is wired into the desktop flow, and configured destination roots now affect generated plans
 - TV parsing now separates series title from episode title for better preview naming
-- Local execution steps are modeled as explicit dry-run/apply/undo execution batches, apply/undo actions are persisted into a local execution log, the Tauri side now exposes native apply/undo commands, collision policy is now configurable (`skip`, `overwrite`, `rename-new`), undo now refuses at least one obvious stale-file case by validating recorded apply metadata against the current destination file, visible-batch apply now reports honest per-item outcomes instead of only a rolled-up count, and subtitle/sidecar language qualifiers now survive rename planning instead of collapsing into collisions
+- Local execution steps are modeled as explicit dry-run/apply/undo execution batches, apply/undo actions are persisted into a local execution log, the Tauri side now exposes native apply/undo commands, collision policy is now configurable (`skip`, `overwrite`, `rename-new`), undo now refuses at least one obvious stale-file case by validating recorded apply metadata against the current destination file, visible-batch apply now reports honest per-item outcomes instead of only a rolled-up count, failed batch items can now be retried selectively, and subtitle/sidecar language qualifiers now survive rename planning instead of collapsing into collisions
 - WebDAV is represented honestly as a phase-3 destination stub, not fake functionality
 
 ## Recovery note

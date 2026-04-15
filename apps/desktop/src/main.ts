@@ -18,6 +18,7 @@ function wireApp(root: HTMLElement): void {
   const saveConfigButton = root.querySelector<HTMLButtonElement>("[data-role='save-config']");
   const applyNativeButtons = root.querySelectorAll<HTMLButtonElement>("[data-role='apply-native']");
   const applyVisibleBatchButton = root.querySelector<HTMLButtonElement>("[data-role='apply-visible-batch']");
+  const retryFailedBatchButton = root.querySelector<HTMLButtonElement>("[data-role='retry-failed-batch']");
   const undoNativeButtons = root.querySelectorAll<HTMLButtonElement>("[data-role='undo-native']");
   const filterAllButton = root.querySelector<HTMLButtonElement>("[data-role='filter-all']");
   const filterNeedsReviewButton = root.querySelector<HTMLButtonElement>("[data-role='filter-needs-review']");
@@ -85,6 +86,10 @@ function wireApp(root: HTMLElement): void {
 
   applyVisibleBatchButton?.addEventListener("click", async () => {
     await controller.applyVisibleNativeBatch();
+  });
+
+  retryFailedBatchButton?.addEventListener("click", async () => {
+    await controller.retryFailedNativeBatch();
   });
 
   undoNativeButtons.forEach((button) => {

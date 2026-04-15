@@ -119,7 +119,7 @@
 
 - **Batch quality-of-life**
   - queue management
-  - selective re-run of failed items
+  - selective re-run of failed items beyond the current first-pass retry button (for example preserving richer context, retry policy choices, and exportable failure sets)
   - better partial-success recovery
   - richer per-item review/export from batch execution results
 
