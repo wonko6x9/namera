@@ -430,10 +430,15 @@ function renderApp(appState: AppState): string {
     handoffReadiness: intent.handoffReadiness,
     readyCount: intent.summary.ready,
     blockedCount: intent.summary.blocked,
+    status: intent.status,
   }));
   const webdavHandoffPacketHistoryMarkup = webdavHandoffPacketHistory.length
-    ? `<ul>${webdavHandoffPacketHistory.map((packet) => `<li>${escapeHtml(packet.generatedAt)} • ${escapeHtml(packet.intentId)} • snapshot=${escapeHtml(packet.snapshotId)} • ${escapeHtml(packet.handoffReadiness)} • ${escapeHtml(`${packet.readyCount} ready, ${packet.blockedCount} blocked`)}</li>`).join("")}</ul>`
+    ? `<ul>${webdavHandoffPacketHistory.map((packet) => `<li>${escapeHtml(packet.generatedAt)} • ${escapeHtml(packet.intentId)} • snapshot=${escapeHtml(packet.snapshotId)} • ${escapeHtml(packet.status)} • ${escapeHtml(packet.handoffReadiness)} • ${escapeHtml(`${packet.readyCount} ready, ${packet.blockedCount} blocked`)}</li>`).join("")}</ul>`
     : "<p>No WebDAV handoff packets yet.</p>";
+  const acknowledgedWebdavHandoffPackets = webdavHandoffPacketHistory.filter((packet) => packet.status === "acknowledged");
+  const acknowledgedWebdavHandoffPacketsMarkup = acknowledgedWebdavHandoffPackets.length
+    ? `<ul>${acknowledgedWebdavHandoffPackets.map((packet) => `<li>${escapeHtml(packet.generatedAt)} • ${escapeHtml(packet.intentId)} • ${escapeHtml(packet.handoffReadiness)} • ${escapeHtml(`${packet.readyCount} ready, ${packet.blockedCount} blocked`)}</li>`).join("")}</ul>`
+    : "<p>No acknowledged WebDAV handoff packets yet.</p>";
   const recentRootsMarkup = appState.recentIngestRoots.length
     ? `<ul>${appState.recentIngestRoots.map((root) => `<li>${escapeHtml(root)}</li>`).join("")}</ul>`
     : "<p>No recent ingest roots yet</p>";
@@ -757,6 +762,10 @@ function renderApp(appState: AppState): string {
       <section>
         <h2>Recent WebDAV handoff packets</h2>
         ${webdavHandoffPacketHistoryMarkup}
+      </section>
+      <section>
+        <h2>Acknowledged WebDAV handoff packets</h2>
+        ${acknowledgedWebdavHandoffPacketsMarkup}
       </section>
       <section>
         <h2>Exported WebDAV transfer queue</h2>

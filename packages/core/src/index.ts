@@ -254,4 +254,5 @@ export interface WebdavTransferHandoffPacketSummary {
   handoffReadiness: "ready" | "blocked";
   readyCount: number;
   blockedCount: number;
+  status: "pending" | "acknowledged";
 }
