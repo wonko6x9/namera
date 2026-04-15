@@ -564,7 +564,7 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("assign • blocked");
     expect(renders.at(-1)).toContain("Grouped operations:");
     expect(renders.at(-1)).toContain("3 upload targets");
-    expect(renders.at(-1)).toContain("0 of 3 remote stages have recorded operator progress.");
+    expect(renders.at(-1)).toContain("0 of 3 remote stages have recorded operator progress, and 0 are explicitly blocked.");
     expect(renders.at(-1)).toContain("Recent WebDAV handoff packets");
     expect(renders.at(-1)).toContain("Acknowledged WebDAV handoff packets");
     expect(renders.at(-1)).toContain("Handoff-ready WebDAV packets");
@@ -667,10 +667,31 @@ describe("Namera MVP flow", () => {
     expect(loadWebdavTransferIntents()[0]?.lifecycleEvents[0]?.type).toBe("stage-progress-updated");
     expect(renders.at(-1)).toContain("Recorded WebDAV upload stage progress");
     expect(renders.at(-1)).toContain("Latest WebDAV remote stage progress");
-    expect(renders.at(-1)).toContain("1 of 3 remote stages have recorded operator progress.");
+    expect(renders.at(-1)).toContain("1 of 3 remote stages have recorded operator progress, and 0 are explicitly blocked.");
     expect(renders.at(-1)).toContain("upload • completed • 3 targets");
     expect(renders.at(-1)).toContain('&quot;stageProgress&quot;');
     expect(renders.at(-1)).toContain('&quot;status&quot;: &quot;completed&quot;');
+  });
+
+  it("can mark a manual webdav stage blocked and surface it in handoff validation", () => {
+    const renders: string[] = [];
+    const controller = createAppController((markup) => renders.push(markup));
+
+    controller.setReviewFilter("webdav-ready");
+    controller.snapshotVisibleWebdavQueue();
+    controller.saveLatestWebdavIntent();
+    controller.assignLatestWebdavIntent();
+    controller.acknowledgeLatestWebdavIntent();
+    controller.recordLatestWebdavStageProgress("upload", "blocked");
+
+    expect(loadWebdavTransferIntents()[0]?.remoteStageProgress.upload.status).toBe("blocked");
+    expect(loadWebdavTransferIntents()[0]?.remoteStageProgress.upload.note).toContain("blocked after operator review");
+    expect(renders.at(-1)).toContain("Marked WebDAV upload stage blocked");
+    expect(renders.at(-1)).toContain("upload stage blocked");
+    expect(renders.at(-1)).toContain("Resolve the blocked upload stage before remote handoff.");
+    expect(renders.at(-1)).toContain("upload • blocked • Manual upload work is blocked after operator review.");
+    expect(renders.at(-1)).toContain("0 of 3 remote stages have recorded operator progress, and 1 are explicitly blocked.");
+    expect(renders.at(-1)).toContain('&quot;status&quot;: &quot;blocked&quot;');
   });
 
   it("removes a single ingest item from the queue", () => {

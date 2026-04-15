@@ -256,6 +256,7 @@ export function pushWebdavTransferIntent(intent: WebdavTransferIntent, storage: 
 export function recordWebdavTransferIntentStageProgress(
   id: string,
   stage: "mkdir" | "upload" | "verify",
+  status: "completed" | "blocked",
   note: string,
   storage: Storage = getStorage(),
 ): WebdavTransferIntent[] {
@@ -267,7 +268,7 @@ export function recordWebdavTransferIntentStageProgress(
       remoteStageProgress: {
         ...intent.remoteStageProgress,
         [stage]: {
-          status: "completed",
+          status,
           updatedAt,
           note,
         },
@@ -276,7 +277,7 @@ export function recordWebdavTransferIntentStageProgress(
         {
           at: updatedAt,
           type: "stage-progress-updated",
-          detail: `${stage} marked completed: ${note}`,
+          detail: `${stage} marked ${status}: ${note}`,
         },
         ...intent.lifecycleEvents,
       ],

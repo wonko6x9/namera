@@ -236,17 +236,17 @@ export interface WebdavTransferIntent {
   acknowledgementNote?: string;
   remoteStageProgress: {
     mkdir: {
-      status: "pending" | "completed";
+      status: "pending" | "completed" | "blocked";
       updatedAt?: string;
       note?: string;
     };
     upload: {
-      status: "pending" | "completed";
+      status: "pending" | "completed" | "blocked";
       updatedAt?: string;
       note?: string;
     };
     verify: {
-      status: "pending" | "completed";
+      status: "pending" | "completed" | "blocked";
       updatedAt?: string;
       note?: string;
     };
@@ -309,7 +309,7 @@ export interface WebdavTransferHandoffPacket {
     }>;
     stageProgress: Array<{
       stage: "mkdir" | "upload" | "verify";
-      status: "pending" | "completed";
+      status: "pending" | "completed" | "blocked";
       targetCount: number;
       updatedAt?: string;
       note?: string;
@@ -378,7 +378,7 @@ export interface WebdavTransferHandoffPacket {
     requiredActions: string[];
     stageProgress: Array<{
       stage: "mkdir" | "upload" | "verify";
-      status: "pending" | "completed";
+      status: "pending" | "completed" | "blocked";
       targetCount: number;
       updatedAt?: string;
       note?: string;

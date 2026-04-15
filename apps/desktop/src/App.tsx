@@ -29,7 +29,7 @@ export interface AppController {
   acknowledgeLatestWebdavIntent: () => void;
   assignLatestWebdavIntent: () => void;
   resolveLatestWebdavBlockedItems: () => void;
-  recordLatestWebdavStageProgress: (stage: "mkdir" | "upload" | "verify") => void;
+  recordLatestWebdavStageProgress: (stage: "mkdir" | "upload" | "verify", status?: "completed" | "blocked") => void;
   updateConfig: (patch: Partial<AppConfig>) => void;
   applyNativeExecution: (input: string) => Promise<void>;
   undoNativeExecution: (input: string) => Promise<void>;
@@ -326,7 +326,7 @@ export function createAppController(rerender: (markup: string) => void): AppCont
       state.nativeExecutionMessage = `Marked blocked items resolved for WebDAV transfer intent ${intent.id}`;
       rerender(renderApp(state));
     },
-    recordLatestWebdavStageProgress(stage) {
+    recordLatestWebdavStageProgress(stage, status = "completed") {
       const intent = state.webdavTransferIntents[0];
       if (!intent) {
         state.nativeExecutionMessage = "No saved WebDAV transfer intent available to update";
@@ -336,9 +336,14 @@ export function createAppController(rerender: (markup: string) => void): AppCont
       state.webdavTransferIntents = recordWebdavTransferIntentStageProgress(
         intent.id,
         stage,
-        `Manual ${stage} work was recorded after operator review.`,
+        status,
+        status === "completed"
+          ? `Manual ${stage} work was recorded after operator review.`
+          : `Manual ${stage} work is blocked after operator review.`,
       );
-      state.nativeExecutionMessage = `Recorded WebDAV ${stage} stage progress for transfer intent ${intent.id}`;
+      state.nativeExecutionMessage = status === "completed"
+        ? `Recorded WebDAV ${stage} stage progress for transfer intent ${intent.id}`
+        : `Marked WebDAV ${stage} stage blocked for transfer intent ${intent.id}`;
       rerender(renderApp(state));
     },
     updateConfig(patch: Partial<AppConfig>) {
@@ -500,22 +505,6 @@ function renderApp(appState: AppState): string {
               : `${blockedItems.length} blocked item${blockedItems.length === 1 ? " remains" : "s remain"} in this packet.`,
           },
         ];
-        const blockedChecks = readinessChecks.filter((check) => check.status === "blocked");
-        const validationNextSteps = blockedChecks.flatMap((check) => {
-          if (check.name === "Intent assigned") {
-            return ["Assign the latest WebDAV intent to a handoff owner."];
-          }
-          if (check.name === "Intent acknowledged") {
-            return ["Acknowledge the latest WebDAV intent prerequisites."];
-          }
-          if (check.name === "Ready operations available") {
-            return ["Save a snapshot that includes at least one WebDAV-ready item."];
-          }
-          if (check.name === "Blocked items cleared") {
-            return ["Resolve or remove blocked WebDAV items before remote handoff."];
-          }
-          return [`Resolve validation check: ${check.name}`];
-        });
         const groupedOperations = {
           mkdirTargets: readyOperations.flatMap((operation) => operation.actions.filter((action) => action.startsWith("Create remote parent folders for ")).map((action) => action.replace("Create remote parent folders for ", ""))),
           uploadTargets: readyOperations.flatMap((operation) => operation.actions.filter((action) => action.startsWith("Upload/copy renamed file to ")).map((action) => action.replace("Upload/copy renamed file to ", ""))),
@@ -544,6 +533,32 @@ function renderApp(appState: AppState): string {
             note: intent.remoteStageProgress.verify.note,
           },
         ];
+        const stageBlockedChecks = remoteStageProgress
+          .filter((item) => item.status === "blocked")
+          .map((item) => ({
+            name: `${item.stage} stage blocked`,
+            status: "blocked" as const,
+            detail: item.note ?? `${item.stage} is currently blocked for remote handoff.`,
+          }));
+        const blockedChecks = [...readinessChecks, ...stageBlockedChecks].filter((check) => check.status === "blocked");
+        const validationNextSteps = blockedChecks.flatMap((check) => {
+          if (check.name === "Intent assigned") {
+            return ["Assign the latest WebDAV intent to a handoff owner."];
+          }
+          if (check.name === "Intent acknowledged") {
+            return ["Acknowledge the latest WebDAV intent prerequisites."];
+          }
+          if (check.name === "Ready operations available") {
+            return ["Save a snapshot that includes at least one WebDAV-ready item."];
+          }
+          if (check.name === "Blocked items cleared") {
+            return ["Resolve or remove blocked WebDAV items before remote handoff."];
+          }
+          if (check.name.endsWith("stage blocked")) {
+            return [`Resolve the blocked ${check.name.replace(" blocked", "")} before remote handoff.`];
+          }
+          return [`Resolve validation check: ${check.name}`];
+        });
         const stageItems = {
           mkdir: readyOperations.filter((operation) => operation.actions.some((action) => action.startsWith("Create remote parent folders for "))),
           upload: readyOperations.filter((operation) => operation.actions.some((action) => action.startsWith("Upload/copy renamed file to "))),
@@ -573,23 +588,29 @@ function renderApp(appState: AppState): string {
           },
           {
             stage: "mkdir",
-            status: groupedOperations.mkdirTargets.length ? "ready" : "blocked",
+            status: intent.remoteStageProgress.mkdir.status === "blocked" ? "blocked" : groupedOperations.mkdirTargets.length ? "ready" : "blocked",
             detail: groupedOperations.mkdirTargets.length
-              ? `${groupedOperations.mkdirTargets.length} remote parent folder target${groupedOperations.mkdirTargets.length === 1 ? " is" : "s are"} ready.`
+              ? intent.remoteStageProgress.mkdir.status === "blocked"
+                ? intent.remoteStageProgress.mkdir.note ?? `${groupedOperations.mkdirTargets.length} remote parent folder target${groupedOperations.mkdirTargets.length === 1 ? " is" : "s are"} blocked.`
+                : `${groupedOperations.mkdirTargets.length} remote parent folder target${groupedOperations.mkdirTargets.length === 1 ? " is" : "s are"} ready.`
               : "No mkdir targets are packaged yet.",
           },
           {
             stage: "upload",
-            status: groupedOperations.uploadTargets.length ? "ready" : "blocked",
+            status: intent.remoteStageProgress.upload.status === "blocked" ? "blocked" : groupedOperations.uploadTargets.length ? "ready" : "blocked",
             detail: groupedOperations.uploadTargets.length
-              ? `${groupedOperations.uploadTargets.length} upload target${groupedOperations.uploadTargets.length === 1 ? " is" : "s are"} ready.`
+              ? intent.remoteStageProgress.upload.status === "blocked"
+                ? intent.remoteStageProgress.upload.note ?? `${groupedOperations.uploadTargets.length} upload target${groupedOperations.uploadTargets.length === 1 ? " is" : "s are"} blocked.`
+                : `${groupedOperations.uploadTargets.length} upload target${groupedOperations.uploadTargets.length === 1 ? " is" : "s are"} ready.`
               : "No upload targets are packaged yet.",
           },
           {
             stage: "verify",
-            status: groupedOperations.verifyTargets.length ? "ready" : "blocked",
+            status: intent.remoteStageProgress.verify.status === "blocked" ? "blocked" : groupedOperations.verifyTargets.length ? "ready" : "blocked",
             detail: groupedOperations.verifyTargets.length
-              ? `${groupedOperations.verifyTargets.length} verify target${groupedOperations.verifyTargets.length === 1 ? " is" : "s are"} ready.`
+              ? intent.remoteStageProgress.verify.status === "blocked"
+                ? intent.remoteStageProgress.verify.note ?? `${groupedOperations.verifyTargets.length} verify target${groupedOperations.verifyTargets.length === 1 ? " is" : "s are"} blocked.`
+                : `${groupedOperations.verifyTargets.length} verify target${groupedOperations.verifyTargets.length === 1 ? " is" : "s are"} ready.`
               : "No verify targets are packaged yet.",
           },
           {
@@ -1091,8 +1112,11 @@ function renderApp(appState: AppState): string {
           <button data-role="acknowledge-latest-webdav-intent" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Acknowledge latest WebDAV intent</button>
           <button data-role="resolve-latest-webdav-blocked" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Mark latest blocked items resolved</button>
           <button data-role="record-latest-webdav-mkdir" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Record latest WebDAV mkdir</button>
+          <button data-role="block-latest-webdav-mkdir" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Block latest WebDAV mkdir</button>
           <button data-role="record-latest-webdav-upload" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Record latest WebDAV upload</button>
+          <button data-role="block-latest-webdav-upload" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Block latest WebDAV upload</button>
           <button data-role="record-latest-webdav-verify" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Record latest WebDAV verify</button>
+          <button data-role="block-latest-webdav-verify" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Block latest WebDAV verify</button>
           <button data-role="apply-visible-batch" type="button" ${hasTauriInvoke() ? "" : "disabled"}>Apply visible batch</button>
           <button data-role="retry-failed-batch" type="button" ${hasTauriInvoke() && failedBatchCount ? "" : "disabled"}>Retry failed batch</button>
         </div>
@@ -1181,7 +1205,7 @@ function renderApp(appState: AppState): string {
       <section>
         <h2>Latest WebDAV remote stage progress</h2>
         ${latestWebdavHandoffPacket
-          ? `<p>${escapeHtml(`${latestWebdavHandoffPacket.executionBrief.stageProgress.filter((item) => item.status === "completed").length} of ${latestWebdavHandoffPacket.executionBrief.stageProgress.length} remote stages have recorded operator progress.`)}</p><ul>${latestWebdavHandoffPacket.executionBrief.stageProgress.map((item) => `<li>${escapeHtml(item.stage)} • ${escapeHtml(item.status)} • ${escapeHtml(`${item.targetCount} target${item.targetCount === 1 ? "" : "s"}`)}${item.note ? ` • ${escapeHtml(item.note)}` : ""}</li>`).join("")}</ul><pre>${escapeHtml(latestWebdavRemoteStageProgressExport)}</pre>`
+          ? `<p>${escapeHtml(`${latestWebdavHandoffPacket.executionBrief.stageProgress.filter((item) => item.status === "completed").length} of ${latestWebdavHandoffPacket.executionBrief.stageProgress.length} remote stages have recorded operator progress, and ${latestWebdavHandoffPacket.executionBrief.stageProgress.filter((item) => item.status === "blocked").length} are explicitly blocked.`)}</p><ul>${latestWebdavHandoffPacket.executionBrief.stageProgress.map((item) => `<li>${escapeHtml(item.stage)} • ${escapeHtml(item.status)} • ${escapeHtml(`${item.targetCount} target${item.targetCount === 1 ? "" : "s"}`)}${item.note ? ` • ${escapeHtml(item.note)}` : ""}</li>`).join("")}</ul><pre>${escapeHtml(latestWebdavRemoteStageProgressExport)}</pre>`
           : "<p>No pending WebDAV transfer intents yet.</p>"}
       </section>
       <section>

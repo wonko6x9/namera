@@ -22,7 +22,7 @@ A cross-platform desktop app and local engine for:
 
 ## Current status
 
-Real TypeScript/Vite MVP in progress. Parser, local heuristic matching, rename-plan generation, preview UI, editable config for destination roots and OMDb key, config/history scaffolding, exportable plan sets, real file/folder ingest, first OMDb live-lookup wiring, provider-backed preview selection, local provider-response caching, cleaner deduplicated candidate stacks, visible match explanations and confidence labels, manual candidate override controls, richer TV episode parsing/naming, and an explicit local execution contract with dry-run/apply/undo batch modeling are all working. Configured destination roots now affect actual plan generation. Apply/undo actions are now persisted into an honest local execution log, and the Tauri/native side exposes an execution-batch preview command, with a phase-3 WebDAV destination stub held separately. The next useful step is real native filesystem apply/undo replacing the scaffolded log-only execution layer, plus richer provider-backed episode metadata.
+Real TypeScript/Vite MVP in progress. Parser, local heuristic matching, rename-plan generation, preview UI, editable config for destination roots and OMDb key, config/history scaffolding, exportable plan sets, real file/folder ingest, first OMDb live-lookup wiring, provider-backed preview selection, local provider-response caching, cleaner deduplicated candidate stacks, visible match explanations and confidence labels, manual candidate override controls, richer TV episode parsing/naming, and an explicit local execution contract with dry-run/apply/undo batch modeling are all working. Configured destination roots now affect actual plan generation. Apply/undo actions are now persisted into an honest local execution log, and the Tauri/native side exposes an execution-batch preview command. The phase-3 WebDAV lane has moved beyond a pure stub into truthful handoff/state exports with explicit stage progress and blocked-stage reporting, but still stops short of pretending remote upload exists. The next useful step is resumable/manual remote execution state or real transfer execution, plus richer provider-backed episode metadata.
 
 ## Key docs
 
@@ -53,19 +53,19 @@ Working now:
 - batch-style desktop sample flow
 - local history/config scaffolding in the browser
 - provider request scaffolding
-- honest phase-3 WebDAV destination stub
+- honest phase-3 WebDAV destination and handoff-state exports
 
 Still intentionally stubbed:
 - broader metadata provider integrations beyond the first OMDb lane
-- actual native filesystem execution/undo in the UI, beyond the persisted execution-log scaffold
-- verified remote transfer behavior
+- fuller native filesystem execution/undo depth in the UI, beyond the current first real slice
+- verified remote transfer behavior beyond truthful handoff/state tracking
 
 ## Phase progress
 
 - Phase 1: parser + planner MVP, wrapped to a solid baseline
 - Phase 2: batch preview + settings/history/provider scaffolding, wrapped to a solid baseline
-- Phase 3: destination backend shape stubbed so WebDAV can land without redesign
+- Phase 3: destination backend and truthful manual handoff state are now in place, but real remote transfer execution is still open
 
 ## Immediate next implementation step
 
-Replace log-only execution scaffolding with real Tauri/Rust filesystem apply/undo, then deepen TV/provider metadata.
+Keep pushing the WebDAV lane toward truthful resumable/manual execution semantics, or land the next real local/native execution hardening slice, then deepen TV/provider metadata.
