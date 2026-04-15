@@ -5,7 +5,7 @@ import { buildCorrectionKey, rankCandidates } from "@namera/match";
 import { buildPlan } from "@namera/plan";
 import { createPhase3DestinationPlan, createPhase3TransferPlan } from "@namera/destination";
 import { buildProviderCacheKey, buildProviderRequest, fetchProviderCandidates, fetchProviderLookup, providerStatus } from "@namera/provider";
-import { createExecutionBatch, createPlannedExecutions, exportPlanSet, listExecutionLog, summarizeExecutionActions } from "@namera/exec";
+import { createExecutionBatch, createPlannedExecutions, exportPlanSet, exportReviewPlanSet, listExecutionLog, summarizeExecutionActions } from "@namera/exec";
 import { looksLikeMediaFile, parseTextIngest } from "@namera/ingest";
 import { buildArtworkSearchUrl, buildMediaSearchUrl, buildPreview, createAppController, exportFailedBatchResults, resetAppState, summarizeIngest, summarizeReview } from "./App";
 import { getCorrection, loadConfig, loadExecutionLog, loadRecentIngestRoots, pushExecutionLog } from "@namera/config";
@@ -440,11 +440,14 @@ describe("Namera MVP flow", () => {
 
     expect(renders.at(-1)).toContain("Destination preview mode:</strong> webdav");
     expect(renders.at(-1)).toContain("Phase 3 transfer:</strong> blocked /");
+    expect(renders.at(-1)).toContain("Exported review plan set");
+    expect(renders.at(-1)).toContain('&quot;backend&quot;: &quot;webdav&quot;');
 
     controller.setPreviewDestinationBackend("local");
 
     expect(renders.at(-1)).toContain("Destination preview mode:</strong> local");
     expect(renders.at(-1)).toContain("Not needed for local destination preview.");
+    expect(renders.at(-1)).toContain('&quot;backend&quot;: &quot;local&quot;');
   });
 
   it("removes a single ingest item from the queue", () => {
@@ -796,8 +799,16 @@ describe("Namera MVP flow", () => {
     const parsed = parseFilename("The.Matrix.1999.1080p.BluRay.mkv");
     const candidate = rankCandidates(parsed)[0];
     const plan = buildPlan(parsed, candidate);
+    const preview = buildPreview("The.Matrix.1999.1080p.BluRay.mkv");
 
     expect(exportPlanSet([plan])).toContain("The Matrix");
+    expect(exportReviewPlanSet([preview], undefined, "local")).toContain('"backend": "local"');
+    expect(exportReviewPlanSet([preview], {
+      movieRoot: "Movies",
+      tvRoot: "TV Shows",
+      musicRoot: "Music",
+      webdavMovieRoot: "/remote/movies",
+    }, "webdav")).toContain('"transferPlan"');
     expect(providerStatus({})).toContain("No live metadata providers configured yet");
   });
 

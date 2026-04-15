@@ -1,5 +1,6 @@
 import { loadExecutionLog, markExecutionUndone, pushExecutionLog } from "@namera/config";
-import type { ExecutionAction, ExecutionBatch, ExecutionLogEntry, HistoryEntry, RenamePlan } from "@namera/core";
+import { createPhase3DestinationPlan, createPhase3TransferPlan } from "@namera/destination";
+import type { DestinationProfile, ExecutionAction, ExecutionBatch, ExecutionLogEntry, HistoryEntry, PreviewResult, RenamePlan, ReviewPlanExportItem } from "@namera/core";
 
 export function createExecutionRecord(plan: RenamePlan): HistoryEntry {
   return {
@@ -74,6 +75,30 @@ export function summarizeExecutionBatch(mode: ExecutionBatch["mode"], actions: E
 
 export function exportPlanSet(plans: RenamePlan[]): string {
   return JSON.stringify(plans, null, 2);
+}
+
+export function exportReviewPlanSet(
+  previews: PreviewResult[],
+  config?: DestinationProfile,
+  backend: "local" | "webdav" = "local",
+): string {
+  const exported: ReviewPlanExportItem[] = previews.map((preview) => ({
+    input: preview.input,
+    detectedKind: preview.parsed.kind,
+    match: {
+      provider: preview.candidate.provider,
+      displayName: preview.candidate.displayName,
+      confidenceLabel: preview.candidate.confidenceLabel,
+      score: preview.candidate.score,
+    },
+    renamePlan: preview.plan,
+    destinationPlan: createPhase3DestinationPlan(preview.plan, preview.parsed.kind, config, backend),
+    transferPlan: backend === "webdav"
+      ? createPhase3TransferPlan(preview.plan, preview.parsed.kind, config)
+      : undefined,
+  }));
+
+  return JSON.stringify({ backend, items: exported }, null, 2);
 }
 
 export function listExecutionLog(): ExecutionLogEntry[] {

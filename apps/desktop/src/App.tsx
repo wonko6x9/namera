@@ -1,7 +1,7 @@
 import { loadConfig, loadCorrections, loadExecutionLog, loadHistory, loadRecentIngestRoots, markExecutionUndone, pushExecutionLog, pushHistory, pushRecentIngestRoots, saveConfig, setCorrection } from "@namera/config";
 import type { AppConfig, IngestItem, MatchCandidate, ParsedMedia, PreviewResult, ProviderDiagnostic, ReviewSummary } from "@namera/core";
 import { createPhase3DestinationPlan, createPhase3TransferPlan } from "@namera/destination";
-import { createExecutionBatch, createExecutionRecord, createPlannedExecutions, exportPlanSet, summarizeExecutionActions } from "@namera/exec";
+import { createExecutionBatch, createExecutionRecord, createPlannedExecutions, exportPlanSet, exportReviewPlanSet, summarizeExecutionActions } from "@namera/exec";
 import { parseFileListIngest, parseTextIngest } from "@namera/ingest";
 import { buildCorrectionKey, getCandidateKey, rankCandidates } from "@namera/match";
 import { parseFilename } from "@namera/parse";
@@ -294,6 +294,7 @@ function renderApp(appState: AppState): string {
   const executionLog = loadExecutionLog();
   const corrections = loadCorrections();
   const exportedPlans = exportPlanSet(previews.map((preview) => preview.plan));
+  const exportedReviewPlans = exportReviewPlanSet(previews, appState.config.destinations, appState.previewDestinationBackend);
   const providerSummary = providerStatus(appState.config.providers);
   const failedBatchCount = appState.nativeBatchResults.filter((result) => result.outcome === "failed").length;
   const failedBatchExport = exportFailedBatchResults(appState.nativeBatchResults);
@@ -561,8 +562,13 @@ function renderApp(appState: AppState): string {
         <ul>${Object.values(corrections).length ? Object.values(corrections).map((correction) => `<li>${escapeHtml(correction.key)} → ${escapeHtml(correction.displayName)} (${escapeHtml(correction.provider)})</li>`).join("") : "<li>No remembered corrections yet</li>"}</ul>
       </section>
       <section>
-        <h2>Exported plan set</h2>
+        <h2>Exported rename plan set</h2>
         <pre>${escapeHtml(exportedPlans)}</pre>
+      </section>
+      <section>
+        <h2>Exported review plan set</h2>
+        <p>Includes the currently selected destination preview backend and, when WebDAV preview is selected, the honest transfer contract or blocked reasons.</p>
+        <pre>${escapeHtml(exportedReviewPlans)}</pre>
       </section>
     </main>
   `;

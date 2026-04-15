@@ -143,7 +143,7 @@
   - verify success before source cleanup
   - resume/retry-aware transfer behavior
   - allow prompt-time choice to copy matched files to the configured per-type WebDAV destination instead of treating remote transfer as all-or-nothing global behavior
-  - current honest state: per-type WebDAV destination routing is now configurable and previewable, the desktop review now supports prompt-time local-vs-WebDAV destination preview selection, and phase 3 transfer contracts are previewed honestly (mkdir/upload/verify or blocked reasons), but transfer/upload execution remains unimplemented
+  - current honest state: per-type WebDAV destination routing is now configurable and previewable, the desktop review now supports prompt-time local-vs-WebDAV destination preview selection, exported review plans now preserve the selected destination backend plus honest transfer contracts, and phase 3 transfer contracts are previewed honestly (mkdir/upload/verify or blocked reasons), but transfer/upload execution remains unimplemented
 
 - **Library-specific destination routing**
   - separate destination profiles for Movies / TV / Music

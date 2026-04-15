@@ -4,6 +4,7 @@
   "type": "module",
   "main": "src/index.ts",
   "dependencies": {
-    "@namera/core": "workspace:*"
+    "@namera/core": "workspace:*",
+    "@namera/destination": "workspace:*"
   }
 }

@@ -158,3 +158,17 @@ export interface Phase3TransferPlan {
   actions: string[];
   summary: string;
 }
+
+export interface ReviewPlanExportItem {
+  input: string;
+  detectedKind: MediaKind;
+  match: {
+    provider: string;
+    displayName: string;
+    confidenceLabel?: "high" | "medium" | "low";
+    score: number;
+  };
+  renamePlan: RenamePlan;
+  destinationPlan: Phase3DestinationPlan;
+  transferPlan?: Phase3TransferPlan;
+}
