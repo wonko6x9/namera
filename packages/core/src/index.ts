@@ -181,3 +181,17 @@ export interface WebdavTransferQueueItem {
   actions: string[];
   reason: string;
 }
+
+export interface WebdavTransferQueueSummary {
+  ready: number;
+  blocked: number;
+  byKind: Array<{
+    kind: MediaKind;
+    ready: number;
+    blocked: number;
+  }>;
+  blockedReasons: Array<{
+    reason: string;
+    count: number;
+  }>;
+}

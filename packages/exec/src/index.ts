@@ -1,6 +1,6 @@
 import { loadExecutionLog, markExecutionUndone, pushExecutionLog } from "@namera/config";
 import { createPhase3DestinationPlan, createPhase3TransferPlan } from "@namera/destination";
-import type { DestinationProfile, ExecutionAction, ExecutionBatch, ExecutionLogEntry, HistoryEntry, PreviewResult, RenamePlan, ReviewPlanExportItem, WebdavTransferQueueItem } from "@namera/core";
+import type { DestinationProfile, ExecutionAction, ExecutionBatch, ExecutionLogEntry, HistoryEntry, PreviewResult, RenamePlan, ReviewPlanExportItem, WebdavTransferQueueItem, WebdavTransferQueueSummary } from "@namera/core";
 
 export function createExecutionRecord(plan: RenamePlan): HistoryEntry {
   return {
@@ -117,13 +117,40 @@ export function buildWebdavTransferQueue(previews: PreviewResult[], config?: Des
   });
 }
 
+export function summarizeWebdavTransferQueue(items: WebdavTransferQueueItem[]): WebdavTransferQueueSummary {
+  const byKind = new Map<string, { ready: number; blocked: number }>();
+  const blockedReasons = new Map<string, number>();
+
+  for (const item of items) {
+    const kindCounts = byKind.get(item.detectedKind) ?? { ready: 0, blocked: 0 };
+    if (item.state === "ready") {
+      kindCounts.ready += 1;
+    } else {
+      kindCounts.blocked += 1;
+      blockedReasons.set(item.reason, (blockedReasons.get(item.reason) ?? 0) + 1);
+    }
+    byKind.set(item.detectedKind, kindCounts);
+  }
+
+  return {
+    ready: items.filter((item) => item.state === "ready").length,
+    blocked: items.filter((item) => item.state === "blocked").length,
+    byKind: Array.from(byKind.entries())
+      .map(([kind, counts]) => ({ kind: kind as WebdavTransferQueueItem["detectedKind"], ...counts }))
+      .sort((left, right) => left.kind.localeCompare(right.kind)),
+    blockedReasons: Array.from(blockedReasons.entries())
+      .map(([reason, count]) => ({ reason, count }))
+      .sort((left, right) => right.count - left.count || left.reason.localeCompare(right.reason)),
+  };
+}
+
 export function exportWebdavTransferQueue(previews: PreviewResult[], config?: DestinationProfile): string {
   const items = buildWebdavTransferQueue(previews, config);
+  const summary = summarizeWebdavTransferQueue(items);
 
   return JSON.stringify({
     backend: "webdav",
-    ready: items.filter((item) => item.state === "ready").length,
-    blocked: items.filter((item) => item.state === "blocked").length,
+    summary,
     items,
   }, null, 2);
 }

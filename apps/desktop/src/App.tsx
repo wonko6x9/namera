@@ -1,7 +1,7 @@
 import { loadConfig, loadCorrections, loadExecutionLog, loadHistory, loadRecentIngestRoots, markExecutionUndone, pushExecutionLog, pushHistory, pushRecentIngestRoots, saveConfig, setCorrection } from "@namera/config";
 import type { AppConfig, IngestItem, MatchCandidate, ParsedMedia, PreviewResult, ProviderDiagnostic, ReviewSummary } from "@namera/core";
 import { createPhase3DestinationPlan, createPhase3TransferPlan } from "@namera/destination";
-import { buildWebdavTransferQueue, createExecutionBatch, createExecutionRecord, createPlannedExecutions, exportPlanSet, exportReviewPlanSet, exportWebdavTransferQueue, summarizeExecutionActions } from "@namera/exec";
+import { buildWebdavTransferQueue, createExecutionBatch, createExecutionRecord, createPlannedExecutions, exportPlanSet, exportReviewPlanSet, exportWebdavTransferQueue, summarizeExecutionActions, summarizeWebdavTransferQueue } from "@namera/exec";
 import { parseFileListIngest, parseTextIngest } from "@namera/ingest";
 import { buildCorrectionKey, getCandidateKey, rankCandidates } from "@namera/match";
 import { parseFilename } from "@namera/parse";
@@ -297,6 +297,7 @@ function renderApp(appState: AppState): string {
   const exportedReviewPlans = exportReviewPlanSet(previews, appState.config.destinations, appState.previewDestinationBackend);
   const exportedVisibleReviewPlans = exportReviewPlanSet(filteredPreviews, appState.config.destinations, appState.previewDestinationBackend);
   const webdavTransferQueue = buildWebdavTransferQueue(filteredPreviews, appState.config.destinations);
+  const webdavTransferQueueSummary = summarizeWebdavTransferQueue(webdavTransferQueue);
   const exportedWebdavTransferQueue = exportWebdavTransferQueue(filteredPreviews, appState.config.destinations);
   const exportedReadyWebdavTransferQueue = JSON.stringify(webdavTransferQueue.filter((item) => item.state === "ready"), null, 2);
   const exportedBlockedWebdavTransferQueue = JSON.stringify(webdavTransferQueue.filter((item) => item.state === "blocked"), null, 2);
@@ -601,6 +602,7 @@ function renderApp(appState: AppState): string {
       <section>
         <h2>Exported WebDAV transfer queue</h2>
         <p>Lists the currently visible items as a truthful remote transfer queue, marking each one as ready or blocked with concrete actions and reasons.</p>
+        <p><strong>Visible queue summary:</strong> ${escapeHtml(`${webdavTransferQueueSummary.ready} ready, ${webdavTransferQueueSummary.blocked} blocked`)}</p>
         <pre>${escapeHtml(exportedWebdavTransferQueue)}</pre>
       </section>
       <section>
