@@ -53,6 +53,7 @@
   - operation log
   - undo / revert history for completed operations
   - now the active implementation lane
+  - current honest state: first collision policy pass exists (`skip`, `overwrite`, `rename-new`) and undo validates some stale-file cases, but batch-wide sequencing/recovery is still a live seam
 
 - **Plex-friendly default templates**
   - movie template

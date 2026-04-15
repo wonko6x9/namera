@@ -46,10 +46,15 @@ export function hasTauriInvoke(): boolean {
   return typeof getInvoke() === "function";
 }
 
-export async function applyExecutionBatchNative(sourceRoot: string, targetRoot: string, input: string): Promise<NativeExecutionBatch> {
+export async function applyExecutionBatchNative(
+  sourceRoot: string,
+  targetRoot: string,
+  input: string,
+  collisionPolicy?: "skip" | "overwrite" | "rename-new",
+): Promise<NativeExecutionBatch> {
   const invoke = getInvoke();
   if (!invoke) throw new Error("Tauri invoke unavailable in this runtime");
-  return invoke<NativeExecutionBatch>("apply_execution_batch_command", { sourceRoot, targetRoot, input });
+  return invoke<NativeExecutionBatch>("apply_execution_batch_command", { sourceRoot, targetRoot, input, collisionPolicy });
 }
 
 export async function undoExecutionBatchNative(
@@ -58,6 +63,7 @@ export async function undoExecutionBatchNative(
   input: string,
   expectedLogId?: string,
   expectedSizeBytes?: number,
+  appliedPath?: string,
 ): Promise<NativeExecutionBatch> {
   const invoke = getInvoke();
   if (!invoke) throw new Error("Tauri invoke unavailable in this runtime");
@@ -67,5 +73,6 @@ export async function undoExecutionBatchNative(
     input,
     expectedLogId,
     expectedSizeBytes,
+    appliedPath,
   });
 }

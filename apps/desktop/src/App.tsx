@@ -125,6 +125,7 @@ export function createAppController(rerender: (markup: string) => void): AppCont
           state.config.destinations.sourceRoot || ".",
           state.config.destinations.targetRoot || ".",
           input,
+          state.config.destinations.collisionPolicy,
         );
         if (batch.log_entry) {
           pushExecutionLog(mapNativeLogEntry(batch.log_entry));
@@ -144,6 +145,7 @@ export function createAppController(rerender: (markup: string) => void): AppCont
           input,
           applyEntry?.id,
           applyEntry?.sourceSizeBytes,
+          applyEntry?.proposedPath,
         );
         if (batch.log_entry) {
           pushExecutionLog(mapNativeLogEntry(batch.log_entry));
@@ -273,6 +275,7 @@ function renderApp(appState: AppState): string {
         <h2>Status</h2>
         <p><strong>Destination roots:</strong> Movies=${escapeHtml(appState.config.destinations.movieRoot)}, TV=${escapeHtml(appState.config.destinations.tvRoot)}, Music=${escapeHtml(appState.config.destinations.musicRoot)}</p>
         <p><strong>Execution roots:</strong> Source=${escapeHtml(appState.config.destinations.sourceRoot || ".")}, Target=${escapeHtml(appState.config.destinations.targetRoot || ".")}</p>
+        <p><strong>Collision policy:</strong> ${escapeHtml(appState.config.destinations.collisionPolicy || "skip")}</p>
         <p><strong>Providers:</strong> ${escapeHtml(providerSummary)}</p>
         <p><strong>Ingest summary:</strong> ${escapeHtml(summarizeIngest(appState.ingestedItems))}</p>
         <p><strong>Live provider state:</strong> ${escapeHtml(appState.liveProviderMessage)}</p>
@@ -297,6 +300,15 @@ function renderApp(appState: AppState): string {
         </div>
         <div>
           <label>Target root <input data-role="config-target-root" value="${escapeHtmlAttribute(appState.config.destinations.targetRoot ?? ".")}" /></label>
+        </div>
+        <div>
+          <label>Collision policy
+            <select data-role="config-collision-policy">
+              <option value="skip" ${(appState.config.destinations.collisionPolicy ?? "skip") === "skip" ? "selected" : ""}>skip existing</option>
+              <option value="overwrite" ${(appState.config.destinations.collisionPolicy ?? "skip") === "overwrite" ? "selected" : ""}>overwrite existing</option>
+              <option value="rename-new" ${(appState.config.destinations.collisionPolicy ?? "skip") === "rename-new" ? "selected" : ""}>rename new file</option>
+            </select>
+          </label>
         </div>
         <button data-role="save-config" type="button">Save config</button>
       </section>
@@ -461,8 +473,8 @@ function mapActionType(value: string): "rename" | "move" | "mkdir" {
   return "rename";
 }
 
-function mapActionStatus(value: string): "planned" | "applied" | "failed" | "reverted" {
-  if (value === "applied" || value === "failed" || value === "reverted") return value;
+function mapActionStatus(value: string): "planned" | "applied" | "failed" | "reverted" | "skipped" {
+  if (value === "applied" || value === "failed" || value === "reverted" || value === "skipped") return value;
   return "planned";
 }
 

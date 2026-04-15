@@ -196,6 +196,7 @@ describe("Namera MVP flow", () => {
           musicRoot: "Tracks",
           sourceRoot: "/incoming",
           targetRoot: "/library",
+          collisionPolicy: "rename-new",
         },
         providers: {},
       },
@@ -215,6 +216,7 @@ describe("Namera MVP flow", () => {
         musicRoot: "Tracks",
         sourceRoot: "/incoming",
         targetRoot: "/library",
+        collisionPolicy: "overwrite",
       },
       providers: {
         omdbApiKey: "test-key",
@@ -225,6 +227,7 @@ describe("Namera MVP flow", () => {
     expect(config.destinations.movieRoot).toBe("Films");
     expect(config.destinations.sourceRoot).toBe("/incoming");
     expect(config.destinations.targetRoot).toBe("/library");
+    expect(config.destinations.collisionPolicy).toBe("overwrite");
     expect(config.providers.omdbApiKey).toBe("test-key");
     expect(renders.at(-1)).toContain("Configuration");
   });
@@ -302,10 +305,38 @@ describe("Namera MVP flow", () => {
 
     await controller.applyNativeExecution("The.Matrix.1999.1080p.BluRay.mkv");
 
-    expect(invoke).toHaveBeenCalled();
+    expect(invoke).toHaveBeenCalledWith(
+      "apply_execution_batch_command",
+      expect.objectContaining({
+        collisionPolicy: expect.stringMatching(/^(skip|overwrite|rename-new)$/),
+        sourceRoot: expect.any(String),
+        targetRoot: expect.any(String),
+      }),
+    );
     expect(loadExecutionLog()[0]?.mode).toBe("apply");
     expect(loadExecutionLog()[0]?.sourceSizeBytes).toBe(6);
     expect(renders.at(-1)).toContain("Applied 2 actions");
+  });
+
+  it("surfaces configured collision policy in preview warnings", () => {
+    const preview = buildPreview(
+      "The.Matrix.1999.1080p.BluRay.mkv",
+      [],
+      undefined,
+      {
+        destinations: {
+          movieRoot: "Movies",
+          tvRoot: "TV Shows",
+          musicRoot: "Music",
+          sourceRoot: ".",
+          targetRoot: ".",
+          collisionPolicy: "rename-new",
+        },
+        providers: {},
+      },
+    );
+
+    expect(preview.plan.warnings).toContain("Destination collision policy: rename-new");
   });
 
   it("shapes episode provider requests around the series title", () => {

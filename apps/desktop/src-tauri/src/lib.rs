@@ -25,12 +25,22 @@ fn preview_execution_batch(input: String, mode: Option<String>) -> Result<namera
 }
 
 #[tauri::command]
-fn apply_execution_batch_command(source_root: String, target_root: String, input: String) -> Result<namera_exec::ExecutionBatch, String> {
+fn apply_execution_batch_command(
+    source_root: String,
+    target_root: String,
+    input: String,
+    collision_policy: Option<String>,
+) -> Result<namera_exec::ExecutionBatch, String> {
     let parsed = parse_filename(&input);
     let candidates = rank_candidates(&parsed);
     let candidate = candidates.first();
     let plan = build_plan(&parsed, candidate);
-    apply_execution_batch(std::path::Path::new(&source_root), std::path::Path::new(&target_root), &plan)
+    apply_execution_batch(
+        std::path::Path::new(&source_root),
+        std::path::Path::new(&target_root),
+        &plan,
+        collision_policy.as_deref(),
+    )
         .map_err(|error| error.to_string())
 }
 
@@ -41,6 +51,7 @@ fn undo_execution_batch_command(
     input: String,
     expected_log_id: Option<String>,
     expected_size_bytes: Option<u64>,
+    applied_path: Option<String>,
 ) -> Result<namera_exec::ExecutionBatch, String> {
     let parsed = parse_filename(&input);
     let candidates = rank_candidates(&parsed);
@@ -52,6 +63,7 @@ fn undo_execution_batch_command(
         &plan,
         expected_log_id.as_deref(),
         expected_size_bytes,
+        applied_path.as_deref(),
     )
     .map_err(|error| error.to_string())
 }

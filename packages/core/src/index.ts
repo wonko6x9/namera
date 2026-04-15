@@ -39,6 +39,8 @@ export interface RenamePlan {
   confidence: number;
 }
 
+export type CollisionPolicy = "skip" | "overwrite" | "rename-new";
+
 export interface PlanOptions {
   movieRoot?: string;
   tvRoot?: string;
@@ -78,7 +80,7 @@ export interface ExecutionAction {
   type: "rename" | "move" | "mkdir";
   fromPath?: string;
   toPath: string;
-  status: "planned" | "applied" | "failed" | "reverted";
+  status: "planned" | "applied" | "failed" | "reverted" | "skipped";
   note?: string;
 }
 
@@ -107,6 +109,7 @@ export interface DestinationProfile {
   musicRoot: string;
   sourceRoot?: string;
   targetRoot?: string;
+  collisionPolicy?: CollisionPolicy;
 }
 
 export interface ProviderConfig {

@@ -31,6 +31,7 @@ export function buildPlan(parsed: ParsedMedia, candidate?: MatchCandidate, optio
   if (parsed.kind === "unknown") warnings.push("Low-confidence parse, manual review required");
   if (!candidate) warnings.push("No metadata provider candidate selected, using local heuristic only");
   if (candidate?.provider === "local-heuristic") warnings.push("Using local heuristic candidate instead of a live provider result");
+  warnings.push(`Destination collision policy: ${options.collisionPolicy ?? "skip"}`);
 
   return {
     sourceName: parsed.rawName,

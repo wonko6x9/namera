@@ -7,6 +7,7 @@ export const DEFAULT_CONFIG: AppConfig = {
     musicRoot: "Music",
     sourceRoot: ".",
     targetRoot: ".",
+    collisionPolicy: "skip",
   },
   providers: {},
 };
@@ -45,7 +46,19 @@ export function loadConfig(storage: Storage = getStorage()): AppConfig {
   try {
     const raw = storage.getItem(CONFIG_KEY);
     if (!raw) return DEFAULT_CONFIG;
-    return { ...DEFAULT_CONFIG, ...JSON.parse(raw) } as AppConfig;
+    const parsed = JSON.parse(raw) as Partial<AppConfig>;
+    return {
+      ...DEFAULT_CONFIG,
+      ...parsed,
+      destinations: {
+        ...DEFAULT_CONFIG.destinations,
+        ...parsed.destinations,
+      },
+      providers: {
+        ...DEFAULT_CONFIG.providers,
+        ...parsed.providers,
+      },
+    } as AppConfig;
   } catch {
     return DEFAULT_CONFIG;
   }

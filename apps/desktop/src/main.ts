@@ -27,6 +27,7 @@ function wireApp(root: HTMLElement): void {
   const omdbKeyInput = root.querySelector<HTMLInputElement>("[data-role='config-omdb-key']");
   const sourceRootInput = root.querySelector<HTMLInputElement>("[data-role='config-source-root']");
   const targetRootInput = root.querySelector<HTMLInputElement>("[data-role='config-target-root']");
+  const collisionPolicyInput = root.querySelector<HTMLSelectElement>("[data-role='config-collision-policy']");
 
   fileInput?.addEventListener("change", async (event) => {
     const files = Array.from((event.currentTarget as HTMLInputElement).files ?? []);
@@ -66,6 +67,7 @@ function wireApp(root: HTMLElement): void {
         musicRoot: musicRootInput?.value || "Music",
         sourceRoot: sourceRootInput?.value || ".",
         targetRoot: targetRootInput?.value || ".",
+        collisionPolicy: (collisionPolicyInput?.value as "skip" | "overwrite" | "rename-new" | undefined) || "skip",
       },
       providers: {
         omdbApiKey: omdbKeyInput?.value || undefined,
