@@ -417,6 +417,45 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("Current filter:</strong> needs-review");
   });
 
+  it("can focus the review lane on previously failed batch items", async () => {
+    const renders: string[] = [];
+    const controller = createAppController((markup) => renders.push(markup));
+    controller.setReviewFilter("all");
+    const invoke = vi
+      .fn()
+      .mockImplementationOnce(async () => ({
+        mode: "apply",
+        summary: "Applied 2 actions",
+        actions: [{ action_type: "rename", to_path: "Movies/The Matrix (1999)/The Matrix (1999).mkv", status: "applied" }],
+        log_entry: null,
+      }))
+      .mockRejectedValueOnce(new Error("boom"))
+      .mockImplementationOnce(async () => ({
+        mode: "apply",
+        summary: "Skipped apply because destination already exists",
+        actions: [{ action_type: "rename", to_path: "TV Shows/Andor/Season 01/Andor - S01E03 - Reckoning.mp4", status: "skipped" }],
+        log_entry: null,
+      }))
+      .mockImplementationOnce(async () => ({
+        mode: "apply",
+        summary: "Skipped apply because destination already exists",
+        actions: [{ action_type: "rename", to_path: "Unsorted/Some Confusing File Name Thing.bin", status: "skipped" }],
+        log_entry: null,
+      }));
+
+    Object.defineProperty(globalThis, "window", {
+      value: { __TAURI__: { core: { invoke } } },
+      configurable: true,
+    });
+
+    await controller.applyVisibleNativeBatch();
+    controller.setReviewFilter("failed-batch");
+
+    expect(renders.at(-1)).toContain("Current filter:</strong> failed-batch");
+    expect(renders.at(-1)).toContain("Severance.S01E01.Good.News.About.Hell.2160p.WEB-DL.mkv");
+    expect(renders.at(-1)).not.toContain("The.Matrix.1999.1080p.BluRay.mkv</h3>");
+  });
+
   it("records native apply results through the controller when Tauri is available", async () => {
     const renders: string[] = [];
     const controller = createAppController((markup) => renders.push(markup));

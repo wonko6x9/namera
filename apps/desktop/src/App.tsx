@@ -41,7 +41,7 @@ interface AppState {
   providerCandidatesByInput: Record<string, MatchCandidate[]>;
   providerDiagnosticsByInput: Record<string, ProviderDiagnostic[]>;
   selectedCandidateKeyByInput: Record<string, string>;
-  reviewFilter: "all" | "needs-review" | "provider-backed";
+  reviewFilter: "all" | "needs-review" | "provider-backed" | "failed-batch";
   config: AppConfig;
   nativeExecutionMessage: string;
   nativeBatchResults: NativeBatchResultItem[];
@@ -500,6 +500,7 @@ function renderApp(appState: AppState): string {
           <button data-role="filter-all" type="button">All</button>
           <button data-role="filter-needs-review" type="button">Needs review</button>
           <button data-role="filter-provider-backed" type="button">Provider-backed</button>
+          <button data-role="filter-failed-batch" type="button">Failed batch</button>
           <button data-role="apply-visible-batch" type="button" ${hasTauriInvoke() ? "" : "disabled"}>Apply visible batch</button>
           <button data-role="retry-failed-batch" type="button" ${hasTauriInvoke() && failedBatchCount ? "" : "disabled"}>Retry failed batch</button>
         </div>
@@ -587,6 +588,9 @@ function formatReviewSummary(summary: ReviewSummary): string {
 function matchesReviewFilter(preview: PreviewResult, filter: AppState["reviewFilter"]): boolean {
   if (filter === "all") return true;
   if (filter === "provider-backed") return preview.candidate.provider !== "local-heuristic";
+  if (filter === "failed-batch") {
+    return state.nativeBatchResults.some((result) => result.outcome === "failed" && result.input === preview.input);
+  }
   return preview.candidate.provider === "local-heuristic" || (preview.candidate.confidenceLabel ?? "low") === "low";
 }
 

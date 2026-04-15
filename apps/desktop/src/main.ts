@@ -25,6 +25,7 @@ function wireApp(root: HTMLElement): void {
   const filterAllButton = root.querySelector<HTMLButtonElement>("[data-role='filter-all']");
   const filterNeedsReviewButton = root.querySelector<HTMLButtonElement>("[data-role='filter-needs-review']");
   const filterProviderBackedButton = root.querySelector<HTMLButtonElement>("[data-role='filter-provider-backed']");
+  const filterFailedBatchButton = root.querySelector<HTMLButtonElement>("[data-role='filter-failed-batch']");
   const movieRootInput = root.querySelector<HTMLInputElement>("[data-role='config-movie-root']");
   const tvRootInput = root.querySelector<HTMLInputElement>("[data-role='config-tv-root']");
   const musicRootInput = root.querySelector<HTMLInputElement>("[data-role='config-music-root']");
@@ -141,6 +142,10 @@ function wireApp(root: HTMLElement): void {
 
   filterProviderBackedButton?.addEventListener("click", () => {
     controller.setReviewFilter("provider-backed");
+  });
+
+  filterFailedBatchButton?.addEventListener("click", () => {
+    controller.setReviewFilter("failed-batch");
   });
 }
 
