@@ -8,7 +8,7 @@ import { buildProviderCacheKey, buildProviderRequest, fetchProviderCandidates, f
 import { buildWebdavTransferQueue, createExecutionBatch, createPlannedExecutions, exportPlanSet, exportReviewPlanSet, exportWebdavTransferQueue, listExecutionLog, summarizeExecutionActions, summarizeWebdavTransferQueue } from "@namera/exec";
 import { looksLikeMediaFile, parseTextIngest } from "@namera/ingest";
 import { buildArtworkSearchUrl, buildMediaSearchUrl, buildPreview, createAppController, exportFailedBatchResults, resetAppState, summarizeIngest, summarizeReview } from "./App";
-import { getCorrection, loadConfig, loadExecutionLog, loadRecentIngestRoots, loadWebdavTransferIntents, loadWebdavTransferSnapshots, pushExecutionLog } from "@namera/config";
+import { getCorrection, loadConfig, loadExecutionLog, loadLocalBatchRuns, loadRecentIngestRoots, loadWebdavTransferIntents, loadWebdavTransferSnapshots, pushExecutionLog } from "@namera/config";
 
 describe("Namera MVP flow", () => {
   beforeEach(() => {
@@ -914,6 +914,11 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("<strong>applied:</strong> The.Matrix.1999.1080p.BluRay.mkv");
     expect(renders.at(-1)).toContain("<strong>failed:</strong> Severance.S01E01.Good.News.About.Hell.2160p.WEB-DL.mkv");
     expect(renders.at(-1)).toContain("<strong>skipped:</strong> Andor__S01E03---Reckoning..WEBRip.mp4");
+    expect(loadLocalBatchRuns()[0]?.plannedInputs.length).toBe(4);
+    expect(loadLocalBatchRuns()[0]?.failedInputs).toContain("Severance.S01E01.Good.News.About.Hell.2160p.WEB-DL.mkv");
+    expect(loadLocalBatchRuns()[0]?.status).toBe("completed");
+    expect(renders.at(-1)).toContain("Latest local batch recovery state");
+    expect(renders.at(-1)).toContain("Retry 1 failed item from the last batch run.");
     expect(renders.at(-1)).toContain('&quot;input&quot;: &quot;Severance.S01E01.Good.News.About.Hell.2160p.WEB-DL.mkv&quot;');
   });
 

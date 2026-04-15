@@ -1,5 +1,5 @@
-import { acknowledgeWebdavTransferIntent, annotateWebdavTransferIntent, loadConfig, loadCorrections, loadExecutionLog, loadHistory, loadRecentIngestRoots, loadWebdavTransferIntents, loadWebdavTransferSnapshots, markExecutionUndone, pushExecutionLog, pushHistory, pushRecentIngestRoots, pushWebdavTransferIntent, pushWebdavTransferSnapshot, recordWebdavTransferIntentStageProgress, saveConfig, setCorrection, updateWebdavTransferIntentPrerequisite } from "@namera/config";
-import type { AppConfig, IngestItem, MatchCandidate, MediaKind, ParsedMedia, PreviewResult, ProviderDiagnostic, ReviewSummary, WebdavTransferHandoffPacket, WebdavTransferHandoffPacketSummary } from "@namera/core";
+import { acknowledgeWebdavTransferIntent, annotateWebdavTransferIntent, loadConfig, loadCorrections, loadExecutionLog, loadHistory, loadLocalBatchRuns, loadRecentIngestRoots, loadWebdavTransferIntents, loadWebdavTransferSnapshots, markExecutionUndone, pushExecutionLog, pushHistory, pushLocalBatchRun, pushRecentIngestRoots, pushWebdavTransferIntent, pushWebdavTransferSnapshot, recordWebdavTransferIntentStageProgress, saveConfig, setCorrection, updateLocalBatchRun, updateWebdavTransferIntentPrerequisite } from "@namera/config";
+import type { AppConfig, IngestItem, LocalBatchResultItem, LocalBatchRun, MatchCandidate, MediaKind, ParsedMedia, PreviewResult, ProviderDiagnostic, ReviewSummary, WebdavTransferHandoffPacket, WebdavTransferHandoffPacketSummary } from "@namera/core";
 import { createPhase3DestinationPlan, createPhase3TransferPlan } from "@namera/destination";
 import { buildWebdavTransferQueue, createExecutionBatch, createExecutionRecord, createPlannedExecutions, exportPlanSet, exportReviewPlanSet, exportWebdavTransferQueue, summarizeExecutionActions, summarizeWebdavTransferActions, summarizeWebdavTransferQueue } from "@namera/exec";
 import { parseFileListIngest, parseTextIngest } from "@namera/ingest";
@@ -37,12 +37,6 @@ export interface AppController {
   retryFailedNativeBatch: () => Promise<void>;
 }
 
-interface NativeBatchResultItem {
-  input: string;
-  outcome: "applied" | "skipped" | "failed";
-  summary: string;
-}
-
 interface AppState {
   textInput: string;
   ingestedItems: IngestItem[];
@@ -54,7 +48,8 @@ interface AppState {
   previewDestinationBackend: "local" | "webdav";
   config: AppConfig;
   nativeExecutionMessage: string;
-  nativeBatchResults: NativeBatchResultItem[];
+  nativeBatchResults: LocalBatchResultItem[];
+  localBatchRuns: LocalBatchRun[];
   recentIngestRoots: string[];
   webdavTransferSnapshots: import("@namera/core").WebdavTransferQueueSnapshot[];
   webdavTransferIntents: import("@namera/core").WebdavTransferIntent[];
@@ -74,6 +69,7 @@ const state: AppState = {
     ? "Native execution available in Tauri runtime"
     : "Native execution unavailable in browser-only runtime",
   nativeBatchResults: [],
+  localBatchRuns: loadLocalBatchRuns(),
   recentIngestRoots: loadRecentIngestRoots(),
   webdavTransferSnapshots: loadWebdavTransferSnapshots(),
   webdavTransferIntents: loadWebdavTransferIntents(),
@@ -93,6 +89,7 @@ export function resetAppState(): void {
     ? "Native execution available in Tauri runtime"
     : "Native execution unavailable in browser-only runtime";
   state.nativeBatchResults = [];
+  state.localBatchRuns = loadLocalBatchRuns();
   state.recentIngestRoots = loadRecentIngestRoots();
   state.webdavTransferSnapshots = loadWebdavTransferSnapshots();
   state.webdavTransferIntents = loadWebdavTransferIntents();
@@ -110,10 +107,26 @@ export function createAppController(rerender: (markup: string) => void): AppCont
       return;
     }
 
+    const now = new Date().toISOString();
+    const batchRun: LocalBatchRun = {
+      id: `local-batch-${Date.now()}`,
+      createdAt: now,
+      updatedAt: now,
+      status: "running",
+      sourceRoot: state.config.destinations.sourceRoot || ".",
+      targetRoot: state.config.destinations.targetRoot || ".",
+      collisionPolicy: state.config.destinations.collisionPolicy || "skip",
+      plannedInputs: previews.map((preview) => preview.input),
+      completedInputs: [],
+      failedInputs: [],
+      results: [],
+    };
+    state.localBatchRuns = pushLocalBatchRun(batchRun);
+
     let applied = 0;
     let skipped = 0;
     let failed = 0;
-    const batchResults: NativeBatchResultItem[] = [];
+    const batchResults: LocalBatchResultItem[] = [];
 
     for (const preview of previews) {
       try {
@@ -128,10 +141,10 @@ export function createAppController(rerender: (markup: string) => void): AppCont
         }
         if (batch.actions.some((action) => action.status === "skipped")) {
           skipped += 1;
-          batchResults.push({ input: preview.input, outcome: "skipped", summary: batch.summary });
+          batchResults.push({ input: preview.input, outcome: "skipped", summary: batch.summary, completedAt: new Date().toISOString() });
         } else {
           applied += 1;
-          batchResults.push({ input: preview.input, outcome: "applied", summary: batch.summary });
+          batchResults.push({ input: preview.input, outcome: "applied", summary: batch.summary, completedAt: new Date().toISOString() });
         }
       } catch (error) {
         failed += 1;
@@ -139,12 +152,27 @@ export function createAppController(rerender: (markup: string) => void): AppCont
           input: preview.input,
           outcome: "failed",
           summary: error instanceof Error ? error.message : String(error),
+          completedAt: new Date().toISOString(),
         });
       }
+
+      state.localBatchRuns = updateLocalBatchRun(batchRun.id, {
+        lastProcessedInput: preview.input,
+        completedInputs: batchResults.filter((result) => result.outcome !== "failed").map((result) => result.input),
+        failedInputs: batchResults.filter((result) => result.outcome === "failed").map((result) => result.input),
+        results: batchResults,
+      });
     }
 
     state.nativeExecutionMessage = `${summaryLabel}: ${applied} applied, ${skipped} skipped, ${failed} failed`;
     state.nativeBatchResults = batchResults;
+    state.localBatchRuns = updateLocalBatchRun(batchRun.id, {
+      status: "completed",
+      summary: state.nativeExecutionMessage,
+      completedInputs: batchResults.filter((result) => result.outcome !== "failed").map((result) => result.input),
+      failedInputs: batchResults.filter((result) => result.outcome === "failed").map((result) => result.input),
+      results: batchResults,
+    });
   }
 
   return {
@@ -863,6 +891,11 @@ function renderApp(appState: AppState): string {
         )
         .join("")}</ul>`
     : "<p>No batch results yet</p>";
+  const latestLocalBatchRun = appState.localBatchRuns[0];
+  const latestLocalBatchRunExport = latestLocalBatchRun ? JSON.stringify(latestLocalBatchRun, null, 2) : "";
+  const latestLocalBatchRunMarkup = latestLocalBatchRun
+    ? `<p><strong>Status:</strong> ${escapeHtml(latestLocalBatchRun.status)} • <strong>Planned:</strong> ${latestLocalBatchRun.plannedInputs.length} • <strong>Completed:</strong> ${latestLocalBatchRun.completedInputs.length} • <strong>Failed:</strong> ${latestLocalBatchRun.failedInputs.length}</p><p><strong>Last processed:</strong> ${escapeHtml(latestLocalBatchRun.lastProcessedInput ?? "none")}</p><p><strong>Recovery hint:</strong> ${escapeHtml(latestLocalBatchRun.failedInputs.length ? `Retry ${latestLocalBatchRun.failedInputs.length} failed item${latestLocalBatchRun.failedInputs.length === 1 ? "" : "s"} from the last batch run.` : "No failed items recorded in the latest batch run.")}</p><pre>${escapeHtml(latestLocalBatchRunExport)}</pre>`
+    : "<p>No persisted local batch runs yet.</p>";
 
   const ingestMarkup = appState.ingestedItems
     .map(
@@ -1133,6 +1166,10 @@ function renderApp(appState: AppState): string {
       <section>
         <h2>Recent history</h2>
         <ul>${historyMarkup}</ul>
+      </section>
+      <section>
+        <h2>Latest local batch recovery state</h2>
+        ${latestLocalBatchRunMarkup}
       </section>
       <section>
         <h2>Execution log</h2>

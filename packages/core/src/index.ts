@@ -104,6 +104,52 @@ export interface ExecutionBatch {
   logEntry?: ExecutionLogEntry;
 }
 
+export interface LocalBatchResultItem {
+  input: string;
+  outcome: "applied" | "skipped" | "failed";
+  summary: string;
+  completedAt: string;
+}
+
+export interface LocalBatchRun {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  status: "running" | "completed" | "interrupted";
+  sourceRoot: string;
+  targetRoot: string;
+  collisionPolicy: CollisionPolicy;
+  plannedInputs: string[];
+  completedInputs: string[];
+  failedInputs: string[];
+  lastProcessedInput?: string;
+  summary?: string;
+  results: LocalBatchResultItem[];
+}
+
+export interface LocalBatchResultItem {
+  input: string;
+  outcome: "applied" | "skipped" | "failed";
+  summary: string;
+  completedAt: string;
+}
+
+export interface LocalBatchRun {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  status: "running" | "completed" | "interrupted";
+  sourceRoot: string;
+  targetRoot: string;
+  collisionPolicy: CollisionPolicy;
+  plannedInputs: string[];
+  completedInputs: string[];
+  failedInputs: string[];
+  lastProcessedInput?: string;
+  summary?: string;
+  results: LocalBatchResultItem[];
+}
+
 export interface DestinationProfile {
   movieRoot: string;
   tvRoot: string;

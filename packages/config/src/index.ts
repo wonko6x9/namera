@@ -1,4 +1,4 @@
-import type { AppConfig, CorrectionRecord, ExecutionLogEntry, HistoryEntry, WebdavTransferIntent, WebdavTransferQueueSnapshot } from "@namera/core";
+import type { AppConfig, CorrectionRecord, ExecutionLogEntry, HistoryEntry, LocalBatchRun, WebdavTransferIntent, WebdavTransferQueueSnapshot } from "@namera/core";
 
 export const DEFAULT_CONFIG: AppConfig = {
   destinations: {
@@ -25,6 +25,7 @@ const EXECUTION_LOG_KEY = "namera.execution-log";
 const PROVIDER_CACHE_KEY = "namera.provider-cache";
 const CORRECTIONS_KEY = "namera.corrections";
 const RECENT_INGEST_ROOTS_KEY = "namera.recent-ingest-roots";
+const LOCAL_BATCH_RUNS_KEY = "namera.local-batch-runs";
 const WEBDAV_TRANSFER_SNAPSHOTS_KEY = "namera.webdav-transfer-snapshots";
 const WEBDAV_TRANSFER_INTENTS_KEY = "namera.webdav-transfer-intents";
 const fallbackMemoryStorage = new Map<string, string>();
@@ -210,6 +211,40 @@ export function pushRecentIngestRoots(roots: string[], storage: Storage = getSto
     .filter((root, index, all) => all.indexOf(root) === index)
     .slice(0, 10);
   saveRecentIngestRoots(next, storage);
+  return next;
+}
+
+export function loadLocalBatchRuns(storage: Storage = getStorage()): LocalBatchRun[] {
+  try {
+    const raw = storage.getItem(LOCAL_BATCH_RUNS_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw) as LocalBatchRun[];
+  } catch {
+    return [];
+  }
+}
+
+export function saveLocalBatchRuns(runs: LocalBatchRun[], storage: Storage = getStorage()): void {
+  storage.setItem(LOCAL_BATCH_RUNS_KEY, JSON.stringify(runs));
+}
+
+export function pushLocalBatchRun(run: LocalBatchRun, storage: Storage = getStorage()): LocalBatchRun[] {
+  const next = [run, ...loadLocalBatchRuns(storage).filter((entry) => entry.id !== run.id)].slice(0, 20);
+  saveLocalBatchRuns(next, storage);
+  return next;
+}
+
+export function updateLocalBatchRun(id: string, patch: Partial<LocalBatchRun>, storage: Storage = getStorage()): LocalBatchRun[] {
+  const next = loadLocalBatchRuns(storage).map((run) =>
+    run.id === id
+      ? {
+          ...run,
+          ...patch,
+          updatedAt: patch.updatedAt ?? new Date().toISOString(),
+        }
+      : run,
+  );
+  saveLocalBatchRuns(next, storage);
   return next;
 }
 
