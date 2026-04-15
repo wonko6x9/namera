@@ -274,8 +274,18 @@ function renderApp(appState: AppState): string {
 
   return `
     <main>
-      <h1>Namera</h1>
-      <p>MVP desktop shell for turning ugly media filenames into batch rename previews.</p>
+      <section class="namera-hero">
+        <img src="/namera-logo-placeholder.svg" alt="Namera placeholder logo" />
+        <div class="namera-hero-copy">
+          <h1>Namera</h1>
+          <p>Plex-focused media matching, rename planning, and now an actual native execution lane instead of pure cosplay.</p>
+          <div class="namera-chiprow">
+            <span class="namera-chip">Windows + Linux first</span>
+            <span class="namera-chip">Tauri + Rust core</span>
+            <span class="namera-chip">Tag · Rename · Organize</span>
+          </div>
+        </div>
+      </section>
       <section>
         <h2>Status</h2>
         <p><strong>Destination roots:</strong> Movies=${escapeHtml(appState.config.destinations.movieRoot)}, TV=${escapeHtml(appState.config.destinations.tvRoot)}, Music=${escapeHtml(appState.config.destinations.musicRoot)}</p>

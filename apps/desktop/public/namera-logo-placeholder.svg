@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 260" width="820" height="260">
+ <defs>
+ <linearGradient id="iconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+ <stop offset="0%" stop-color="#FF6B4A"/>
+ <stop offset="55%" stop-color="#E84393"/>
+ <stop offset="100%" stop-color="#A855F7"/>
+ </linearGradient>
+ <linearGradient id="iconGradDark" x1="0%" y1="0%" x2="100%" y2="100%">
+ <stop offset="0%" stop-color="#D94E35"/>
+ <stop offset="55%" stop-color="#C2357A"/>
+ <stop offset="100%" stop-color="#8B3FD4"/>
+ </linearGradient>
+ <filter id="iconShadow" x="-15%" y="-15%" width="140%" height="140%">
+ <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#E84393" flood-opacity="0.2"/>
+ </filter>
+ <style>
+ @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;700&amp;display=swap');
+ </style>
+ </defs>
+ <g transform="translate(32, 28)" filter="url(#iconShadow)">
+<path d="
+ M 16 0
+ L 130 0
+ L 168 50
+ Q 172 56, 172 62
+ L 172 178
+ Q 172 194, 156 194
+ L 16 194
+ Q 0 194, 0 178
+ L 0 16
+ Q 0 0, 16 0
+ Z
+" fill="url(#iconGrad)"/>
+<circle cx="36" cy="36" r="16" fill="white" opacity="0.93"/>
+<rect x="2" y="70" width="9" height="12" rx="2" fill="white" opacity="0.35"/>
+<rect x="2" y="90" width="9" height="12" rx="2" fill="white" opacity="0.35"/>
+<rect x="2" y="110" width="9" height="12" rx="2" fill="white" opacity="0.35"/>
+<rect x="2" y="130" width="9" height="12" rx="2" fill="white" opacity="0.35"/>
+<rect x="2" y="150" width="9" height="12" rx="2" fill="white" opacity="0.35"/>
+<polygon points="74,72 74,132 120,102" fill="white" opacity="0.9"/>
+<g transform="translate(132, 132)" fill="white" opacity="0.6">
+ <ellipse cx="0" cy="22" rx="9" ry="7" transform="rotate(-25 0 22)"/>
+ <rect x="7" y="-8" width="3.5" height="30" rx="1.5"/>
+ <path d="M 10.5 -8 Q 22 -16, 22 -2 Q 22 4, 16 7" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>
+</g>
+<rect x="44" y="168" width="30" height="3.5" rx="1.5" fill="white" opacity="0.5"/>
+<rect x="78" y="164" width="2.5" height="10" rx="1" fill="white" opacity="0.65">
+ <animate attributeName="opacity" values="0.65;0.15;0.65" dur="1.2s" repeatCount="indefinite"/>
+</rect>
+ </g>
+<text x="232" y="168" font-family="'Outfit', sans-serif" font-size="96" font-weight="700" letter-spacing="-2" fill="#1A1A2E">namera</text>
+<text x="236" y="208" font-family="'Outfit', sans-serif" font-size="17" font-weight="300" letter-spacing="5" fill="#9090B0">TAG · RENAME · ORGANIZE</text>
+ <circle cx="692" cy="158" r="8" fill="url(#iconGrad)"/>
+</svg>

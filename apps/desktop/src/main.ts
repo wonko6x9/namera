@@ -1,3 +1,4 @@
+import "./styles.css";
 import { App, createAppController, type AppController } from "./App";
 
 const root = document.getElementById("app");
