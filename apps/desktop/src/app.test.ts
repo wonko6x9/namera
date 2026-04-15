@@ -55,6 +55,44 @@ describe("Namera MVP flow", () => {
     expect(parsed.episode?.episodeTitle).toBe("33 And Water");
   });
 
+  it("handles broader real-world filename garbage without manual retyping", () => {
+    const samples = [
+      {
+        input: "The.Lord.of.the.Rings.The.Return.of.the.King.Extended.Edition.2003.2160p.UHD.BluRay.x265.mkv",
+        title: "The Lord Of The Rings The Return Of The King Extended Edition",
+        kind: "movie",
+      },
+      {
+        input: "Star.Trek.The.Next.Generation.S02E01E02.The.Child.Where.Silence.Has.Lease.1080p.BluRay.mkv",
+        seriesTitle: "Star Trek The Next Generation",
+        episodeTitle: "The Child Where Silence Has Lease",
+        kind: "episode",
+      },
+      {
+        input: "Dune.Part.Two.2024.2160p.WEB-DL.DDP5.1.Atmos.mkv",
+        title: "Dune Part Two",
+        kind: "movie",
+      },
+      {
+        input: "Andor.S01E10.One.Way.Out.REPACK.1080p.WEB-DL.mkv",
+        seriesTitle: "Andor",
+        episodeTitle: "One Way Out",
+        kind: "episode",
+      },
+    ] as const;
+
+    for (const sample of samples) {
+      const parsed = parseFilename(sample.input);
+      expect(parsed.kind).toBe(sample.kind);
+      if (sample.kind === "movie") {
+        expect(parsed.title).toBe(sample.title);
+      } else {
+        expect(parsed.episode?.seriesTitle).toBe(sample.seriesTitle);
+        expect(parsed.episode?.episodeTitle).toBe(sample.episodeTitle);
+      }
+    }
+  });
+
   it("exposes a phase 3 destination stub without pretending it works", () => {
     const parsed = parseFilename("The.Matrix.1999.1080p.BluRay.mkv");
     const candidate = rankCandidates(parsed)[0];
