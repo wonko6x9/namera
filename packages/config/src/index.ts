@@ -1,4 +1,4 @@
-import type { AppConfig, CorrectionRecord, ExecutionLogEntry, HistoryEntry, LocalBatchRun, WebdavTransferIntent, WebdavTransferQueueSnapshot } from "@namera/core";
+import type { AppConfig, CorrectionRecord, DiagnosticLogEvent, ExecutionLogEntry, HistoryEntry, LocalBatchRun, WebdavTransferIntent, WebdavTransferQueueSnapshot } from "@namera/core";
 
 export const DEFAULT_CONFIG: AppConfig = {
   destinations: {
@@ -26,6 +26,7 @@ const PROVIDER_CACHE_KEY = "namera.provider-cache";
 const CORRECTIONS_KEY = "namera.corrections";
 const RECENT_INGEST_ROOTS_KEY = "namera.recent-ingest-roots";
 const LOCAL_BATCH_RUNS_KEY = "namera.local-batch-runs";
+const DIAGNOSTIC_LOG_KEY = "namera.diagnostic-log";
 const WEBDAV_TRANSFER_SNAPSHOTS_KEY = "namera.webdav-transfer-snapshots";
 const WEBDAV_TRANSFER_INTENTS_KEY = "namera.webdav-transfer-intents";
 const fallbackMemoryStorage = new Map<string, string>();
@@ -245,6 +246,26 @@ export function updateLocalBatchRun(id: string, patch: Partial<LocalBatchRun>, s
       : run,
   );
   saveLocalBatchRuns(next, storage);
+  return next;
+}
+
+export function loadDiagnosticLog(storage: Storage = getStorage()): DiagnosticLogEvent[] {
+  try {
+    const raw = storage.getItem(DIAGNOSTIC_LOG_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw) as DiagnosticLogEvent[];
+  } catch {
+    return [];
+  }
+}
+
+export function saveDiagnosticLog(events: DiagnosticLogEvent[], storage: Storage = getStorage()): void {
+  storage.setItem(DIAGNOSTIC_LOG_KEY, JSON.stringify(events));
+}
+
+export function pushDiagnosticLogEvent(event: DiagnosticLogEvent, storage: Storage = getStorage()): DiagnosticLogEvent[] {
+  const next = [event, ...loadDiagnosticLog(storage)].slice(0, 200);
+  saveDiagnosticLog(next, storage);
   return next;
 }
 

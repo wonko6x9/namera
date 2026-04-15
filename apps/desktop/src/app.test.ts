@@ -8,7 +8,7 @@ import { buildProviderCacheKey, buildProviderRequest, fetchProviderCandidates, f
 import { buildWebdavTransferQueue, createExecutionBatch, createPlannedExecutions, exportPlanSet, exportReviewPlanSet, exportWebdavTransferQueue, listExecutionLog, summarizeExecutionActions, summarizeWebdavTransferQueue } from "@namera/exec";
 import { looksLikeMediaFile, parseTextIngest } from "@namera/ingest";
 import { buildArtworkSearchUrl, buildMediaSearchUrl, buildPreview, createAppController, exportFailedBatchResults, resetAppState, summarizeIngest, summarizeReview } from "./App";
-import { getCorrection, loadConfig, loadExecutionLog, loadLocalBatchRuns, loadRecentIngestRoots, loadWebdavTransferIntents, loadWebdavTransferSnapshots, pushExecutionLog } from "@namera/config";
+import { getCorrection, loadConfig, loadDiagnosticLog, loadExecutionLog, loadLocalBatchRuns, loadRecentIngestRoots, loadWebdavTransferIntents, loadWebdavTransferSnapshots, pushExecutionLog } from "@namera/config";
 
 describe("Namera MVP flow", () => {
   beforeEach(() => {
@@ -917,9 +917,31 @@ describe("Namera MVP flow", () => {
     expect(loadLocalBatchRuns()[0]?.plannedInputs.length).toBe(4);
     expect(loadLocalBatchRuns()[0]?.failedInputs).toContain("Severance.S01E01.Good.News.About.Hell.2160p.WEB-DL.mkv");
     expect(loadLocalBatchRuns()[0]?.status).toBe("completed");
+    expect(loadDiagnosticLog()[0]?.scope).toBe("recovery");
     expect(renders.at(-1)).toContain("Latest local batch recovery state");
     expect(renders.at(-1)).toContain("Retry 1 failed item from the last batch run.");
+    expect(renders.at(-1)).toContain("Diagnostics");
     expect(renders.at(-1)).toContain('&quot;input&quot;: &quot;Severance.S01E01.Good.News.About.Hell.2160p.WEB-DL.mkv&quot;');
+  });
+
+  it("records diagnostics for provider refresh and native apply failures", async () => {
+    const renders: string[] = [];
+    const controller = createAppController((markup) => renders.push(markup));
+
+    await controller.refreshProviders();
+
+    const invoke = vi.fn().mockRejectedValueOnce(new Error("disk exploded"));
+    Object.defineProperty(globalThis, "window", {
+      value: { __TAURI__: { core: { invoke } } },
+      configurable: true,
+    });
+
+    await controller.applyNativeExecution("The.Matrix.1999.1080p.BluRay.mkv");
+
+    expect(loadDiagnosticLog().some((event) => event.scope === "provider" && event.message === "Completed provider refresh")).toBe(true);
+    expect(loadDiagnosticLog().some((event) => event.scope === "execution" && event.message === "Native apply failed")).toBe(true);
+    expect(renders.at(-1)).toContain("disk exploded");
+    expect(renders.at(-1)).toContain("Diagnostics");
   });
 
   it("retries only previously failed batch items", async () => {

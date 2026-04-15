@@ -53,7 +53,7 @@
   - operation log
   - undo / revert history for completed operations
   - now the active implementation lane
-  - current honest state: first collision policy pass exists (`skip`, `overwrite`, `rename-new`), undo validates some stale-file cases, visible-batch apply now reports per-item outcomes honestly, subtitle sidecars preserve language qualifiers during rename planning, local batches now persist recovery state (planned/completed/failed inputs plus last processed item), and integration coverage now exercises rename-new suffix selection, source-path reappearance during undo, and apply/undo/reapply cycles, but richer resume behavior and better diagnostics are still live seams
+  - current honest state: first collision policy pass exists (`skip`, `overwrite`, `rename-new`), undo validates some stale-file cases, visible-batch apply now reports per-item outcomes honestly, subtitle sidecars preserve language qualifiers during rename planning, local batches now persist recovery state (planned/completed/failed inputs plus last processed item), integration coverage now exercises rename-new suffix selection, source-path reappearance during undo, and apply/undo/reapply cycles, and the desktop flow now keeps a lightweight diagnostics log for provider/config/execution/recovery events, but richer resume behavior and deeper diagnostics around recovery edges are still live seams
 
 - **Plex-friendly default templates**
   - movie template

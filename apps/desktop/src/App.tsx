@@ -1,5 +1,5 @@
-import { acknowledgeWebdavTransferIntent, annotateWebdavTransferIntent, loadConfig, loadCorrections, loadExecutionLog, loadHistory, loadLocalBatchRuns, loadRecentIngestRoots, loadWebdavTransferIntents, loadWebdavTransferSnapshots, markExecutionUndone, pushExecutionLog, pushHistory, pushLocalBatchRun, pushRecentIngestRoots, pushWebdavTransferIntent, pushWebdavTransferSnapshot, recordWebdavTransferIntentStageProgress, saveConfig, setCorrection, updateLocalBatchRun, updateWebdavTransferIntentPrerequisite } from "@namera/config";
-import type { AppConfig, IngestItem, LocalBatchResultItem, LocalBatchRun, MatchCandidate, MediaKind, ParsedMedia, PreviewResult, ProviderDiagnostic, ReviewSummary, WebdavTransferHandoffPacket, WebdavTransferHandoffPacketSummary } from "@namera/core";
+import { acknowledgeWebdavTransferIntent, annotateWebdavTransferIntent, loadConfig, loadCorrections, loadDiagnosticLog, loadExecutionLog, loadHistory, loadLocalBatchRuns, loadRecentIngestRoots, loadWebdavTransferIntents, loadWebdavTransferSnapshots, markExecutionUndone, pushDiagnosticLogEvent, pushExecutionLog, pushHistory, pushLocalBatchRun, pushRecentIngestRoots, pushWebdavTransferIntent, pushWebdavTransferSnapshot, recordWebdavTransferIntentStageProgress, saveConfig, setCorrection, updateLocalBatchRun, updateWebdavTransferIntentPrerequisite } from "@namera/config";
+import type { AppConfig, DiagnosticLogEvent, IngestItem, LocalBatchResultItem, LocalBatchRun, MatchCandidate, MediaKind, ParsedMedia, PreviewResult, ProviderDiagnostic, ReviewSummary, WebdavTransferHandoffPacket, WebdavTransferHandoffPacketSummary } from "@namera/core";
 import { createPhase3DestinationPlan, createPhase3TransferPlan } from "@namera/destination";
 import { buildWebdavTransferQueue, createExecutionBatch, createExecutionRecord, createPlannedExecutions, exportPlanSet, exportReviewPlanSet, exportWebdavTransferQueue, summarizeExecutionActions, summarizeWebdavTransferActions, summarizeWebdavTransferQueue } from "@namera/exec";
 import { parseFileListIngest, parseTextIngest } from "@namera/ingest";
@@ -50,6 +50,7 @@ interface AppState {
   nativeExecutionMessage: string;
   nativeBatchResults: LocalBatchResultItem[];
   localBatchRuns: LocalBatchRun[];
+  diagnosticLog: DiagnosticLogEvent[];
   recentIngestRoots: string[];
   webdavTransferSnapshots: import("@namera/core").WebdavTransferQueueSnapshot[];
   webdavTransferIntents: import("@namera/core").WebdavTransferIntent[];
@@ -70,6 +71,7 @@ const state: AppState = {
     : "Native execution unavailable in browser-only runtime",
   nativeBatchResults: [],
   localBatchRuns: loadLocalBatchRuns(),
+  diagnosticLog: loadDiagnosticLog(),
   recentIngestRoots: loadRecentIngestRoots(),
   webdavTransferSnapshots: loadWebdavTransferSnapshots(),
   webdavTransferIntents: loadWebdavTransferIntents(),
@@ -90,6 +92,7 @@ export function resetAppState(): void {
     : "Native execution unavailable in browser-only runtime";
   state.nativeBatchResults = [];
   state.localBatchRuns = loadLocalBatchRuns();
+  state.diagnosticLog = loadDiagnosticLog();
   state.recentIngestRoots = loadRecentIngestRoots();
   state.webdavTransferSnapshots = loadWebdavTransferSnapshots();
   state.webdavTransferIntents = loadWebdavTransferIntents();
@@ -99,11 +102,28 @@ export function App(): string {
   return renderApp(state);
 }
 
+function recordDiagnosticEvent(
+  level: DiagnosticLogEvent["level"],
+  scope: DiagnosticLogEvent["scope"],
+  message: string,
+  context?: Record<string, unknown>,
+): void {
+  state.diagnosticLog = pushDiagnosticLogEvent({
+    id: `diag-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+    timestamp: new Date().toISOString(),
+    level,
+    scope,
+    message,
+    context,
+  });
+}
+
 export function createAppController(rerender: (markup: string) => void): AppController {
   async function runNativeBatch(previews: PreviewResult[], summaryLabel = "Batch apply finished"): Promise<void> {
     if (!previews.length) {
       state.nativeExecutionMessage = "No visible items to apply";
       state.nativeBatchResults = [];
+      recordDiagnosticEvent("warn", "execution", "Skipped visible native batch because no previews were visible");
       return;
     }
 
@@ -146,13 +166,23 @@ export function createAppController(rerender: (markup: string) => void): AppCont
           applied += 1;
           batchResults.push({ input: preview.input, outcome: "applied", summary: batch.summary, completedAt: new Date().toISOString() });
         }
+        recordDiagnosticEvent("info", "execution", "Processed native batch item", {
+          input: preview.input,
+          outcome: batch.actions.some((action) => action.status === "skipped") ? "skipped" : "applied",
+          summary: batch.summary,
+        });
       } catch (error) {
         failed += 1;
+        const detail = error instanceof Error ? error.message : String(error);
         batchResults.push({
           input: preview.input,
           outcome: "failed",
-          summary: error instanceof Error ? error.message : String(error),
+          summary: detail,
           completedAt: new Date().toISOString(),
+        });
+        recordDiagnosticEvent("error", "execution", "Native batch item failed", {
+          input: preview.input,
+          error: detail,
         });
       }
 
@@ -165,6 +195,12 @@ export function createAppController(rerender: (markup: string) => void): AppCont
     }
 
     state.nativeExecutionMessage = `${summaryLabel}: ${applied} applied, ${skipped} skipped, ${failed} failed`;
+    recordDiagnosticEvent(failed ? "warn" : "info", "recovery", "Completed native batch run", {
+      batchId: batchRun.id,
+      applied,
+      skipped,
+      failed,
+    });
     state.nativeBatchResults = batchResults;
     state.localBatchRuns = updateLocalBatchRun(batchRun.id, {
       status: "completed",
@@ -186,6 +222,7 @@ export function createAppController(rerender: (markup: string) => void): AppCont
     async refreshProviders() {
       if (!state.ingestedItems.length) {
         state.liveProviderMessage = "Nothing ingested yet";
+        recordDiagnosticEvent("warn", "provider", "Skipped provider refresh because the ingest queue is empty");
         rerender(renderApp(state));
         return;
       }
@@ -207,6 +244,10 @@ export function createAppController(rerender: (markup: string) => void): AppCont
         : state.config.providers.omdbApiKey
           ? "Live provider lookup ran, but found no candidates"
           : "Live provider lookup unavailable until an OMDb API key is configured";
+      recordDiagnosticEvent("info", "provider", "Completed provider refresh", {
+        ingestedCount: state.ingestedItems.length,
+        candidateCount: totalLiveCandidates,
+      });
       rerender(renderApp(state));
     },
     chooseCandidate(input: string, candidateKey: string) {
@@ -381,6 +422,11 @@ export function createAppController(rerender: (markup: string) => void): AppCont
     updateConfig(patch: Partial<AppConfig>) {
       state.config = mergeConfig(state.config, patch);
       saveConfig(state.config);
+      recordDiagnosticEvent("info", "config", "Updated app config", {
+        collisionPolicy: state.config.destinations.collisionPolicy,
+        sourceRoot: state.config.destinations.sourceRoot,
+        targetRoot: state.config.destinations.targetRoot,
+      });
       rerender(renderApp(state));
     },
     async applyNativeExecution(input: string) {
@@ -395,9 +441,12 @@ export function createAppController(rerender: (markup: string) => void): AppCont
           pushExecutionLog(mapNativeLogEntry(batch.log_entry));
         }
         state.nativeExecutionMessage = batch.summary;
+        recordDiagnosticEvent("info", "execution", "Applied native execution for preview", { input, summary: batch.summary });
         state.nativeBatchResults = [];
       } catch (error) {
-        state.nativeExecutionMessage = `Native apply failed: ${error instanceof Error ? error.message : String(error)}`;
+        const detail = error instanceof Error ? error.message : String(error);
+        state.nativeExecutionMessage = `Native apply failed: ${detail}`;
+        recordDiagnosticEvent("error", "execution", "Native apply failed", { input, error: detail });
         state.nativeBatchResults = [];
       }
       rerender(renderApp(state));
@@ -420,9 +469,12 @@ export function createAppController(rerender: (markup: string) => void): AppCont
           pushExecutionLog(mapNativeLogEntry(batch.log_entry));
         }
         state.nativeExecutionMessage = batch.summary;
+        recordDiagnosticEvent("info", "execution", "Undid native execution for preview", { input, summary: batch.summary });
         state.nativeBatchResults = [];
       } catch (error) {
-        state.nativeExecutionMessage = `Native undo failed: ${error instanceof Error ? error.message : String(error)}`;
+        const detail = error instanceof Error ? error.message : String(error);
+        state.nativeExecutionMessage = `Native undo failed: ${detail}`;
+        recordDiagnosticEvent("error", "execution", "Native undo failed", { input, error: detail });
         state.nativeBatchResults = [];
       }
       rerender(renderApp(state));
@@ -896,6 +948,9 @@ function renderApp(appState: AppState): string {
   const latestLocalBatchRunMarkup = latestLocalBatchRun
     ? `<p><strong>Status:</strong> ${escapeHtml(latestLocalBatchRun.status)} • <strong>Planned:</strong> ${latestLocalBatchRun.plannedInputs.length} • <strong>Completed:</strong> ${latestLocalBatchRun.completedInputs.length} • <strong>Failed:</strong> ${latestLocalBatchRun.failedInputs.length}</p><p><strong>Last processed:</strong> ${escapeHtml(latestLocalBatchRun.lastProcessedInput ?? "none")}</p><p><strong>Recovery hint:</strong> ${escapeHtml(latestLocalBatchRun.failedInputs.length ? `Retry ${latestLocalBatchRun.failedInputs.length} failed item${latestLocalBatchRun.failedInputs.length === 1 ? "" : "s"} from the last batch run.` : "No failed items recorded in the latest batch run.")}</p><pre>${escapeHtml(latestLocalBatchRunExport)}</pre>`
     : "<p>No persisted local batch runs yet.</p>";
+  const diagnosticLogMarkup = appState.diagnosticLog.length
+    ? `<ul>${appState.diagnosticLog.slice(0, 20).map((event) => `<li>${escapeHtml(event.timestamp)} • ${escapeHtml(event.level)} • ${escapeHtml(event.scope)} • ${escapeHtml(event.message)}</li>`).join("")}</ul><pre>${escapeHtml(JSON.stringify(appState.diagnosticLog.slice(0, 20), null, 2))}</pre>`
+    : "<p>No diagnostic events recorded yet.</p>";
 
   const ingestMarkup = appState.ingestedItems
     .map(
@@ -1170,6 +1225,11 @@ function renderApp(appState: AppState): string {
       <section>
         <h2>Latest local batch recovery state</h2>
         ${latestLocalBatchRunMarkup}
+      </section>
+      <section>
+        <h2>Diagnostics</h2>
+        <p>Recent provider, execution, recovery, and config events for troubleshooting.</p>
+        ${diagnosticLogMarkup}
       </section>
       <section>
         <h2>Execution log</h2>

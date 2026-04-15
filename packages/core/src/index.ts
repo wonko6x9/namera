@@ -127,6 +127,15 @@ export interface LocalBatchRun {
   results: LocalBatchResultItem[];
 }
 
+export interface DiagnosticLogEvent {
+  id: string;
+  timestamp: string;
+  level: "info" | "warn" | "error";
+  scope: "provider" | "execution" | "recovery" | "config";
+  message: string;
+  context?: Record<string, unknown>;
+}
+
 export interface LocalBatchResultItem {
   input: string;
   outcome: "applied" | "skipped" | "failed";
