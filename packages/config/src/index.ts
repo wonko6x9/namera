@@ -253,8 +253,41 @@ export function pushWebdavTransferIntent(intent: WebdavTransferIntent, storage: 
   return next;
 }
 
+export function recordWebdavTransferIntentStageProgress(
+  id: string,
+  stage: "mkdir" | "upload" | "verify",
+  note: string,
+  storage: Storage = getStorage(),
+): WebdavTransferIntent[] {
+  const next: WebdavTransferIntent[] = loadWebdavTransferIntents(storage).map((intent) => {
+    if (intent.id !== id) return intent;
+    const updatedAt = new Date().toISOString();
+    return {
+      ...intent,
+      remoteStageProgress: {
+        ...intent.remoteStageProgress,
+        [stage]: {
+          status: "completed",
+          updatedAt,
+          note,
+        },
+      },
+      lifecycleEvents: [
+        {
+          at: updatedAt,
+          type: "stage-progress-updated",
+          detail: `${stage} marked completed: ${note}`,
+        },
+        ...intent.lifecycleEvents,
+      ],
+    };
+  });
+  saveWebdavTransferIntents(next, storage);
+  return next;
+}
+
 export function acknowledgeWebdavTransferIntent(id: string, note: string, storage: Storage = getStorage()): WebdavTransferIntent[] {
-  const next = loadWebdavTransferIntents(storage).map((intent) => {
+  const next: WebdavTransferIntent[] = loadWebdavTransferIntents(storage).map((intent) => {
     if (intent.id !== id) return intent;
     const acknowledgedAt = intent.acknowledgedAt ?? new Date().toISOString();
     return {
@@ -282,7 +315,7 @@ export function annotateWebdavTransferIntent(
   handoffNote: string,
   storage: Storage = getStorage(),
 ): WebdavTransferIntent[] {
-  const next = loadWebdavTransferIntents(storage).map((intent) => {
+  const next: WebdavTransferIntent[] = loadWebdavTransferIntents(storage).map((intent) => {
     if (intent.id !== id) return intent;
     const handoffAssignedAt = intent.handoffAssignedAt ?? new Date().toISOString();
     return {
@@ -311,7 +344,7 @@ export function updateWebdavTransferIntentPrerequisite(
   detail: string,
   storage: Storage = getStorage(),
 ): WebdavTransferIntent[] {
-  const next = loadWebdavTransferIntents(storage).map((intent) => {
+  const next: WebdavTransferIntent[] = loadWebdavTransferIntents(storage).map((intent) => {
     if (intent.id !== id) return intent;
 
     const prerequisites = intent.prerequisites.map((entry) =>

@@ -226,6 +226,7 @@ describe("Namera MVP flow", () => {
     expect(App()).toContain("Latest WebDAV ready-operation packet");
     expect(App()).toContain("Latest WebDAV handoff validation");
     expect(App()).toContain("Latest WebDAV execution brief");
+    expect(App()).toContain("Latest WebDAV remote stage progress");
     expect(App()).toContain("Latest WebDAV remote checklist packet");
     expect(App()).toContain("Latest WebDAV handoff summary");
     expect(App()).toContain("Latest WebDAV operation manifest");
@@ -530,6 +531,7 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain('&quot;executionBrief&quot;');
     expect(renders.at(-1)).toContain('&quot;groupedOperations&quot;');
     expect(renders.at(-1)).toContain('&quot;checklist&quot;');
+    expect(renders.at(-1)).toContain('&quot;stageProgress&quot;');
     expect(renders.at(-1)).toContain('&quot;remoteChecklist&quot;');
     expect(renders.at(-1)).toContain('&quot;handoffSummary&quot;');
     expect(renders.at(-1)).toContain('&quot;operationManifest&quot;');
@@ -549,6 +551,7 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("Latest WebDAV handoff summary");
     expect(renders.at(-1)).toContain("Latest WebDAV operation manifest");
     expect(renders.at(-1)).toContain("Latest WebDAV owner packet");
+    expect(renders.at(-1)).toContain("Latest WebDAV remote stage progress");
     expect(renders.at(-1)).toContain("Remote checklist is blocked on Intent assigned, Intent acknowledged.");
     expect(renders.at(-1)).toContain("Handoff summary needs work for unassigned.");
     expect(renders.at(-1)).toContain("Operation manifest prepared with 3 ready targets and 0 blocked items.");
@@ -561,6 +564,7 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("assign • blocked");
     expect(renders.at(-1)).toContain("Grouped operations:");
     expect(renders.at(-1)).toContain("3 upload targets");
+    expect(renders.at(-1)).toContain("0 of 3 remote stages have recorded operator progress.");
     expect(renders.at(-1)).toContain("Recent WebDAV handoff packets");
     expect(renders.at(-1)).toContain("Acknowledged WebDAV handoff packets");
     expect(renders.at(-1)).toContain("Handoff-ready WebDAV packets");
@@ -645,6 +649,28 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("blocked-items • blocked");
     expect(renders.at(-1)).toContain("3 upload targets");
     expect(renders.at(-1)).toContain('&quot;status&quot;: &quot;fail&quot;');
+  });
+
+  it("records manual webdav stage progress on the latest transfer intent", () => {
+    const renders: string[] = [];
+    const controller = createAppController((markup) => renders.push(markup));
+
+    controller.setReviewFilter("webdav-ready");
+    controller.snapshotVisibleWebdavQueue();
+    controller.saveLatestWebdavIntent();
+    controller.assignLatestWebdavIntent();
+    controller.acknowledgeLatestWebdavIntent();
+    controller.recordLatestWebdavStageProgress("upload");
+
+    expect(loadWebdavTransferIntents()[0]?.remoteStageProgress.upload.status).toBe("completed");
+    expect(loadWebdavTransferIntents()[0]?.remoteStageProgress.upload.note).toContain("Manual upload work was recorded");
+    expect(loadWebdavTransferIntents()[0]?.lifecycleEvents[0]?.type).toBe("stage-progress-updated");
+    expect(renders.at(-1)).toContain("Recorded WebDAV upload stage progress");
+    expect(renders.at(-1)).toContain("Latest WebDAV remote stage progress");
+    expect(renders.at(-1)).toContain("1 of 3 remote stages have recorded operator progress.");
+    expect(renders.at(-1)).toContain("upload • completed • 3 targets");
+    expect(renders.at(-1)).toContain('&quot;stageProgress&quot;');
+    expect(renders.at(-1)).toContain('&quot;status&quot;: &quot;completed&quot;');
   });
 
   it("removes a single ingest item from the queue", () => {

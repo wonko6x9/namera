@@ -234,9 +234,26 @@ export interface WebdavTransferIntent {
   handoffAssignedAt?: string;
   acknowledgedAt?: string;
   acknowledgementNote?: string;
+  remoteStageProgress: {
+    mkdir: {
+      status: "pending" | "completed";
+      updatedAt?: string;
+      note?: string;
+    };
+    upload: {
+      status: "pending" | "completed";
+      updatedAt?: string;
+      note?: string;
+    };
+    verify: {
+      status: "pending" | "completed";
+      updatedAt?: string;
+      note?: string;
+    };
+  };
   lifecycleEvents: Array<{
     at: string;
-    type: "created" | "assigned" | "acknowledged" | "prerequisite-updated";
+    type: "created" | "assigned" | "acknowledged" | "prerequisite-updated" | "stage-progress-updated";
     detail: string;
   }>;
 }
@@ -289,6 +306,13 @@ export interface WebdavTransferHandoffPacket {
       stage: "assign" | "acknowledge" | "mkdir" | "upload" | "verify" | "blocked-items";
       status: "ready" | "blocked";
       detail: string;
+    }>;
+    stageProgress: Array<{
+      stage: "mkdir" | "upload" | "verify";
+      status: "pending" | "completed";
+      targetCount: number;
+      updatedAt?: string;
+      note?: string;
     }>;
   };
   remoteChecklist: {
@@ -352,6 +376,13 @@ export interface WebdavTransferHandoffPacket {
       reason: string;
     }>;
     requiredActions: string[];
+    stageProgress: Array<{
+      stage: "mkdir" | "upload" | "verify";
+      status: "pending" | "completed";
+      targetCount: number;
+      updatedAt?: string;
+      note?: string;
+    }>;
   };
 }
 

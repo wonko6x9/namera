@@ -1,9 +1,9 @@
-import { acknowledgeWebdavTransferIntent, annotateWebdavTransferIntent, loadConfig, loadCorrections, loadExecutionLog, loadHistory, loadRecentIngestRoots, loadWebdavTransferIntents, loadWebdavTransferSnapshots, markExecutionUndone, pushExecutionLog, pushHistory, pushRecentIngestRoots, pushWebdavTransferIntent, pushWebdavTransferSnapshot, saveConfig, setCorrection, updateWebdavTransferIntentPrerequisite } from "@namera/config";
-import type { AppConfig, IngestItem, MatchCandidate, ParsedMedia, PreviewResult, ProviderDiagnostic, ReviewSummary, WebdavTransferHandoffPacket, WebdavTransferHandoffPacketSummary } from "@namera/core";
+import { acknowledgeWebdavTransferIntent, annotateWebdavTransferIntent, loadConfig, loadCorrections, loadExecutionLog, loadHistory, loadRecentIngestRoots, loadWebdavTransferIntents, loadWebdavTransferSnapshots, markExecutionUndone, pushExecutionLog, pushHistory, pushRecentIngestRoots, pushWebdavTransferIntent, pushWebdavTransferSnapshot, recordWebdavTransferIntentStageProgress, saveConfig, setCorrection, updateWebdavTransferIntentPrerequisite } from "@namera/config";
+import type { AppConfig, IngestItem, MatchCandidate, MediaKind, ParsedMedia, PreviewResult, ProviderDiagnostic, ReviewSummary, WebdavTransferHandoffPacket, WebdavTransferHandoffPacketSummary } from "@namera/core";
 import { createPhase3DestinationPlan, createPhase3TransferPlan } from "@namera/destination";
 import { buildWebdavTransferQueue, createExecutionBatch, createExecutionRecord, createPlannedExecutions, exportPlanSet, exportReviewPlanSet, exportWebdavTransferQueue, summarizeExecutionActions, summarizeWebdavTransferActions, summarizeWebdavTransferQueue } from "@namera/exec";
 import { parseFileListIngest, parseTextIngest } from "@namera/ingest";
-import { buildCorrectionKey, getCandidateKey, rankCandidates } from "@namera/match";
+import { buildCorrectionKey, rankCandidates } from "@namera/match";
 import { parseFilename } from "@namera/parse";
 import { buildPlan } from "@namera/plan";
 import { buildProviderRequest, fetchProviderLookup, providerStatus } from "@namera/provider";
@@ -29,6 +29,7 @@ export interface AppController {
   acknowledgeLatestWebdavIntent: () => void;
   assignLatestWebdavIntent: () => void;
   resolveLatestWebdavBlockedItems: () => void;
+  recordLatestWebdavStageProgress: (stage: "mkdir" | "upload" | "verify") => void;
   updateConfig: (patch: Partial<AppConfig>) => void;
   applyNativeExecution: (input: string) => Promise<void>;
   undoNativeExecution: (input: string) => Promise<void>;
@@ -264,6 +265,11 @@ export function createAppController(rerender: (markup: string) => void): AppCont
         nextActions: summarizeWebdavTransferActions(snapshot.items),
         blockers: snapshot.summary.blockedReasons,
         prerequisites,
+        remoteStageProgress: {
+          mkdir: { status: "pending" },
+          upload: { status: "pending" },
+          verify: { status: "pending" },
+        },
         lifecycleEvents: [
           {
             at: createdAt,
@@ -318,6 +324,21 @@ export function createAppController(rerender: (markup: string) => void): AppCont
         "Blocked items were resolved after snapshot review, so manual remote handoff can proceed from this intent.",
       );
       state.nativeExecutionMessage = `Marked blocked items resolved for WebDAV transfer intent ${intent.id}`;
+      rerender(renderApp(state));
+    },
+    recordLatestWebdavStageProgress(stage) {
+      const intent = state.webdavTransferIntents[0];
+      if (!intent) {
+        state.nativeExecutionMessage = "No saved WebDAV transfer intent available to update";
+        rerender(renderApp(state));
+        return;
+      }
+      state.webdavTransferIntents = recordWebdavTransferIntentStageProgress(
+        intent.id,
+        stage,
+        `Manual ${stage} work was recorded after operator review.`,
+      );
+      state.nativeExecutionMessage = `Recorded WebDAV ${stage} stage progress for transfer intent ${intent.id}`;
       rerender(renderApp(state));
     },
     updateConfig(patch: Partial<AppConfig>) {
@@ -422,7 +443,7 @@ function renderApp(appState: AppState): string {
     ? JSON.stringify(appState.webdavTransferSnapshots[0], null, 2)
     : "";
   const webdavIntentMarkup = appState.webdavTransferIntents.length
-    ? `<ul>${appState.webdavTransferIntents.slice(0, 5).map((intent) => `<li>${escapeHtml(intent.createdAt)} • snapshot=${escapeHtml(intent.snapshotId)} • ${escapeHtml(intent.status)} • handoff ${escapeHtml(intent.handoffReadiness)} (${escapeHtml(intent.handoffReadinessReason)}) • ${escapeHtml(`${intent.summary.ready} ready, ${intent.summary.blocked} blocked, ${intent.itemCount} items`)} • ${escapeHtml(`${intent.prerequisites.filter((entry) => entry.status === "ready").length}/${intent.prerequisites.length} prerequisites ready`)}${intent.handoffOwner ? ` • owner ${escapeHtml(intent.handoffOwner)}` : ""}${intent.handoffAssignedAt ? ` • assigned ${escapeHtml(intent.handoffAssignedAt)}` : ""}${intent.acknowledgedAt ? ` • acknowledged ${escapeHtml(intent.acknowledgedAt)}` : ""}</li>`).join("")}</ul>`
+    ? `<ul>${appState.webdavTransferIntents.slice(0, 5).map((intent) => `<li>${escapeHtml(intent.createdAt)} • snapshot=${escapeHtml(intent.snapshotId)} • ${escapeHtml(intent.status)} • handoff ${escapeHtml(intent.handoffReadiness)} (${escapeHtml(intent.handoffReadinessReason)}) • ${escapeHtml(`${intent.summary.ready} ready, ${intent.summary.blocked} blocked, ${intent.itemCount} items`)} • ${escapeHtml(`${intent.prerequisites.filter((entry) => entry.status === "ready").length}/${intent.prerequisites.length} prerequisites ready`)} • ${escapeHtml(`${Object.values(intent.remoteStageProgress).filter((entry) => entry.status === "completed").length}/3 remote stages recorded`)}${intent.handoffOwner ? ` • owner ${escapeHtml(intent.handoffOwner)}` : ""}${intent.handoffAssignedAt ? ` • assigned ${escapeHtml(intent.handoffAssignedAt)}` : ""}${intent.acknowledgedAt ? ` • acknowledged ${escapeHtml(intent.acknowledgedAt)}` : ""}</li>`).join("")}</ul>`
     : "<p>No pending WebDAV transfer intents yet.</p>";
   const latestWebdavIntentExport = appState.webdavTransferIntents.length
     ? JSON.stringify(appState.webdavTransferIntents[0], null, 2)
@@ -478,7 +499,7 @@ function renderApp(appState: AppState): string {
               ? "No blocked items remain in this packet."
               : `${blockedItems.length} blocked item${blockedItems.length === 1 ? " remains" : "s remain"} in this packet.`,
           },
-        ] as const;
+        ];
         const blockedChecks = readinessChecks.filter((check) => check.status === "blocked");
         const validationNextSteps = blockedChecks.flatMap((check) => {
           if (check.name === "Intent assigned") {
@@ -500,6 +521,29 @@ function renderApp(appState: AppState): string {
           uploadTargets: readyOperations.flatMap((operation) => operation.actions.filter((action) => action.startsWith("Upload/copy renamed file to ")).map((action) => action.replace("Upload/copy renamed file to ", ""))),
           verifyTargets: readyOperations.flatMap((operation) => operation.actions.filter((action) => action.startsWith("Verify remote file exists")).map(() => operation.targetPath)),
         };
+        const remoteStageProgress = [
+          {
+            stage: "mkdir" as const,
+            status: intent.remoteStageProgress.mkdir.status,
+            targetCount: groupedOperations.mkdirTargets.length,
+            updatedAt: intent.remoteStageProgress.mkdir.updatedAt,
+            note: intent.remoteStageProgress.mkdir.note,
+          },
+          {
+            stage: "upload" as const,
+            status: intent.remoteStageProgress.upload.status,
+            targetCount: groupedOperations.uploadTargets.length,
+            updatedAt: intent.remoteStageProgress.upload.updatedAt,
+            note: intent.remoteStageProgress.upload.note,
+          },
+          {
+            stage: "verify" as const,
+            status: intent.remoteStageProgress.verify.status,
+            targetCount: groupedOperations.verifyTargets.length,
+            updatedAt: intent.remoteStageProgress.verify.updatedAt,
+            note: intent.remoteStageProgress.verify.note,
+          },
+        ];
         const stageItems = {
           mkdir: readyOperations.filter((operation) => operation.actions.some((action) => action.startsWith("Create remote parent folders for "))),
           upload: readyOperations.filter((operation) => operation.actions.some((action) => action.startsWith("Upload/copy renamed file to "))),
@@ -577,7 +621,7 @@ function renderApp(appState: AppState): string {
             detail: item.detail,
           })),
           blockedReasons: blockedItems.map((item) => `${item.input}: ${item.reason}`),
-        } as const;
+        };
         const handoffSummaryOwner = intent.handoffOwner ?? "unassigned";
         const handoffSummaryAsks = blockedChecks.length
           ? validationNextSteps
@@ -595,7 +639,7 @@ function renderApp(appState: AppState): string {
           asks: handoffSummaryAsks,
           readyTargetCount: readyOperations.length,
           blockedItemCount: blockedItems.length,
-        } as const;
+        };
         const operationManifest = {
           status: blockedChecks.length ? "needs-work" : "ready",
           summary: blockedChecks.length
@@ -637,7 +681,7 @@ function renderApp(appState: AppState): string {
             },
           ],
           blockedItems: blockedItems.map((item) => ({ input: item.input, reason: item.reason })),
-        } as const;
+        };
         const ownerPacket = {
           status: blockedChecks.length ? "needs-work" : "ready",
           owner: handoffSummaryOwner,
@@ -659,7 +703,8 @@ function renderApp(appState: AppState): string {
           })),
           blockers: blockedItems.map((item) => ({ input: item.input, reason: item.reason })),
           requiredActions: blockedChecks.length ? validationNextSteps : handoffSummaryAsks,
-        } as const;
+          stageProgress: remoteStageProgress,
+        };
         return {
           generatedAt: new Date().toISOString(),
           intent,
@@ -694,6 +739,7 @@ function renderApp(appState: AppState): string {
             nextSteps: validationNextSteps,
             groupedOperations,
             checklist: executionChecklist.map((item) => ({ ...item })),
+            stageProgress: remoteStageProgress,
           },
           remoteChecklist,
           handoffSummary,
@@ -751,6 +797,14 @@ function renderApp(appState: AppState): string {
         intentId: latestWebdavHandoffPacket.intent.id,
         snapshotId: latestWebdavHandoffPacket.intent.snapshotId,
         ownerPacket: latestWebdavHandoffPacket.ownerPacket,
+      }, null, 2)
+    : "";
+  const latestWebdavRemoteStageProgressExport = latestWebdavHandoffPacket
+    ? JSON.stringify({
+        generatedAt: latestWebdavHandoffPacket.generatedAt,
+        intentId: latestWebdavHandoffPacket.intent.id,
+        snapshotId: latestWebdavHandoffPacket.intent.snapshotId,
+        stageProgress: latestWebdavHandoffPacket.executionBrief.stageProgress,
       }, null, 2)
     : "";
   const webdavHandoffPacketHistory: WebdavTransferHandoffPacketSummary[] = appState.webdavTransferIntents.slice(0, 5).map((intent) => ({
@@ -1036,6 +1090,9 @@ function renderApp(appState: AppState): string {
           <button data-role="assign-latest-webdav-intent" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Assign latest WebDAV intent</button>
           <button data-role="acknowledge-latest-webdav-intent" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Acknowledge latest WebDAV intent</button>
           <button data-role="resolve-latest-webdav-blocked" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Mark latest blocked items resolved</button>
+          <button data-role="record-latest-webdav-mkdir" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Record latest WebDAV mkdir</button>
+          <button data-role="record-latest-webdav-upload" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Record latest WebDAV upload</button>
+          <button data-role="record-latest-webdav-verify" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Record latest WebDAV verify</button>
           <button data-role="apply-visible-batch" type="button" ${hasTauriInvoke() ? "" : "disabled"}>Apply visible batch</button>
           <button data-role="retry-failed-batch" type="button" ${hasTauriInvoke() && failedBatchCount ? "" : "disabled"}>Retry failed batch</button>
         </div>
@@ -1118,7 +1175,13 @@ function renderApp(appState: AppState): string {
       <section>
         <h2>Latest WebDAV execution brief</h2>
         ${latestWebdavHandoffPacket
-          ? `<p>${escapeHtml(latestWebdavHandoffPacket.executionBrief.summary)}</p><p><strong>Execution brief status:</strong> ${escapeHtml(latestWebdavHandoffPacket.executionBrief.status)}</p>${latestWebdavHandoffPacket.executionBrief.owner ? `<p><strong>Owner:</strong> ${escapeHtml(latestWebdavHandoffPacket.executionBrief.owner)}</p>` : ""}<div><strong>Execution checklist:</strong><ul>${latestWebdavHandoffPacket.executionBrief.checklist.map((item) => `<li>${escapeHtml(item.stage)} • ${escapeHtml(item.status)} • ${escapeHtml(item.detail)}</li>`).join("")}</ul></div><div><strong>Grouped operations:</strong><ul><li>${escapeHtml(`${latestWebdavHandoffPacket.executionBrief.groupedOperations.mkdirTargets.length} mkdir target${latestWebdavHandoffPacket.executionBrief.groupedOperations.mkdirTargets.length === 1 ? "" : "s"}`)}</li><li>${escapeHtml(`${latestWebdavHandoffPacket.executionBrief.groupedOperations.uploadTargets.length} upload target${latestWebdavHandoffPacket.executionBrief.groupedOperations.uploadTargets.length === 1 ? "" : "s"}`)}</li><li>${escapeHtml(`${latestWebdavHandoffPacket.executionBrief.groupedOperations.verifyTargets.length} verify target${latestWebdavHandoffPacket.executionBrief.groupedOperations.verifyTargets.length === 1 ? "" : "s"}`)}</li></ul></div>${latestWebdavHandoffPacket.executionBrief.nextSteps.length ? `<div><strong>Execution next steps:</strong><ul>${latestWebdavHandoffPacket.executionBrief.nextSteps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ul></div>` : ""}<pre>${escapeHtml(latestWebdavExecutionBriefExport)}</pre>`
+          ? `<p>${escapeHtml(latestWebdavHandoffPacket.executionBrief.summary)}</p><p><strong>Execution brief status:</strong> ${escapeHtml(latestWebdavHandoffPacket.executionBrief.status)}</p>${latestWebdavHandoffPacket.executionBrief.owner ? `<p><strong>Owner:</strong> ${escapeHtml(latestWebdavHandoffPacket.executionBrief.owner)}</p>` : ""}<div><strong>Execution checklist:</strong><ul>${latestWebdavHandoffPacket.executionBrief.checklist.map((item) => `<li>${escapeHtml(item.stage)} • ${escapeHtml(item.status)} • ${escapeHtml(item.detail)}</li>`).join("")}</ul></div><div><strong>Remote stage progress:</strong><ul>${latestWebdavHandoffPacket.executionBrief.stageProgress.map((item) => `<li>${escapeHtml(item.stage)} • ${escapeHtml(item.status)} • ${escapeHtml(`${item.targetCount} target${item.targetCount === 1 ? "" : "s"}`)}${item.updatedAt ? ` • ${escapeHtml(item.updatedAt)}` : ""}</li>`).join("")}</ul></div><div><strong>Grouped operations:</strong><ul><li>${escapeHtml(`${latestWebdavHandoffPacket.executionBrief.groupedOperations.mkdirTargets.length} mkdir target${latestWebdavHandoffPacket.executionBrief.groupedOperations.mkdirTargets.length === 1 ? "" : "s"}`)}</li><li>${escapeHtml(`${latestWebdavHandoffPacket.executionBrief.groupedOperations.uploadTargets.length} upload target${latestWebdavHandoffPacket.executionBrief.groupedOperations.uploadTargets.length === 1 ? "" : "s"}`)}</li><li>${escapeHtml(`${latestWebdavHandoffPacket.executionBrief.groupedOperations.verifyTargets.length} verify target${latestWebdavHandoffPacket.executionBrief.groupedOperations.verifyTargets.length === 1 ? "" : "s"}`)}</li></ul></div>${latestWebdavHandoffPacket.executionBrief.nextSteps.length ? `<div><strong>Execution next steps:</strong><ul>${latestWebdavHandoffPacket.executionBrief.nextSteps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ul></div>` : ""}<pre>${escapeHtml(latestWebdavExecutionBriefExport)}</pre>`
+          : "<p>No pending WebDAV transfer intents yet.</p>"}
+      </section>
+      <section>
+        <h2>Latest WebDAV remote stage progress</h2>
+        ${latestWebdavHandoffPacket
+          ? `<p>${escapeHtml(`${latestWebdavHandoffPacket.executionBrief.stageProgress.filter((item) => item.status === "completed").length} of ${latestWebdavHandoffPacket.executionBrief.stageProgress.length} remote stages have recorded operator progress.`)}</p><ul>${latestWebdavHandoffPacket.executionBrief.stageProgress.map((item) => `<li>${escapeHtml(item.stage)} • ${escapeHtml(item.status)} • ${escapeHtml(`${item.targetCount} target${item.targetCount === 1 ? "" : "s"}`)}${item.note ? ` • ${escapeHtml(item.note)}` : ""}</li>`).join("")}</ul><pre>${escapeHtml(latestWebdavRemoteStageProgressExport)}</pre>`
           : "<p>No pending WebDAV transfer intents yet.</p>"}
       </section>
       <section>
@@ -1142,7 +1205,7 @@ function renderApp(appState: AppState): string {
       <section>
         <h2>Latest WebDAV owner packet</h2>
         ${latestWebdavHandoffPacket
-          ? `<p>${escapeHtml(latestWebdavHandoffPacket.ownerPacket.summary)}</p><p><strong>Owner:</strong> ${escapeHtml(latestWebdavHandoffPacket.ownerPacket.owner)}</p><p><strong>Acknowledgement:</strong> ${escapeHtml(latestWebdavHandoffPacket.ownerPacket.acknowledgement)}</p><div><strong>Required actions:</strong><ul>${latestWebdavHandoffPacket.ownerPacket.requiredActions.map((action) => `<li>${escapeHtml(action)}</li>`).join("")}</ul></div><pre>${escapeHtml(latestWebdavOwnerPacketExport)}</pre>`
+          ? `<p>${escapeHtml(latestWebdavHandoffPacket.ownerPacket.summary)}</p><p><strong>Owner:</strong> ${escapeHtml(latestWebdavHandoffPacket.ownerPacket.owner)}</p><p><strong>Acknowledgement:</strong> ${escapeHtml(latestWebdavHandoffPacket.ownerPacket.acknowledgement)}</p><div><strong>Required actions:</strong><ul>${latestWebdavHandoffPacket.ownerPacket.requiredActions.map((action) => `<li>${escapeHtml(action)}</li>`).join("")}</ul></div><div><strong>Owner stage progress:</strong><ul>${latestWebdavHandoffPacket.ownerPacket.stageProgress.map((item) => `<li>${escapeHtml(item.stage)} • ${escapeHtml(item.status)} • ${escapeHtml(`${item.targetCount} target${item.targetCount === 1 ? "" : "s"}`)}</li>`).join("")}</ul></div><pre>${escapeHtml(latestWebdavOwnerPacketExport)}</pre>`
           : "<p>No pending WebDAV transfer intents yet.</p>"}
       </section>
       <section>
