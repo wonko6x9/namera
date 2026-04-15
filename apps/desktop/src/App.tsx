@@ -945,8 +945,9 @@ function renderApp(appState: AppState): string {
     : "<p>No batch results yet</p>";
   const latestLocalBatchRun = appState.localBatchRuns[0];
   const latestLocalBatchRunExport = latestLocalBatchRun ? JSON.stringify(latestLocalBatchRun, null, 2) : "";
+  const latestRecoveryGuidance = summarizeLatestRecoveryGuidance(latestLocalBatchRun, appState.diagnosticLog);
   const latestLocalBatchRunMarkup = latestLocalBatchRun
-    ? `<p><strong>Status:</strong> ${escapeHtml(latestLocalBatchRun.status)} • <strong>Planned:</strong> ${latestLocalBatchRun.plannedInputs.length} • <strong>Completed:</strong> ${latestLocalBatchRun.completedInputs.length} • <strong>Failed:</strong> ${latestLocalBatchRun.failedInputs.length}</p><p><strong>Last processed:</strong> ${escapeHtml(latestLocalBatchRun.lastProcessedInput ?? "none")}</p><p><strong>Recovery hint:</strong> ${escapeHtml(latestLocalBatchRun.failedInputs.length ? `Retry ${latestLocalBatchRun.failedInputs.length} failed item${latestLocalBatchRun.failedInputs.length === 1 ? "" : "s"} from the last batch run.` : "No failed items recorded in the latest batch run.")}</p><pre>${escapeHtml(latestLocalBatchRunExport)}</pre>`
+    ? `<p><strong>Status:</strong> ${escapeHtml(latestLocalBatchRun.status)} • <strong>Planned:</strong> ${latestLocalBatchRun.plannedInputs.length} • <strong>Completed:</strong> ${latestLocalBatchRun.completedInputs.length} • <strong>Failed:</strong> ${latestLocalBatchRun.failedInputs.length}</p><p><strong>Last processed:</strong> ${escapeHtml(latestLocalBatchRun.lastProcessedInput ?? "none")}</p><p><strong>Recovery hint:</strong> ${escapeHtml(latestRecoveryGuidance.summary)}</p><div><strong>Recovery next steps:</strong>${latestRecoveryGuidance.steps.length ? `<ul>${latestRecoveryGuidance.steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ul>` : " <span>No action needed.</span>"}</div><pre>${escapeHtml(latestLocalBatchRunExport)}</pre>`
     : "<p>No persisted local batch runs yet.</p>";
   const diagnosticLogMarkup = appState.diagnosticLog.length
     ? `<ul>${appState.diagnosticLog.slice(0, 20).map((event) => `<li>${escapeHtml(event.timestamp)} • ${escapeHtml(event.level)} • ${escapeHtml(event.scope)} • ${escapeHtml(event.message)}</li>`).join("")}</ul><pre>${escapeHtml(JSON.stringify(appState.diagnosticLog.slice(0, 20), null, 2))}</pre>`
@@ -1461,6 +1462,56 @@ function summarizeWebdavBlockedReasons(previews: PreviewResult[], config: AppCon
   return Array.from(blockedReasonCounts.entries())
     .map(([reason, count]) => ({ reason, count }))
     .sort((left, right) => right.count - left.count || left.reason.localeCompare(right.reason));
+}
+
+function summarizeLatestRecoveryGuidance(
+  batchRun: LocalBatchRun | undefined,
+  diagnostics: DiagnosticLogEvent[],
+): { summary: string; steps: string[] } {
+  if (!batchRun) {
+    return {
+      summary: "No persisted local batch run exists yet.",
+      steps: [],
+    };
+  }
+
+  const recentExecutionErrors = diagnostics
+    .filter((event) => event.scope === "execution" && event.level === "error")
+    .slice(0, 5);
+
+  const steps: string[] = [];
+
+  if (batchRun.failedInputs.length) {
+    steps.push(`Retry ${batchRun.failedInputs.length} failed item${batchRun.failedInputs.length === 1 ? "" : "s"} from the latest batch.`);
+  }
+
+  if (batchRun.status === "running") {
+    steps.push("Review the last processed item before resuming the interrupted batch.");
+  }
+
+  if (recentExecutionErrors.some((event) => String(event.context?.error ?? "").includes("destination already exists"))) {
+    steps.push("Review the collision policy or clear conflicting destination files before retrying.");
+  }
+
+  if (recentExecutionErrors.some((event) => String(event.context?.error ?? "").includes("source path already exists"))) {
+    steps.push("Undo is blocked because the original source path was recreated. Move or inspect that file before retrying undo.");
+  }
+
+  if (recentExecutionErrors.some((event) => String(event.context?.error ?? "").includes("destination size changed"))) {
+    steps.push("Undo is blocked by a changed destination file. Verify the destination manually before attempting recovery.");
+  }
+
+  if (!steps.length) {
+    steps.push("No immediate recovery action is required from the latest batch state.");
+  }
+
+  const summary = batchRun.failedInputs.length
+    ? `Latest batch left ${batchRun.failedInputs.length} failed item${batchRun.failedInputs.length === 1 ? "" : "s"}; recovery guidance is based on recent execution diagnostics.`
+    : batchRun.status === "running"
+      ? "Latest batch is still marked running; inspect the last processed item before resuming."
+      : "Latest batch completed without recorded failures. Recovery guidance is clear.";
+
+  return { summary, steps };
 }
 
 function summarizeWebdavReadinessByKind(previews: PreviewResult[], config: AppConfig): Array<{ kind: string; ready: number; blocked: number }> {

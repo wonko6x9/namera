@@ -919,7 +919,9 @@ describe("Namera MVP flow", () => {
     expect(loadLocalBatchRuns()[0]?.status).toBe("completed");
     expect(loadDiagnosticLog()[0]?.scope).toBe("recovery");
     expect(renders.at(-1)).toContain("Latest local batch recovery state");
-    expect(renders.at(-1)).toContain("Retry 1 failed item from the last batch run.");
+    expect(renders.at(-1)).toContain("Latest batch left 1 failed item; recovery guidance is based on recent execution diagnostics.");
+    expect(renders.at(-1)).toContain("Recovery next steps:");
+    expect(renders.at(-1)).toContain("Retry 1 failed item from the latest batch.");
     expect(renders.at(-1)).toContain("Diagnostics");
     expect(renders.at(-1)).toContain('&quot;input&quot;: &quot;Severance.S01E01.Good.News.About.Hell.2160p.WEB-DL.mkv&quot;');
   });
