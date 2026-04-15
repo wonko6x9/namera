@@ -29,6 +29,9 @@ function wireApp(root: HTMLElement): void {
   const tvRootInput = root.querySelector<HTMLInputElement>("[data-role='config-tv-root']");
   const musicRootInput = root.querySelector<HTMLInputElement>("[data-role='config-music-root']");
   const omdbKeyInput = root.querySelector<HTMLInputElement>("[data-role='config-omdb-key']");
+  const movieSearchProviderInput = root.querySelector<HTMLSelectElement>("[data-role='config-movie-search-provider']");
+  const tvSearchProviderInput = root.querySelector<HTMLSelectElement>("[data-role='config-tv-search-provider']");
+  const musicSearchProviderInput = root.querySelector<HTMLSelectElement>("[data-role='config-music-search-provider']");
   const sourceRootInput = root.querySelector<HTMLInputElement>("[data-role='config-source-root']");
   const targetRootInput = root.querySelector<HTMLInputElement>("[data-role='config-target-root']");
   const webdavMovieRootInput = root.querySelector<HTMLInputElement>("[data-role='config-webdav-movie-root']");
@@ -99,6 +102,9 @@ function wireApp(root: HTMLElement): void {
       },
       providers: {
         omdbApiKey: omdbKeyInput?.value || undefined,
+        movieSearchProvider: (movieSearchProviderInput?.value as "google" | "imdb" | undefined) || "imdb",
+        tvSearchProvider: (tvSearchProviderInput?.value as "google" | "tvmaze" | undefined) || "tvmaze",
+        musicSearchProvider: (musicSearchProviderInput?.value as "google" | "musicbrainz" | undefined) || "musicbrainz",
       },
     });
   });

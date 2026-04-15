@@ -12,7 +12,11 @@ export const DEFAULT_CONFIG: AppConfig = {
     webdavTvRoot: "",
     webdavMusicRoot: "",
   },
-  providers: {},
+  providers: {
+    movieSearchProvider: "imdb",
+    tvSearchProvider: "tvmaze",
+    musicSearchProvider: "musicbrainz",
+  },
 };
 
 const CONFIG_KEY = "namera.config";

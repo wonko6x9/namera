@@ -120,6 +120,9 @@ export interface ProviderConfig {
   tmdbApiKey?: string;
   tvdbApiKey?: string;
   omdbApiKey?: string;
+  movieSearchProvider?: "google" | "imdb";
+  tvSearchProvider?: "google" | "tvmaze";
+  musicSearchProvider?: "google" | "musicbrainz";
 }
 
 export interface ProviderDiagnostic {

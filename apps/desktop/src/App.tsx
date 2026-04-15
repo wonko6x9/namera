@@ -1,5 +1,5 @@
 import { loadConfig, loadCorrections, loadExecutionLog, loadHistory, markExecutionUndone, pushExecutionLog, pushHistory, saveConfig, setCorrection } from "@namera/config";
-import type { AppConfig, IngestItem, MatchCandidate, PreviewResult, ProviderDiagnostic, ReviewSummary } from "@namera/core";
+import type { AppConfig, IngestItem, MatchCandidate, ParsedMedia, PreviewResult, ProviderDiagnostic, ReviewSummary } from "@namera/core";
 import { createPhase3DestinationPlan } from "@namera/destination";
 import { createExecutionBatch, createExecutionRecord, createPlannedExecutions, exportPlanSet, summarizeExecutionActions } from "@namera/exec";
 import { parseFileListIngest, parseTextIngest } from "@namera/ingest";
@@ -291,7 +291,7 @@ function renderApp(appState: AppState): string {
       const diagnosticsText = diagnostics.length
         ? diagnostics.map((diagnostic) => `${diagnostic.provider}: ${diagnostic.status}${diagnostic.cached ? " (cached)" : ""} - ${diagnostic.detail}`).join("; ")
         : "no provider diagnostics yet";
-      const searchUrl = buildMediaSearchUrl(preview.parsed);
+      const searchUrl = buildMediaSearchUrl(preview.parsed, appState.config);
       const artworkSearchUrl = buildArtworkSearchUrl(preview.parsed);
       const executionActions = createPlannedExecutions(preview.plan);
       const dryRunBatch = createExecutionBatch(preview.plan, "dry-run");
@@ -402,6 +402,30 @@ function renderApp(appState: AppState): string {
         </div>
         <div>
           <label>OMDb API key <input data-role="config-omdb-key" value="${escapeHtmlAttribute(appState.config.providers.omdbApiKey ?? "")}" /></label>
+        </div>
+        <div>
+          <label>Movie search provider
+            <select data-role="config-movie-search-provider">
+              <option value="imdb" ${(appState.config.providers.movieSearchProvider ?? "imdb") === "imdb" ? "selected" : ""}>IMDb</option>
+              <option value="google" ${(appState.config.providers.movieSearchProvider ?? "imdb") === "google" ? "selected" : ""}>Google</option>
+            </select>
+          </label>
+        </div>
+        <div>
+          <label>TV search provider
+            <select data-role="config-tv-search-provider">
+              <option value="tvmaze" ${(appState.config.providers.tvSearchProvider ?? "tvmaze") === "tvmaze" ? "selected" : ""}>TVmaze</option>
+              <option value="google" ${(appState.config.providers.tvSearchProvider ?? "tvmaze") === "google" ? "selected" : ""}>Google</option>
+            </select>
+          </label>
+        </div>
+        <div>
+          <label>Music search provider
+            <select data-role="config-music-search-provider">
+              <option value="musicbrainz" ${(appState.config.providers.musicSearchProvider ?? "musicbrainz") === "musicbrainz" ? "selected" : ""}>MusicBrainz</option>
+              <option value="google" ${(appState.config.providers.musicSearchProvider ?? "musicbrainz") === "google" ? "selected" : ""}>Google</option>
+            </select>
+          </label>
         </div>
         <div>
           <label>Source root <input data-role="config-source-root" value="${escapeHtmlAttribute(appState.config.destinations.sourceRoot ?? ".")}" /></label>
@@ -578,12 +602,33 @@ function mergeConfig(current: AppConfig, patch: Partial<AppConfig>): AppConfig {
   };
 }
 
-export function buildMediaSearchUrl(parsed: import("@namera/core").ParsedMedia): string {
+export function buildMediaSearchUrl(parsed: ParsedMedia, config: AppConfig): string {
   const query = parsed.kind === "episode" && parsed.episode
     ? `${parsed.episode.seriesTitle ?? parsed.title} S${String(parsed.episode.season).padStart(2, "0")}E${String(parsed.episode.episode).padStart(2, "0")} ${parsed.episode.episodeTitle ?? ""}`.trim()
     : parsed.kind === "movie"
       ? `${parsed.title}${parsed.movie?.year ? ` ${parsed.movie.year}` : ""}`.trim()
       : parsed.title;
+
+  if (parsed.kind === "episode") {
+    const provider = config.providers.tvSearchProvider ?? "tvmaze";
+    if (provider === "tvmaze") {
+      return `https://www.tvmaze.com/search?q=${encodeURIComponent(parsed.episode?.seriesTitle ?? parsed.title)}`;
+    }
+  }
+
+  if (parsed.kind === "music") {
+    const provider = config.providers.musicSearchProvider ?? "musicbrainz";
+    if (provider === "musicbrainz") {
+      return `https://musicbrainz.org/search?query=${encodeURIComponent(query)}&type=recording&method=indexed`;
+    }
+  }
+
+  if (parsed.kind === "movie") {
+    const provider = config.providers.movieSearchProvider ?? "imdb";
+    if (provider === "imdb") {
+      return `https://www.imdb.com/find/?q=${encodeURIComponent(query)}`;
+    }
+  }
 
   return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
 }

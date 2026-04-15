@@ -177,10 +177,29 @@ describe("Namera MVP flow", () => {
     const movie = parseFilename("The.Matrix.1999.1080p.BluRay.mkv");
     const episode = parseFilename("Severance.S01E01.Good.News.About.Hell.2160p.WEB-DL.mkv");
 
-    expect(decodeURIComponent(buildMediaSearchUrl(movie))).toContain("The Matrix 1999");
-    expect(decodeURIComponent(buildMediaSearchUrl(episode))).toContain("Severance S01E01 Good News About Hell");
+    expect(buildMediaSearchUrl(movie, loadConfig())).toContain("imdb.com/find/");
+    expect(buildMediaSearchUrl(episode, loadConfig())).toContain("tvmaze.com/search");
     expect(decodeURIComponent(buildArtworkSearchUrl(movie))).toContain("movie poster dvd cover");
     expect(decodeURIComponent(buildArtworkSearchUrl(episode))).toContain("Severance season 1 poster");
+  });
+
+  it("allows manual search providers to be configured per media type", () => {
+    const movie = parseFilename("The.Matrix.1999.1080p.BluRay.mkv");
+    const episode = parseFilename("Severance.S01E01.Good.News.About.Hell.2160p.WEB-DL.mkv");
+    const music = parseFilename("Daft.Punk.Harder.Better.Faster.Stronger.mp3");
+
+    const config = {
+      destinations: loadConfig().destinations,
+      providers: {
+        movieSearchProvider: "google" as const,
+        tvSearchProvider: "google" as const,
+        musicSearchProvider: "google" as const,
+      },
+    };
+
+    expect(buildMediaSearchUrl(movie, config)).toContain("google.com/search");
+    expect(buildMediaSearchUrl(episode, config)).toContain("google.com/search");
+    expect(buildMediaSearchUrl(music, config)).toContain("google.com/search");
   });
 
   it("prefers live provider candidates over local heuristics when available", () => {
@@ -288,6 +307,9 @@ describe("Namera MVP flow", () => {
       },
       providers: {
         omdbApiKey: "test-key",
+        movieSearchProvider: "google",
+        tvSearchProvider: "google",
+        musicSearchProvider: "google",
       },
     });
 
@@ -300,6 +322,9 @@ describe("Namera MVP flow", () => {
     expect(config.destinations.webdavMusicRoot).toBe("/dav/music");
     expect(config.destinations.collisionPolicy).toBe("overwrite");
     expect(config.providers.omdbApiKey).toBe("test-key");
+    expect(config.providers.movieSearchProvider).toBe("google");
+    expect(config.providers.tvSearchProvider).toBe("google");
+    expect(config.providers.musicSearchProvider).toBe("google");
     expect(renders.at(-1)).toContain("Configuration");
   });
 
