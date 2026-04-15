@@ -298,6 +298,7 @@ function renderApp(appState: AppState): string {
   const exportedVisibleReviewPlans = exportReviewPlanSet(filteredPreviews, appState.config.destinations, appState.previewDestinationBackend);
   const providerSummary = providerStatus(appState.config.providers);
   const webdavTransferSummary = summarizeWebdavTransferState(previews, appState.config);
+  const webdavBlockedReasons = summarizeWebdavBlockedReasons(previews, appState.config);
   const failedBatchCount = appState.nativeBatchResults.filter((result) => result.outcome === "failed").length;
   const failedBatchExport = exportFailedBatchResults(appState.nativeBatchResults);
   const recentRootsMarkup = appState.recentIngestRoots.length
@@ -430,6 +431,12 @@ function renderApp(appState: AppState): string {
         <p><strong>WebDAV roots:</strong> Movies=${escapeHtml(appState.config.destinations.webdavMovieRoot || "(not set)")}, TV=${escapeHtml(appState.config.destinations.webdavTvRoot || "(not set)")}, Music=${escapeHtml(appState.config.destinations.webdavMusicRoot || "(not set)")}</p>
         <p><strong>Destination preview mode:</strong> ${escapeHtml(appState.previewDestinationBackend)}</p>
         <p><strong>WebDAV transfer readiness:</strong> ${escapeHtml(webdavTransferSummary)}</p>
+        <div>
+          <strong>WebDAV blocked reasons:</strong>
+          ${webdavBlockedReasons.length
+            ? `<ul>${webdavBlockedReasons.map((entry) => `<li>${escapeHtml(String(entry.count))} × ${escapeHtml(entry.reason)}</li>`).join("")}</ul>`
+            : "<p>No blocked WebDAV reasons in the current review set.</p>"}
+        </div>
         <p><strong>Collision policy:</strong> ${escapeHtml(appState.config.destinations.collisionPolicy || "skip")}</p>
         <p><strong>Providers:</strong> ${escapeHtml(providerSummary)}</p>
         <p><strong>Ingest summary:</strong> ${escapeHtml(summarizeIngest(appState.ingestedItems))}</p>
@@ -644,20 +651,27 @@ function summarizeWebdavTransferState(previews: PreviewResult[], config: AppConf
   const transferPlans = previews.map((preview) => createPhase3TransferPlan(preview.plan, preview.parsed.kind, config.destinations));
   const planned = transferPlans.filter((plan) => plan.status === "planned").length;
   const blocked = transferPlans.length - planned;
-  const blockedReasonCounts = new Map<string, number>();
-
-  for (const plan of transferPlans.filter((plan) => plan.status === "blocked")) {
-    const reason = plan.summary;
-    blockedReasonCounts.set(reason, (blockedReasonCounts.get(reason) ?? 0) + 1);
-  }
-
-  const blockedReasons = Array.from(blockedReasonCounts.entries())
-    .map(([reason, count]) => `${count} × ${reason}`)
+  const blockedReasons = summarizeWebdavBlockedReasons(previews, config)
+    .map((entry) => `${entry.count} × ${entry.reason}`)
     .join("; ");
 
   return blocked
     ? `${planned} ready, ${blocked} blocked${blockedReasons ? ` (${blockedReasons})` : ""}`
     : `${planned} ready, 0 blocked`;
+}
+
+function summarizeWebdavBlockedReasons(previews: PreviewResult[], config: AppConfig): Array<{ reason: string; count: number }> {
+  const blockedReasonCounts = new Map<string, number>();
+
+  for (const plan of previews
+    .map((preview) => createPhase3TransferPlan(preview.plan, preview.parsed.kind, config.destinations))
+    .filter((plan) => plan.status === "blocked")) {
+    blockedReasonCounts.set(plan.summary, (blockedReasonCounts.get(plan.summary) ?? 0) + 1);
+  }
+
+  return Array.from(blockedReasonCounts.entries())
+    .map(([reason, count]) => ({ reason, count }))
+    .sort((left, right) => right.count - left.count || left.reason.localeCompare(right.reason));
 }
 
 function matchesReviewFilter(preview: PreviewResult, filter: AppState["reviewFilter"]): boolean {
