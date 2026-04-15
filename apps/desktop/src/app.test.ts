@@ -535,6 +535,8 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain('&quot;operationManifest&quot;');
     expect(renders.at(-1)).toContain('&quot;ownerPacket&quot;');
     expect(renders.at(-1)).toContain('&quot;items&quot;');
+    expect(renders.at(-1)).toContain('&quot;byKind&quot;');
+    expect(renders.at(-1)).toContain('&quot;readyByKind&quot;');
     expect(renders.at(-1)).toContain('&quot;nextSteps&quot;');
     expect(renders.at(-1)).toContain('&quot;readyOperations&quot;');
     expect(renders.at(-1)).toContain('&quot;blockedItems&quot;');
@@ -550,7 +552,11 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("Remote checklist is blocked on Intent assigned, Intent acknowledged.");
     expect(renders.at(-1)).toContain("Handoff summary needs work for unassigned.");
     expect(renders.at(-1)).toContain("Operation manifest prepared with 3 ready targets and 0 blocked items.");
+    expect(renders.at(-1)).toContain('&quot;byKind&quot;');
+    expect(renders.at(-1)).toContain('&quot;kind&quot;: &quot;movie&quot;');
+    expect(renders.at(-1)).toContain('&quot;count&quot;: 3');
     expect(renders.at(-1)).toContain("Owner packet needs follow-up for unassigned. 3 targets are staged and 0 blockers remain.");
+    expect(renders.at(-1)).toContain('&quot;readyByKind&quot;');
     expect(renders.at(-1)).toContain("The.Matrix.1999.1080p.BluRay.mkv -&gt; /dav/movies/The Matrix (1999)/The Matrix (1999).mkv");
     expect(renders.at(-1)).toContain("assign • blocked");
     expect(renders.at(-1)).toContain("Grouped operations:");

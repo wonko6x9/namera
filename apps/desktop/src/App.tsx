@@ -505,6 +505,13 @@ function renderApp(appState: AppState): string {
           upload: readyOperations.filter((operation) => operation.actions.some((action) => action.startsWith("Upload/copy renamed file to "))),
           verify: readyOperations.filter((operation) => operation.actions.some((action) => action.startsWith("Verify remote file exists"))),
         };
+        const summarizeKinds = (items: Array<{ detectedKind: MediaKind }>) => {
+          const counts = new Map<MediaKind, number>();
+          for (const item of items) {
+            counts.set(item.detectedKind, (counts.get(item.detectedKind) ?? 0) + 1);
+          }
+          return Array.from(counts.entries()).map(([kind, count]) => ({ kind, count }));
+        };
         const executionChecklist = [
           {
             stage: "assign",
@@ -599,6 +606,7 @@ function renderApp(appState: AppState): string {
               stage: "mkdir",
               targets: groupedOperations.mkdirTargets,
               count: groupedOperations.mkdirTargets.length,
+              byKind: summarizeKinds(stageItems.mkdir),
               items: stageItems.mkdir.map((operation) => ({
                 input: operation.input,
                 detectedKind: operation.detectedKind,
@@ -609,6 +617,7 @@ function renderApp(appState: AppState): string {
               stage: "upload",
               targets: groupedOperations.uploadTargets,
               count: groupedOperations.uploadTargets.length,
+              byKind: summarizeKinds(stageItems.upload),
               items: stageItems.upload.map((operation) => ({
                 input: operation.input,
                 detectedKind: operation.detectedKind,
@@ -619,6 +628,7 @@ function renderApp(appState: AppState): string {
               stage: "verify",
               targets: groupedOperations.verifyTargets,
               count: groupedOperations.verifyTargets.length,
+              byKind: summarizeKinds(stageItems.verify),
               items: stageItems.verify.map((operation) => ({
                 input: operation.input,
                 detectedKind: operation.detectedKind,
@@ -637,6 +647,7 @@ function renderApp(appState: AppState): string {
           acknowledgement: intent.status === "acknowledged"
             ? "Prerequisites acknowledged for remote handoff."
             : "Prerequisites still need acknowledgement before remote handoff.",
+          readyByKind: summarizeKinds(readyOperations),
           readyTargets: readyOperations.map((operation) => ({
             input: operation.input,
             targetPath: operation.targetPath,

@@ -318,6 +318,10 @@ export interface WebdavTransferHandoffPacket {
       stage: "mkdir" | "upload" | "verify";
       targets: string[];
       count: number;
+      byKind: Array<{
+        kind: MediaKind;
+        count: number;
+      }>;
       items: Array<{
         input: string;
         detectedKind: MediaKind;
@@ -334,6 +338,10 @@ export interface WebdavTransferHandoffPacket {
     owner: string;
     summary: string;
     acknowledgement: string;
+    readyByKind: Array<{
+      kind: MediaKind;
+      count: number;
+    }>;
     readyTargets: Array<{
       input: string;
       targetPath: string;
