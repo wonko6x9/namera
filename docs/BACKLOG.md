@@ -59,7 +59,7 @@
   - movie template
   - TV template
   - simple music template placeholder even if music matching is not fully mature yet
-  - default root routing should be opinionated: movies go under the Movies root, TV goes under series folders with season subfolders, and music goes under primary artist / album
+  - default root routing should be opinionated: movies go under the Movies root, TV goes under the TV root with series folders and season subfolders, and music goes under the Music root with primary artist / album structure
 
 - **Settings and local state**
   - local config storage
