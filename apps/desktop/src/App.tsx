@@ -247,6 +247,8 @@ export function createAppController(rerender: (markup: string) => void): AppCont
         return;
       }
       const createdAt = new Date().toISOString();
+      const prerequisites = buildWebdavIntentPrerequisites(snapshot);
+      const readiness = summarizeWebdavIntentReadiness(prerequisites);
       state.webdavTransferIntents = pushWebdavTransferIntent({
         id: `webdav-intent-${Date.now()}`,
         createdAt,
@@ -254,11 +256,13 @@ export function createAppController(rerender: (markup: string) => void): AppCont
         snapshotCreatedAt: snapshot.createdAt,
         filter: snapshot.filter,
         status: "pending",
+        handoffReadiness: readiness.handoffReadiness,
+        handoffReadinessReason: readiness.handoffReadinessReason,
         summary: snapshot.summary,
         itemCount: snapshot.items.length,
         nextActions: summarizeWebdavTransferActions(snapshot.items),
         blockers: snapshot.summary.blockedReasons,
-        prerequisites: buildWebdavIntentPrerequisites(snapshot),
+        prerequisites,
         lifecycleEvents: [
           {
             at: createdAt,
@@ -401,7 +405,7 @@ function renderApp(appState: AppState): string {
     ? JSON.stringify(appState.webdavTransferSnapshots[0], null, 2)
     : "";
   const webdavIntentMarkup = appState.webdavTransferIntents.length
-    ? `<ul>${appState.webdavTransferIntents.slice(0, 5).map((intent) => `<li>${escapeHtml(intent.createdAt)} • snapshot=${escapeHtml(intent.snapshotId)} • ${escapeHtml(intent.status)} • ${escapeHtml(`${intent.summary.ready} ready, ${intent.summary.blocked} blocked, ${intent.itemCount} items`)} • ${escapeHtml(`${intent.prerequisites.filter((entry) => entry.status === "ready").length}/${intent.prerequisites.length} prerequisites ready`)}${intent.handoffOwner ? ` • owner ${escapeHtml(intent.handoffOwner)}` : ""}${intent.handoffAssignedAt ? ` • assigned ${escapeHtml(intent.handoffAssignedAt)}` : ""}${intent.acknowledgedAt ? ` • acknowledged ${escapeHtml(intent.acknowledgedAt)}` : ""}</li>`).join("")}</ul>`
+    ? `<ul>${appState.webdavTransferIntents.slice(0, 5).map((intent) => `<li>${escapeHtml(intent.createdAt)} • snapshot=${escapeHtml(intent.snapshotId)} • ${escapeHtml(intent.status)} • handoff ${escapeHtml(intent.handoffReadiness)} (${escapeHtml(intent.handoffReadinessReason)}) • ${escapeHtml(`${intent.summary.ready} ready, ${intent.summary.blocked} blocked, ${intent.itemCount} items`)} • ${escapeHtml(`${intent.prerequisites.filter((entry) => entry.status === "ready").length}/${intent.prerequisites.length} prerequisites ready`)}${intent.handoffOwner ? ` • owner ${escapeHtml(intent.handoffOwner)}` : ""}${intent.handoffAssignedAt ? ` • assigned ${escapeHtml(intent.handoffAssignedAt)}` : ""}${intent.acknowledgedAt ? ` • acknowledged ${escapeHtml(intent.acknowledgedAt)}` : ""}</li>`).join("")}</ul>`
     : "<p>No pending WebDAV transfer intents yet.</p>";
   const latestWebdavIntentExport = appState.webdavTransferIntents.length
     ? JSON.stringify(appState.webdavTransferIntents[0], null, 2)
@@ -892,6 +896,24 @@ function buildWebdavIntentPrerequisites(snapshot: import("@namera/core").WebdavT
       detail: snapshot.summary.blocked === 0 ? "No blocked WebDAV items remain in this saved snapshot." : `${snapshot.summary.blocked} blocked item${snapshot.summary.blocked === 1 ? " still needs" : "s still need"} prerequisite work before any later execution handoff.`,
     },
   ];
+}
+
+function summarizeWebdavIntentReadiness(prerequisites: Array<{ name: string; status: "ready" | "blocked"; detail: string }>): {
+  handoffReadiness: "ready" | "blocked";
+  handoffReadinessReason: string;
+} {
+  const blocked = prerequisites.filter((entry) => entry.status === "blocked");
+  if (!blocked.length) {
+    return {
+      handoffReadiness: "ready",
+      handoffReadinessReason: "All recorded prerequisites are ready for manual handoff.",
+    };
+  }
+
+  return {
+    handoffReadiness: "blocked",
+    handoffReadinessReason: blocked.map((entry) => entry.name).join(", "),
+  };
 }
 
 function matchesReviewFilter(preview: PreviewResult, filter: AppState["reviewFilter"]): boolean {

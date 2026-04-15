@@ -212,6 +212,8 @@ export interface WebdavTransferIntent {
   snapshotCreatedAt: string;
   filter: string;
   status: "pending" | "acknowledged";
+  handoffReadiness: "ready" | "blocked";
+  handoffReadinessReason: string;
   summary: WebdavTransferQueueSummary;
   itemCount: number;
   nextActions: Array<{

@@ -502,12 +502,14 @@ describe("Namera MVP flow", () => {
     expect(loadWebdavTransferIntents()[0]?.status).toBe("pending");
     expect(loadWebdavTransferIntents()[0]?.nextActions.length).toBeGreaterThan(0);
     expect(loadWebdavTransferIntents()[0]?.prerequisites.length).toBeGreaterThan(0);
+    expect(loadWebdavTransferIntents()[0]?.handoffReadiness).toBeTruthy();
     expect(loadWebdavTransferIntents()[0]?.lifecycleEvents[0]?.type).toBe("created");
     expect(renders.at(-1)).toContain("Saved pending WebDAV transfer intent");
     expect(renders.at(-1)).toContain("Saved WebDAV transfer intents");
     expect(renders.at(-1)).toContain("Latest saved WebDAV transfer intent");
     expect(renders.at(-1)).toContain('&quot;nextActions&quot;');
     expect(renders.at(-1)).toContain('&quot;prerequisites&quot;');
+    expect(renders.at(-1)).toContain('&quot;handoffReadiness&quot;');
   });
 
   it("assigns the latest webdav transfer intent for manual handoff", () => {
