@@ -246,3 +246,12 @@ export interface WebdavTransferHandoffPacket {
   intent: WebdavTransferIntent;
   snapshot?: WebdavTransferQueueSnapshot;
 }
+
+export interface WebdavTransferHandoffPacketSummary {
+  generatedAt: string;
+  intentId: string;
+  snapshotId: string;
+  handoffReadiness: "ready" | "blocked";
+  readyCount: number;
+  blockedCount: number;
+}

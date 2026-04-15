@@ -222,6 +222,7 @@ describe("Namera MVP flow", () => {
     expect(App()).toContain("Latest saved WebDAV transfer intent");
     expect(App()).toContain("Latest WebDAV transfer intent lifecycle");
     expect(App()).toContain("Latest WebDAV handoff packet");
+    expect(App()).toContain("Recent WebDAV handoff packets");
   });
 
   it("builds useful manual search URLs for movies and TV", () => {
@@ -512,6 +513,7 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain('&quot;prerequisites&quot;');
     expect(renders.at(-1)).toContain('&quot;handoffReadiness&quot;');
     expect(renders.at(-1)).toContain("Latest WebDAV handoff packet");
+    expect(renders.at(-1)).toContain("Recent WebDAV handoff packets");
   });
 
   it("assigns the latest webdav transfer intent for manual handoff", () => {
