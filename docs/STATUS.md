@@ -1,7 +1,7 @@
 # STATUS
 
 ## Current phase
-Phase 1 and Phase 2 wrapped to a defendable MVP baseline, Phase 3 scaffold started
+Phases 1 and 2 are at a defendable MVP baseline, Phase 4 local execution is now the active implementation lane
 
 ## Project name
 - **Namera**
@@ -18,7 +18,7 @@ Phase 1 and Phase 2 wrapped to a defendable MVP baseline, Phase 3 scaffold start
 - Product direction is primarily media matching, renaming, and tagging, with Plex-friendly organization as an important workflow target
 
 ## Current next step
-Do the final closure pass for phases 1 and 2, then decide whether any remaining gaps are real blockers or just honest future work before native filesystem apply/undo.
+Build native local filesystem apply/undo, starting from the existing execution-batch/log contract instead of inventing a second execution model.
 
 ## Working implementation snapshot
 - TypeScript/Vite desktop MVP is real and runnable

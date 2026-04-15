@@ -37,7 +37,7 @@ Goal: turn ugly filenames into structured candidates reliably.
 
 ---
 
-## Milestone 2, movie and TV matching MVP
+## Milestone 2, movie and TV matching MVP (substantially complete)
 
 Goal: convert normalized parse output into ranked metadata candidates.
 
@@ -54,9 +54,12 @@ Goal: convert normalized parse output into ranked metadata candidates.
 - low-confidence cases surface ambiguity instead of pretending certainty
 - matcher outputs are consumable by planning layer
 
+### Current read
+- achieved for MVP scope: movie lookup via OMDb, TV-specific lookup via TVmaze, ranking, caching, diagnostics, and manual override hooks are all present
+
 ---
 
-## Milestone 3, rename planning and preview
+## Milestone 3, rename planning and preview (substantially complete)
 
 Goal: generate trustworthy rename plans before touching files.
 
@@ -72,9 +75,12 @@ Goal: generate trustworthy rename plans before touching files.
 - collisions and ambiguous cases are explicit
 - plan format is stable enough to log and replay
 
+### Current read
+- achieved for MVP scope: batch review, confidence labeling, provider diagnostics, remembered corrections, and export/log scaffolding are in place
+
 ---
 
-## Milestone 4, safe execution and undo
+## Milestone 4, safe execution and undo (current active lane)
 
 Goal: perform local rename/move operations safely and reversibly.
 

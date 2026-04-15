@@ -32,23 +32,27 @@
   - query metadata providers
   - candidate ranking and confidence scoring
   - manual override when confidence is low
+  - status: MVP baseline achieved
 
 - **TV matching**
   - parse season/episode patterns reliably
   - query TV metadata providers
   - candidate ranking and confidence scoring
   - manual override when confidence is low
+  - status: MVP baseline achieved
 
 - **Rename plan preview**
   - show current filename, detected metadata, and proposed output path
   - surface ambiguity and low-confidence cases clearly
   - dry-run mode by default before execution
+  - status: MVP baseline achieved
 
 - **Safe local rename/move execution**
   - execute rename/move on local filesystems
   - collision detection and conflict policy
   - operation log
   - undo / revert history for completed operations
+  - now the active implementation lane
 
 - **Plex-friendly default templates**
   - movie template
