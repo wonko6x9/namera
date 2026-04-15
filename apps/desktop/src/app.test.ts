@@ -216,6 +216,7 @@ describe("Namera MVP flow", () => {
     expect(App()).toContain('data-role="save-latest-webdav-intent"');
     expect(App()).toContain('data-role="assign-latest-webdav-intent"');
     expect(App()).toContain('data-role="acknowledge-latest-webdav-intent"');
+    expect(App()).toContain('data-role="resolve-latest-webdav-blocked"');
     expect(App()).toContain("Saved WebDAV queue snapshots");
     expect(App()).toContain("Latest saved WebDAV queue snapshot");
     expect(App()).toContain("Saved WebDAV transfer intents");
@@ -554,6 +555,23 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain('&quot;status&quot;: &quot;acknowledged&quot;');
     expect(renders.at(-1)).toContain("Acknowledged WebDAV handoff packets");
     expect(renders.at(-1)).toContain("Handoff-ready WebDAV packets");
+  });
+
+  it("can mark blocked items resolved on the latest webdav transfer intent", () => {
+    const renders: string[] = [];
+    const controller = createAppController((markup) => renders.push(markup));
+
+    controller.setReviewFilter("all");
+    controller.snapshotVisibleWebdavQueue();
+    controller.saveLatestWebdavIntent();
+    controller.resolveLatestWebdavBlockedItems();
+
+    expect(loadWebdavTransferIntents()[0]?.handoffReadiness).toBe("ready");
+    expect(loadWebdavTransferIntents()[0]?.handoffReadinessReason).toContain("All recorded prerequisites are ready");
+    expect(loadWebdavTransferIntents()[0]?.prerequisites.find((entry) => entry.name === "Blocked items resolved")?.status).toBe("ready");
+    expect(loadWebdavTransferIntents()[0]?.lifecycleEvents[0]?.type).toBe("prerequisite-updated");
+    expect(renders.at(-1)).toContain("Marked blocked items resolved for WebDAV transfer intent");
+    expect(renders.at(-1)).toContain('&quot;handoffReadiness&quot;: &quot;ready&quot;');
   });
 
   it("removes a single ingest item from the queue", () => {

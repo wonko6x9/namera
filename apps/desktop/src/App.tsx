@@ -1,4 +1,4 @@
-import { acknowledgeWebdavTransferIntent, annotateWebdavTransferIntent, loadConfig, loadCorrections, loadExecutionLog, loadHistory, loadRecentIngestRoots, loadWebdavTransferIntents, loadWebdavTransferSnapshots, markExecutionUndone, pushExecutionLog, pushHistory, pushRecentIngestRoots, pushWebdavTransferIntent, pushWebdavTransferSnapshot, saveConfig, setCorrection } from "@namera/config";
+import { acknowledgeWebdavTransferIntent, annotateWebdavTransferIntent, loadConfig, loadCorrections, loadExecutionLog, loadHistory, loadRecentIngestRoots, loadWebdavTransferIntents, loadWebdavTransferSnapshots, markExecutionUndone, pushExecutionLog, pushHistory, pushRecentIngestRoots, pushWebdavTransferIntent, pushWebdavTransferSnapshot, saveConfig, setCorrection, updateWebdavTransferIntentPrerequisite } from "@namera/config";
 import type { AppConfig, IngestItem, MatchCandidate, ParsedMedia, PreviewResult, ProviderDiagnostic, ReviewSummary, WebdavTransferHandoffPacket, WebdavTransferHandoffPacketSummary } from "@namera/core";
 import { createPhase3DestinationPlan, createPhase3TransferPlan } from "@namera/destination";
 import { buildWebdavTransferQueue, createExecutionBatch, createExecutionRecord, createPlannedExecutions, exportPlanSet, exportReviewPlanSet, exportWebdavTransferQueue, summarizeExecutionActions, summarizeWebdavTransferActions, summarizeWebdavTransferQueue } from "@namera/exec";
@@ -28,6 +28,7 @@ export interface AppController {
   saveLatestWebdavIntent: () => void;
   acknowledgeLatestWebdavIntent: () => void;
   assignLatestWebdavIntent: () => void;
+  resolveLatestWebdavBlockedItems: () => void;
   updateConfig: (patch: Partial<AppConfig>) => void;
   applyNativeExecution: (input: string) => Promise<void>;
   undoNativeExecution: (input: string) => Promise<void>;
@@ -301,6 +302,22 @@ export function createAppController(rerender: (markup: string) => void): AppCont
         "Queued for manual remote execution handoff once prerequisites are satisfied.",
       );
       state.nativeExecutionMessage = `Assigned WebDAV transfer intent ${intent.id} to remote-handoff`;
+      rerender(renderApp(state));
+    },
+    resolveLatestWebdavBlockedItems() {
+      const intent = state.webdavTransferIntents[0];
+      if (!intent) {
+        state.nativeExecutionMessage = "No saved WebDAV transfer intent available to update";
+        rerender(renderApp(state));
+        return;
+      }
+      state.webdavTransferIntents = updateWebdavTransferIntentPrerequisite(
+        intent.id,
+        "Blocked items resolved",
+        "ready",
+        "Blocked items were resolved after snapshot review, so manual remote handoff can proceed from this intent.",
+      );
+      state.nativeExecutionMessage = `Marked blocked items resolved for WebDAV transfer intent ${intent.id}`;
       rerender(renderApp(state));
     },
     updateConfig(patch: Partial<AppConfig>) {
@@ -705,6 +722,7 @@ function renderApp(appState: AppState): string {
           <button data-role="save-latest-webdav-intent" type="button" ${appState.webdavTransferSnapshots.length ? "" : "disabled"}>Save latest WebDAV intent</button>
           <button data-role="assign-latest-webdav-intent" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Assign latest WebDAV intent</button>
           <button data-role="acknowledge-latest-webdav-intent" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Acknowledge latest WebDAV intent</button>
+          <button data-role="resolve-latest-webdav-blocked" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Mark latest blocked items resolved</button>
           <button data-role="apply-visible-batch" type="button" ${hasTauriInvoke() ? "" : "disabled"}>Apply visible batch</button>
           <button data-role="retry-failed-batch" type="button" ${hasTauriInvoke() && failedBatchCount ? "" : "disabled"}>Retry failed batch</button>
         </div>

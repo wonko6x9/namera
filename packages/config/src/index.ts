@@ -303,3 +303,46 @@ export function annotateWebdavTransferIntent(
   saveWebdavTransferIntents(next, storage);
   return next;
 }
+
+export function updateWebdavTransferIntentPrerequisite(
+  id: string,
+  prerequisiteName: string,
+  status: "ready" | "blocked",
+  detail: string,
+  storage: Storage = getStorage(),
+): WebdavTransferIntent[] {
+  const next = loadWebdavTransferIntents(storage).map((intent) => {
+    if (intent.id !== id) return intent;
+
+    const prerequisites = intent.prerequisites.map((entry) =>
+      entry.name === prerequisiteName
+        ? {
+            ...entry,
+            status,
+            detail,
+          }
+        : entry,
+    );
+    const blocked = prerequisites.filter((entry) => entry.status === "blocked");
+    const at = new Date().toISOString();
+
+    return {
+      ...intent,
+      prerequisites,
+      handoffReadiness: blocked.length ? "blocked" : "ready",
+      handoffReadinessReason: blocked.length
+        ? blocked.map((entry) => entry.name).join(", ")
+        : "All recorded prerequisites are ready for manual handoff.",
+      lifecycleEvents: [
+        {
+          at,
+          type: "prerequisite-updated",
+          detail: `${prerequisiteName} marked ${status}: ${detail}`,
+        },
+        ...intent.lifecycleEvents,
+      ],
+    };
+  });
+  saveWebdavTransferIntents(next, storage);
+  return next;
+}

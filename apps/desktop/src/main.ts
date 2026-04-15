@@ -36,6 +36,7 @@ function wireApp(root: HTMLElement): void {
   const saveLatestWebdavIntentButton = root.querySelector<HTMLButtonElement>("[data-role='save-latest-webdav-intent']");
   const assignLatestWebdavIntentButton = root.querySelector<HTMLButtonElement>("[data-role='assign-latest-webdav-intent']");
   const acknowledgeLatestWebdavIntentButton = root.querySelector<HTMLButtonElement>("[data-role='acknowledge-latest-webdav-intent']");
+  const resolveLatestWebdavBlockedButton = root.querySelector<HTMLButtonElement>("[data-role='resolve-latest-webdav-blocked']");
   const movieRootInput = root.querySelector<HTMLInputElement>("[data-role='config-movie-root']");
   const tvRootInput = root.querySelector<HTMLInputElement>("[data-role='config-tv-root']");
   const musicRootInput = root.querySelector<HTMLInputElement>("[data-role='config-music-root']");
@@ -199,6 +200,10 @@ function wireApp(root: HTMLElement): void {
 
   acknowledgeLatestWebdavIntentButton?.addEventListener("click", () => {
     controller.acknowledgeLatestWebdavIntent();
+  });
+
+  resolveLatestWebdavBlockedButton?.addEventListener("click", () => {
+    controller.resolveLatestWebdavBlockedItems();
   });
 }
 

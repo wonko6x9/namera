@@ -236,7 +236,7 @@ export interface WebdavTransferIntent {
   acknowledgementNote?: string;
   lifecycleEvents: Array<{
     at: string;
-    type: "created" | "assigned" | "acknowledged";
+    type: "created" | "assigned" | "acknowledged" | "prerequisite-updated";
     detail: string;
   }>;
 }
