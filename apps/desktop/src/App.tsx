@@ -299,6 +299,7 @@ function renderApp(appState: AppState): string {
   const providerSummary = providerStatus(appState.config.providers);
   const webdavTransferSummary = summarizeWebdavTransferState(previews, appState.config);
   const webdavBlockedReasons = summarizeWebdavBlockedReasons(previews, appState.config);
+  const webdavReadinessByKind = summarizeWebdavReadinessByKind(previews, appState.config);
   const failedBatchCount = appState.nativeBatchResults.filter((result) => result.outcome === "failed").length;
   const failedBatchExport = exportFailedBatchResults(appState.nativeBatchResults);
   const recentRootsMarkup = appState.recentIngestRoots.length
@@ -431,6 +432,12 @@ function renderApp(appState: AppState): string {
         <p><strong>WebDAV roots:</strong> Movies=${escapeHtml(appState.config.destinations.webdavMovieRoot || "(not set)")}, TV=${escapeHtml(appState.config.destinations.webdavTvRoot || "(not set)")}, Music=${escapeHtml(appState.config.destinations.webdavMusicRoot || "(not set)")}</p>
         <p><strong>Destination preview mode:</strong> ${escapeHtml(appState.previewDestinationBackend)}</p>
         <p><strong>WebDAV transfer readiness:</strong> ${escapeHtml(webdavTransferSummary)}</p>
+        <div>
+          <strong>WebDAV readiness by kind:</strong>
+          ${webdavReadinessByKind.length
+            ? `<ul>${webdavReadinessByKind.map((entry) => `<li>${escapeHtml(entry.kind)}: ${escapeHtml(String(entry.ready))} ready, ${escapeHtml(String(entry.blocked))} blocked</li>`).join("")}</ul>`
+            : "<p>No queued items to summarize yet.</p>"}
+        </div>
         <div>
           <strong>WebDAV blocked reasons:</strong>
           ${webdavBlockedReasons.length
@@ -672,6 +679,26 @@ function summarizeWebdavBlockedReasons(previews: PreviewResult[], config: AppCon
   return Array.from(blockedReasonCounts.entries())
     .map(([reason, count]) => ({ reason, count }))
     .sort((left, right) => right.count - left.count || left.reason.localeCompare(right.reason));
+}
+
+function summarizeWebdavReadinessByKind(previews: PreviewResult[], config: AppConfig): Array<{ kind: string; ready: number; blocked: number }> {
+  const totals = new Map<string, { ready: number; blocked: number }>();
+
+  for (const preview of previews) {
+    const kind = preview.parsed.kind;
+    const transfer = createPhase3TransferPlan(preview.plan, preview.parsed.kind, config.destinations);
+    const current = totals.get(kind) ?? { ready: 0, blocked: 0 };
+    if (transfer.status === "planned") {
+      current.ready += 1;
+    } else {
+      current.blocked += 1;
+    }
+    totals.set(kind, current);
+  }
+
+  return Array.from(totals.entries())
+    .map(([kind, counts]) => ({ kind, ...counts }))
+    .sort((left, right) => left.kind.localeCompare(right.kind));
 }
 
 function matchesReviewFilter(preview: PreviewResult, filter: AppState["reviewFilter"]): boolean {

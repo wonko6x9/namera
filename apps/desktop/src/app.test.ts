@@ -209,6 +209,7 @@ describe("Namera MVP flow", () => {
     expect(App()).toContain("Destination preview mode:</strong> local");
     expect(App()).toContain("WebDAV transfer readiness:</strong>");
     expect(App()).toContain("WebDAV blocked reasons:</strong>");
+    expect(App()).toContain("WebDAV readiness by kind:</strong>");
   });
 
   it("builds useful manual search URLs for movies and TV", () => {
@@ -838,6 +839,9 @@ describe("Namera MVP flow", () => {
     });
 
     expect(renders.at(-1)).toContain("WebDAV transfer readiness:</strong> 3 ready, 1 blocked");
+    expect(renders.at(-1)).toContain("movie: 1 ready, 0 blocked");
+    expect(renders.at(-1)).toContain("episode: 2 ready, 0 blocked");
+    expect(renders.at(-1)).toContain("unknown: 0 ready, 1 blocked");
     expect(renders.at(-1)).toContain("1 × Phase 3 routing knows the media type, but no WebDAV root is configured for it yet.");
   });
 
@@ -863,6 +867,8 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("Current filter:</strong> webdav-ready");
     expect(renders.at(-1)).toContain("The.Matrix.1999.1080p.BluRay.mkv</h3>");
     expect(renders.at(-1)).not.toContain("Some.Confusing.File.Name.Thing.bin</h3>");
+    expect(renders.at(-1)).toContain("movie: 1 ready, 0 blocked");
+    expect(renders.at(-1)).toContain("episode: 2 ready, 0 blocked");
     expect(renders.at(-1)).toContain("WebDAV blocked reasons:</strong>");
     expect(renders.at(-1)).toContain("Exported visible review plan set");
     expect(renders.at(-1)).toContain('&quot;input&quot;: &quot;The.Matrix.1999.1080p.BluRay.mkv&quot;');
