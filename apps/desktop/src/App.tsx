@@ -1,4 +1,4 @@
-import { loadConfig, loadCorrections, loadExecutionLog, loadHistory, pushHistory, saveConfig, setCorrection } from "@namera/config";
+import { loadConfig, loadCorrections, loadExecutionLog, loadHistory, pushExecutionLog, pushHistory, saveConfig, setCorrection } from "@namera/config";
 import type { AppConfig, IngestItem, MatchCandidate, PreviewResult, ProviderDiagnostic, ReviewSummary } from "@namera/core";
 import { createPhase3DestinationPlan } from "@namera/destination";
 import { createExecutionBatch, createExecutionRecord, createPlannedExecutions, exportPlanSet, summarizeExecutionActions } from "@namera/exec";
@@ -7,6 +7,7 @@ import { buildCorrectionKey, getCandidateKey, rankCandidates } from "@namera/mat
 import { parseFilename } from "@namera/parse";
 import { buildPlan } from "@namera/plan";
 import { buildProviderRequest, fetchProviderLookup, providerStatus } from "@namera/provider";
+import { applyExecutionBatchNative, hasTauriInvoke, undoExecutionBatchNative } from "./tauri";
 
 const DEFAULT_INPUT = `The.Matrix.1999.1080p.BluRay.mkv
 Severance.S01E01.Good.News.About.Hell.2160p.WEB-DL.mkv
@@ -21,6 +22,8 @@ export interface AppController {
   rememberCandidateChoice: (input: string, candidateKey: string) => void;
   setReviewFilter: (filter: AppState["reviewFilter"]) => void;
   updateConfig: (patch: Partial<AppConfig>) => void;
+  applyNativeExecution: (input: string) => Promise<void>;
+  undoNativeExecution: (input: string) => Promise<void>;
 }
 
 interface AppState {
@@ -32,6 +35,7 @@ interface AppState {
   selectedCandidateKeyByInput: Record<string, string>;
   reviewFilter: "all" | "needs-review" | "provider-backed";
   config: AppConfig;
+  nativeExecutionMessage: string;
 }
 
 const state: AppState = {
@@ -43,6 +47,9 @@ const state: AppState = {
   selectedCandidateKeyByInput: {},
   reviewFilter: "all",
   config: loadConfig(),
+  nativeExecutionMessage: hasTauriInvoke()
+    ? "Native execution available in Tauri runtime"
+    : "Native execution unavailable in browser-only runtime",
 };
 
 export function App(): string {
@@ -112,6 +119,58 @@ export function createAppController(rerender: (markup: string) => void): AppCont
       saveConfig(state.config);
       rerender(renderApp(state));
     },
+    async applyNativeExecution(input: string) {
+      try {
+        const batch = await applyExecutionBatchNative(".", ".", input);
+        if (batch.log_entry) {
+          pushExecutionLog({
+            id: batch.log_entry.id,
+            mode: batch.log_entry.mode as "apply" | "undo",
+            sourceName: batch.log_entry.source_name,
+            proposedPath: batch.log_entry.proposed_path,
+            createdAt: batch.log_entry.created_at,
+            undoneAt: batch.log_entry.undone_at ?? undefined,
+            actions: batch.log_entry.actions.map((action) => ({
+              type: mapActionType(action.action_type),
+              fromPath: action.from_path ?? undefined,
+              toPath: action.to_path,
+              status: mapActionStatus(action.status),
+              note: action.note ?? undefined,
+            })),
+          });
+        }
+        state.nativeExecutionMessage = batch.summary;
+      } catch (error) {
+        state.nativeExecutionMessage = `Native apply failed: ${error instanceof Error ? error.message : String(error)}`;
+      }
+      rerender(renderApp(state));
+    },
+    async undoNativeExecution(input: string) {
+      try {
+        const batch = await undoExecutionBatchNative(".", ".", input);
+        if (batch.log_entry) {
+          pushExecutionLog({
+            id: batch.log_entry.id,
+            mode: batch.log_entry.mode as "apply" | "undo",
+            sourceName: batch.log_entry.source_name,
+            proposedPath: batch.log_entry.proposed_path,
+            createdAt: batch.log_entry.created_at,
+            undoneAt: batch.log_entry.undone_at ?? undefined,
+            actions: batch.log_entry.actions.map((action) => ({
+              type: mapActionType(action.action_type),
+              fromPath: action.from_path ?? undefined,
+              toPath: action.to_path,
+              status: mapActionStatus(action.status),
+              note: action.note ?? undefined,
+            })),
+          });
+        }
+        state.nativeExecutionMessage = batch.summary;
+      } catch (error) {
+        state.nativeExecutionMessage = `Native undo failed: ${error instanceof Error ? error.message : String(error)}`;
+      }
+      rerender(renderApp(state));
+    },
   };
 }
 
@@ -176,6 +235,11 @@ function renderApp(appState: AppState): string {
           <p><strong>Dry run:</strong> ${escapeHtml(dryRunBatch.summary)}</p>
           <p><strong>Apply contract:</strong> ${escapeHtml(applyBatch.summary)}</p>
           <p><strong>Undo contract:</strong> ${escapeHtml(undoBatch.summary)}</p>
+          <p><strong>Native execution:</strong> ${hasTauriInvoke() ? "available" : "not available in this runtime"}</p>
+          <div>
+            <button data-role="apply-native" data-input="${escapeHtmlAttribute(preview.input)}" type="button" ${hasTauriInvoke() ? "" : "disabled"}>Apply natively</button>
+            <button data-role="undo-native" data-input="${escapeHtmlAttribute(preview.input)}" type="button" ${hasTauriInvoke() ? "" : "disabled"}>Undo natively</button>
+          </div>
           <ul>${executionActions
             .map(
               (action) =>
@@ -218,6 +282,7 @@ function renderApp(appState: AppState): string {
         <p><strong>Providers:</strong> ${escapeHtml(providerSummary)}</p>
         <p><strong>Ingest summary:</strong> ${escapeHtml(summarizeIngest(appState.ingestedItems))}</p>
         <p><strong>Live provider state:</strong> ${escapeHtml(appState.liveProviderMessage)}</p>
+        <p><strong>Native execution state:</strong> ${escapeHtml(appState.nativeExecutionMessage)}</p>
       </section>
       <section>
         <h2>Configuration</h2>
@@ -369,6 +434,16 @@ function mergeConfig(current: AppConfig, patch: Partial<AppConfig>): AppConfig {
 
 function getCandidateKey(candidate: MatchCandidate): string {
   return `${candidate.provider}:${candidate.providerId ?? candidate.displayName}`;
+}
+
+function mapActionType(value: string): "rename" | "move" | "mkdir" {
+  if (value === "move" || value === "mkdir") return value;
+  return "rename";
+}
+
+function mapActionStatus(value: string): "planned" | "applied" | "failed" | "reverted" {
+  if (value === "applied" || value === "failed" || value === "reverted") return value;
+  return "planned";
 }
 
 function escapeHtml(value: string): string {

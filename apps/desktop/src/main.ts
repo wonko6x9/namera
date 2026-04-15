@@ -15,6 +15,8 @@ function wireApp(root: HTMLElement): void {
   const candidateButtons = root.querySelectorAll<HTMLButtonElement>("[data-role='candidate-pick']");
   const rememberButtons = root.querySelectorAll<HTMLButtonElement>("[data-role='candidate-remember']");
   const saveConfigButton = root.querySelector<HTMLButtonElement>("[data-role='save-config']");
+  const applyNativeButtons = root.querySelectorAll<HTMLButtonElement>("[data-role='apply-native']");
+  const undoNativeButtons = root.querySelectorAll<HTMLButtonElement>("[data-role='undo-native']");
   const filterAllButton = root.querySelector<HTMLButtonElement>("[data-role='filter-all']");
   const filterNeedsReviewButton = root.querySelector<HTMLButtonElement>("[data-role='filter-needs-review']");
   const filterProviderBackedButton = root.querySelector<HTMLButtonElement>("[data-role='filter-provider-backed']");
@@ -63,6 +65,20 @@ function wireApp(root: HTMLElement): void {
       providers: {
         omdbApiKey: omdbKeyInput?.value || undefined,
       },
+    });
+  });
+
+  applyNativeButtons.forEach((button) => {
+    button.addEventListener("click", async () => {
+      const input = button.dataset.input ?? "";
+      await controller.applyNativeExecution(input);
+    });
+  });
+
+  undoNativeButtons.forEach((button) => {
+    button.addEventListener("click", async () => {
+      const input = button.dataset.input ?? "";
+      await controller.undoNativeExecution(input);
     });
   });
 

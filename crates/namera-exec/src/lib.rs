@@ -3,6 +3,7 @@ use namera_plan::RenamePlan;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExecutionRecord {
@@ -20,10 +21,22 @@ pub struct ExecutionAction {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ExecutionLogEntry {
+    pub id: String,
+    pub mode: String,
+    pub source_name: String,
+    pub proposed_path: String,
+    pub actions: Vec<ExecutionAction>,
+    pub created_at: String,
+    pub undone_at: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExecutionBatch {
     pub mode: String,
     pub actions: Vec<ExecutionAction>,
     pub summary: String,
+    pub log_entry: Option<ExecutionLogEntry>,
 }
 
 pub fn execute_plan(source_root: &Path, target_root: &Path, plan: &RenamePlan) -> Result<ExecutionRecord> {
@@ -85,6 +98,7 @@ pub fn create_execution_batch(plan: &RenamePlan, mode: &str) -> ExecutionBatch {
         mode: mode.to_string(),
         actions,
         summary,
+        log_entry: None,
     }
 }
 
@@ -105,30 +119,97 @@ pub fn apply_execution_batch(source_root: &Path, target_root: &Path, plan: &Rena
 
     fs::rename(&record.source, &record.destination)?;
 
+    let actions = vec![
+        ExecutionAction {
+            action_type: "mkdir".to_string(),
+            from_path: None,
+            to_path: record
+                .destination
+                .parent()
+                .map(Path::to_path_buf)
+                .unwrap_or_else(|| target_root.to_path_buf()),
+            status: "applied".to_string(),
+            note: Some("Target directory ensured before move.".to_string()),
+        },
+        ExecutionAction {
+            action_type: "rename".to_string(),
+            from_path: Some(record.source.clone()),
+            to_path: record.destination.clone(),
+            status: "applied".to_string(),
+            note: Some("Native filesystem rename/move completed.".to_string()),
+        },
+    ];
+
     Ok(ExecutionBatch {
         mode: "apply".to_string(),
-        actions: vec![
-            ExecutionAction {
-                action_type: "mkdir".to_string(),
-                from_path: None,
-                to_path: record
-                    .destination
-                    .parent()
-                    .map(Path::to_path_buf)
-                    .unwrap_or_else(|| target_root.to_path_buf()),
-                status: "applied".to_string(),
-                note: Some("Target directory ensured before move.".to_string()),
-            },
-            ExecutionAction {
-                action_type: "rename".to_string(),
-                from_path: Some(record.source.clone()),
-                to_path: record.destination.clone(),
-                status: "applied".to_string(),
-                note: Some("Native filesystem rename/move completed.".to_string()),
-            },
-        ],
-        summary: "Applied 2 actions".to_string(),
+        summary: format!("Applied {} actions", actions.len()),
+        log_entry: Some(create_log_entry("apply", plan, actions.clone(), None)),
+        actions,
     })
+}
+
+pub fn undo_execution_batch(source_root: &Path, target_root: &Path, plan: &RenamePlan) -> Result<ExecutionBatch> {
+    let source = source_root.join(&plan.source_name);
+    let destination = target_root.join(&plan.proposed_path);
+
+    if !destination.exists() {
+        return Err(anyhow!("applied destination does not exist: {}", destination.display()));
+    }
+
+    if source.exists() {
+        return Err(anyhow!("cannot undo because source path already exists: {}", source.display()));
+    }
+
+    if let Some(parent) = source.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    fs::rename(&destination, &source)?;
+
+    let actions = vec![
+        ExecutionAction {
+            action_type: "rename".to_string(),
+            from_path: Some(destination.clone()),
+            to_path: source.clone(),
+            status: "reverted".to_string(),
+            note: Some("Native filesystem undo completed.".to_string()),
+        },
+    ];
+
+    Ok(ExecutionBatch {
+        mode: "undo".to_string(),
+        summary: format!("Undid {} action{}", actions.len(), if actions.len() == 1 { "" } else { "s" }),
+        log_entry: Some(create_log_entry("undo", plan, actions.clone(), Some(now_iso_like()))),
+        actions,
+    })
+}
+
+fn create_log_entry(mode: &str, plan: &RenamePlan, actions: Vec<ExecutionAction>, undone_at: Option<String>) -> ExecutionLogEntry {
+    ExecutionLogEntry {
+        id: create_execution_id(plan),
+        mode: mode.to_string(),
+        source_name: plan.source_name.clone(),
+        proposed_path: plan.proposed_path.clone(),
+        actions,
+        created_at: now_iso_like(),
+        undone_at,
+    }
+}
+
+fn create_execution_id(plan: &RenamePlan) -> String {
+    let stamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis();
+    format!("{}=>{}=>{}", plan.source_name, plan.proposed_path, stamp)
+}
+
+fn now_iso_like() -> String {
+    let stamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+    format!("{}Z", stamp)
 }
 
 #[cfg(test)]

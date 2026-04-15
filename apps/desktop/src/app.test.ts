@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { NativeExecutionBatch } from "./tauri";
 import { parseFilename } from "@namera/parse";
 import { buildCorrectionKey, rankCandidates } from "@namera/match";
 import { buildPlan } from "@namera/plan";
@@ -264,6 +265,39 @@ describe("Namera MVP flow", () => {
     controller.setReviewFilter("needs-review");
 
     expect(renders.at(-1)).toContain("Current filter:</strong> needs-review");
+  });
+
+  it("records native apply results through the controller when Tauri is available", async () => {
+    const renders: string[] = [];
+    const controller = createAppController((markup) => renders.push(markup));
+    const invoke = vi.fn(async () => ({
+      mode: "apply",
+      summary: "Applied 2 actions",
+      actions: [
+        { action_type: "mkdir", to_path: "Movies/The Matrix (1999)", status: "applied", note: "ok" },
+        { action_type: "rename", from_path: "The.Matrix.1999.1080p.BluRay.mkv", to_path: "Movies/The Matrix (1999)/The Matrix (1999).mkv", status: "applied", note: "ok" },
+      ],
+      log_entry: {
+        id: "test-id",
+        mode: "apply",
+        source_name: "The.Matrix.1999.1080p.BluRay.mkv",
+        proposed_path: "Movies/The Matrix (1999)/The Matrix (1999).mkv",
+        created_at: "1Z",
+        actions: [],
+      },
+    } satisfies NativeExecutionBatch));
+
+    const fakeWindow = { __TAURI__: { core: { invoke } } };
+    Object.defineProperty(globalThis, "window", {
+      value: fakeWindow,
+      configurable: true,
+    });
+
+    await controller.applyNativeExecution("The.Matrix.1999.1080p.BluRay.mkv");
+
+    expect(invoke).toHaveBeenCalled();
+    expect(loadExecutionLog()[0]?.mode).toBe("apply");
+    expect(renders.at(-1)).toContain("Applied 2 actions");
   });
 
   it("shapes episode provider requests around the series title", () => {
