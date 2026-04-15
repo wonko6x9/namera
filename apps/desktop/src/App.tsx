@@ -329,8 +329,11 @@ function renderApp(appState: AppState): string {
   const failedBatchCount = appState.nativeBatchResults.filter((result) => result.outcome === "failed").length;
   const failedBatchExport = exportFailedBatchResults(appState.nativeBatchResults);
   const webdavSnapshotMarkup = appState.webdavTransferSnapshots.length
-    ? `<ul>${appState.webdavTransferSnapshots.slice(0, 5).map((snapshot) => `<li>${escapeHtml(snapshot.createdAt)} • filter=${escapeHtml(snapshot.filter)} • ${escapeHtml(`${snapshot.summary.ready} ready, ${snapshot.summary.blocked} blocked`)}</li>`).join("")}</ul>`
+    ? `<ul>${appState.webdavTransferSnapshots.slice(0, 5).map((snapshot) => `<li>${escapeHtml(snapshot.createdAt)} • filter=${escapeHtml(snapshot.filter)} • ${escapeHtml(`${snapshot.summary.ready} ready, ${snapshot.summary.blocked} blocked, ${snapshot.items.length} items`)}</li>`).join("")}</ul>`
     : "<p>No saved WebDAV queue snapshots yet.</p>";
+  const latestWebdavSnapshotExport = appState.webdavTransferSnapshots.length
+    ? JSON.stringify(appState.webdavTransferSnapshots[0], null, 2)
+    : "";
   const recentRootsMarkup = appState.recentIngestRoots.length
     ? `<ul>${appState.recentIngestRoots.map((root) => `<li>${escapeHtml(root)}</li>`).join("")}</ul>`
     : "<p>No recent ingest roots yet</p>";
@@ -627,6 +630,10 @@ function renderApp(appState: AppState): string {
       <section>
         <h2>Saved WebDAV queue snapshots</h2>
         ${webdavSnapshotMarkup}
+      </section>
+      <section>
+        <h2>Latest saved WebDAV queue snapshot</h2>
+        ${latestWebdavSnapshotExport ? `<pre>${escapeHtml(latestWebdavSnapshotExport)}</pre>` : "<p>No saved WebDAV queue snapshots yet.</p>"}
       </section>
       <section>
         <h2>Exported WebDAV transfer queue</h2>

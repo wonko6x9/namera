@@ -214,6 +214,7 @@ describe("Namera MVP flow", () => {
     expect(App()).toContain("Visible WebDAV blocked reasons:</strong>");
     expect(App()).toContain('data-role="snapshot-webdav-queue"');
     expect(App()).toContain("Saved WebDAV queue snapshots");
+    expect(App()).toContain("Latest saved WebDAV queue snapshot");
   });
 
   it("builds useful manual search URLs for movies and TV", () => {
@@ -479,6 +480,8 @@ describe("Namera MVP flow", () => {
     expect(loadWebdavTransferSnapshots()[0]?.summary.blocked).toBeGreaterThan(0);
     expect(renders.at(-1)).toContain("Saved WebDAV queue snapshot for 1 visible item");
     expect(renders.at(-1)).toContain("Saved WebDAV queue snapshots");
+    expect(renders.at(-1)).toContain("Latest saved WebDAV queue snapshot");
+    expect(renders.at(-1)).toContain('&quot;filter&quot;: &quot;webdav-blocked&quot;');
   });
 
   it("removes a single ingest item from the queue", () => {
