@@ -20,6 +20,8 @@ export interface AppController {
   refreshProviders: () => Promise<void>;
   chooseCandidate: (input: string, candidateKey: string) => void;
   rememberCandidateChoice: (input: string, candidateKey: string) => void;
+  removeIngestItem: (input: string) => void;
+  clearIngestedItems: () => void;
   setReviewFilter: (filter: AppState["reviewFilter"]) => void;
   updateConfig: (patch: Partial<AppConfig>) => void;
   applyNativeExecution: (input: string) => Promise<void>;
@@ -183,6 +185,23 @@ export function createAppController(rerender: (markup: string) => void): AppCont
       }
       rerender(renderApp(state));
     },
+    removeIngestItem(input: string) {
+      state.ingestedItems = state.ingestedItems.filter((item) => item.name !== input);
+      delete state.providerCandidatesByInput[input];
+      delete state.providerDiagnosticsByInput[input];
+      delete state.selectedCandidateKeyByInput[input];
+      state.nativeBatchResults = state.nativeBatchResults.filter((result) => result.input !== input);
+      rerender(renderApp(state));
+    },
+    clearIngestedItems() {
+      state.ingestedItems = [];
+      state.providerCandidatesByInput = {};
+      state.providerDiagnosticsByInput = {};
+      state.selectedCandidateKeyByInput = {};
+      state.nativeBatchResults = [];
+      state.liveProviderMessage = "Queue cleared";
+      rerender(renderApp(state));
+    },
     setReviewFilter(filter: AppState["reviewFilter"]) {
       state.reviewFilter = filter;
       rerender(renderApp(state));
@@ -285,7 +304,7 @@ function renderApp(appState: AppState): string {
   const ingestMarkup = appState.ingestedItems
     .map(
       (item) => `
-        <li>${escapeHtml(item.name)} <small>(${escapeHtml(item.source)}${item.pathHint ? ` • ${escapeHtml(item.pathHint)}` : ""})</small></li>
+        <li>${escapeHtml(item.name)} <small>(${escapeHtml(item.source)}${item.pathHint ? ` • ${escapeHtml(item.pathHint)}` : ""})</small> <button data-role="remove-ingest-item" data-input="${escapeHtmlAttribute(item.name)}" type="button">Remove</button></li>
       `,
     )
     .join("");
@@ -486,6 +505,7 @@ function renderApp(appState: AppState): string {
         </div>
         <div>
           <button data-role="refresh-providers" type="button">Try live metadata lookup</button>
+          <button data-role="clear-ingest" type="button" ${appState.ingestedItems.length ? "" : "disabled"}>Clear queue</button>
         </div>
         <div>
           <strong>Recent ingest roots:</strong>

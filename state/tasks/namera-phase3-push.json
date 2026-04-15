@@ -1,0 +1,44 @@
+{
+  "task_id": "namera-phase3-push",
+  "title": "Namera overnight phase 3 push",
+  "goal": "Advance Namera with honest phase 3 transfer semantics where feasible, otherwise highest-value user-facing backlog slices, with tests/docs/commits per green slice.",
+  "done_criteria": [
+    "A meaningful implementation slice lands with passing relevant tests",
+    "Docs reflect the new honest project state",
+    "Durable task snapshot records the last verified step and next step"
+  ],
+  "constraints": [
+    "Stay truthful about phase 3 transfer capabilities",
+    "Prefer safe user-facing value when real transfer execution is not yet supportable",
+    "Keep changes non-destructive and covered by relevant tests"
+  ],
+  "desired_state": "running",
+  "execution_priority": "tokens",
+  "phase": "execution",
+  "health": "healthy",
+  "created_at": "2026-04-15T12:25:00Z",
+  "updated_at": "2026-04-15T12:21:51Z",
+  "last_status_update_at": "2026-04-15T12:21:51Z",
+  "last_verified_step": "Added desktop queue cleanup controls, covering per-item removal and whole-queue clearing, and verified with vitest.",
+  "next_step": "Choose the next user-facing slice, likely richer queue controls or truthful phase 3 transfer execution prerequisites.",
+  "milestones": [
+    {
+      "id": "recover",
+      "title": "Recover durable state",
+      "status": "completed",
+      "percent": 100
+    },
+    {
+      "id": "slice",
+      "title": "Land next implementation slice",
+      "status": "completed",
+      "percent": 100
+    },
+    {
+      "id": "verify",
+      "title": "Run relevant tests and document results",
+      "status": "completed",
+      "percent": 100
+    }
+  ]
+}

@@ -13,6 +13,8 @@ function wireApp(root: HTMLElement): void {
   const fileInput = root.querySelector<HTMLInputElement>("[data-role='file-input']");
   const folderInput = root.querySelector<HTMLInputElement>("[data-role='folder-input']");
   const providerButton = root.querySelector<HTMLButtonElement>("[data-role='refresh-providers']");
+  const clearIngestButton = root.querySelector<HTMLButtonElement>("[data-role='clear-ingest']");
+  const removeIngestButtons = root.querySelectorAll<HTMLButtonElement>("[data-role='remove-ingest-item']");
   const candidateButtons = root.querySelectorAll<HTMLButtonElement>("[data-role='candidate-pick']");
   const rememberButtons = root.querySelectorAll<HTMLButtonElement>("[data-role='candidate-remember']");
   const searchButtons = root.querySelectorAll<HTMLButtonElement>("[data-role='open-search']");
@@ -52,6 +54,17 @@ function wireApp(root: HTMLElement): void {
 
   providerButton?.addEventListener("click", async () => {
     await controller.refreshProviders();
+  });
+
+  clearIngestButton?.addEventListener("click", () => {
+    controller.clearIngestedItems();
+  });
+
+  removeIngestButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const input = button.dataset.input ?? "";
+      controller.removeIngestItem(input);
+    });
   });
 
   candidateButtons.forEach((button) => {

@@ -118,10 +118,10 @@
   - anime-specific heuristics if needed
 
 - **Batch quality-of-life**
-  - queue management
+  - richer queue management beyond the current first pass of per-item removal and whole-queue clearing in the ingest lane
   - selective re-run of failed items beyond the current first-pass retry button (for example preserving richer context, retry policy choices, and exportable failure sets)
   - better partial-success recovery
-  - current honest state: failed batch sets can now be exported as structured JSON and filtered directly in the review lane, but richer queue management and retry policy controls are still open
+  - current honest state: failed batch sets can now be exported as structured JSON and filtered directly in the review lane, and the ingest queue now supports per-item removal plus whole-queue clearing, but richer queue management and retry policy controls are still open
 
 - **Import confidence improvements**
   - learning from user corrections within a batch or remembered local rules

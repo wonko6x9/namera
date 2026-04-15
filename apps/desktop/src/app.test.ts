@@ -192,6 +192,13 @@ describe("Namera MVP flow", () => {
     expect(App()).toContain('accept=".mkv,.mp4,.avi,.mov,.m4v,.mp3,.flac,.wav,.srt,.ass,.ssa,.vtt,.sub,.idx"');
   });
 
+  it("exposes queue cleanup controls in ingest markup", async () => {
+    const { App } = await import("./App");
+
+    expect(App()).toContain('data-role="clear-ingest"');
+    expect(App()).toContain('data-role="remove-ingest-item"');
+  });
+
   it("builds useful manual search URLs for movies and TV", () => {
     const movie = parseFilename("The.Matrix.1999.1080p.BluRay.mkv");
     const episode = parseFilename("Severance.S01E01.Good.News.About.Hell.2160p.WEB-DL.mkv");
@@ -415,6 +422,27 @@ describe("Namera MVP flow", () => {
     controller.setReviewFilter("needs-review");
 
     expect(renders.at(-1)).toContain("Current filter:</strong> needs-review");
+  });
+
+  it("removes a single ingest item from the queue", () => {
+    const renders: string[] = [];
+    const controller = createAppController((markup) => renders.push(markup));
+
+    controller.removeIngestItem("The.Matrix.1999.1080p.BluRay.mkv");
+
+    expect(renders.at(-1)).not.toContain("The.Matrix.1999.1080p.BluRay.mkv</h3>");
+    expect(renders.at(-1)).toContain("Severance.S01E01.Good.News.About.Hell.2160p.WEB-DL.mkv</h3>");
+  });
+
+  it("clears the ingest queue through the controller", () => {
+    const renders: string[] = [];
+    const controller = createAppController((markup) => renders.push(markup));
+
+    controller.clearIngestedItems();
+
+    expect(renders.at(-1)).toContain("No inputs ingested");
+    expect(renders.at(-1)).toContain("No items match the current review filter.");
+    expect(renders.at(-1)).toContain("Queue cleared");
   });
 
   it("can focus the review lane on previously failed batch items", async () => {
