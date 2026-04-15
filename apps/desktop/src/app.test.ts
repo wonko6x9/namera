@@ -518,8 +518,10 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain('&quot;handoffReadiness&quot;');
     expect(renders.at(-1)).toContain("Latest WebDAV handoff packet");
     expect(renders.at(-1)).toContain("Latest WebDAV ready-operation packet");
+    expect(renders.at(-1)).toContain('&quot;packetReadiness&quot;');
     expect(renders.at(-1)).toContain('&quot;readyOperations&quot;');
     expect(renders.at(-1)).toContain('&quot;blockedItems&quot;');
+    expect(renders.at(-1)).toContain("Intent assigned");
     expect(renders.at(-1)).toContain("Recent WebDAV handoff packets");
     expect(renders.at(-1)).toContain("Acknowledged WebDAV handoff packets");
     expect(renders.at(-1)).toContain("Handoff-ready WebDAV packets");
@@ -541,6 +543,7 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("Assigned WebDAV transfer intent");
     expect(renders.at(-1)).toContain('&quot;handoffOwner&quot;: &quot;remote-handoff&quot;');
     expect(renders.at(-1)).toContain('&quot;handoffAssignedAt&quot;');
+    expect(renders.at(-1)).toContain("Intent assigned • ready");
   });
 
   it("acknowledges the latest webdav transfer intent prerequisites", () => {
@@ -550,6 +553,7 @@ describe("Namera MVP flow", () => {
     controller.setReviewFilter("webdav-ready");
     controller.snapshotVisibleWebdavQueue();
     controller.saveLatestWebdavIntent();
+    controller.assignLatestWebdavIntent();
     controller.acknowledgeLatestWebdavIntent();
 
     expect(loadWebdavTransferIntents()[0]?.status).toBe("acknowledged");
@@ -559,6 +563,7 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain('&quot;status&quot;: &quot;acknowledged&quot;');
     expect(renders.at(-1)).toContain("Acknowledged WebDAV handoff packets");
     expect(renders.at(-1)).toContain("Handoff-ready WebDAV packets");
+    expect(renders.at(-1)).toContain("Intent acknowledged • ready");
   });
 
   it("can mark blocked items resolved on the latest webdav transfer intent", () => {

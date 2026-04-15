@@ -434,25 +434,65 @@ function renderApp(appState: AppState): string {
     ? (() => {
         const intent = appState.webdavTransferIntents[0];
         const snapshot = appState.webdavTransferSnapshots.find((entry) => entry.id === intent.snapshotId);
+        const readyOperations = (snapshot?.items ?? [])
+          .filter((item) => item.state === "ready")
+          .map((item) => ({
+            input: item.input,
+            detectedKind: item.detectedKind,
+            targetPath: item.targetPath,
+            actions: item.actions,
+          }));
+        const blockedItems = (snapshot?.items ?? [])
+          .filter((item) => item.state === "blocked")
+          .map((item) => ({
+            input: item.input,
+            detectedKind: item.detectedKind,
+            reason: item.reason,
+          }));
+        const readinessChecks = [
+          {
+            name: "Intent assigned",
+            status: intent.handoffOwner ? "ready" : "blocked",
+            detail: intent.handoffOwner
+              ? `Assigned to ${intent.handoffOwner}${intent.handoffAssignedAt ? ` at ${intent.handoffAssignedAt}` : ""}.`
+              : "Assign this intent before treating it as a remote handoff packet.",
+          },
+          {
+            name: "Intent acknowledged",
+            status: intent.status === "acknowledged" ? "ready" : "blocked",
+            detail: intent.status === "acknowledged"
+              ? `Acknowledged${intent.acknowledgedAt ? ` at ${intent.acknowledgedAt}` : ""}.`
+              : "Acknowledge the intent prerequisites before remote handoff.",
+          },
+          {
+            name: "Ready operations available",
+            status: readyOperations.length ? "ready" : "blocked",
+            detail: readyOperations.length
+              ? `${readyOperations.length} ready operation packet item${readyOperations.length === 1 ? " is" : "s are"} packaged.`
+              : "No ready remote operations are packaged yet.",
+          },
+          {
+            name: "Blocked items cleared",
+            status: blockedItems.length === 0 ? "ready" : "blocked",
+            detail: blockedItems.length === 0
+              ? "No blocked items remain in this packet."
+              : `${blockedItems.length} blocked item${blockedItems.length === 1 ? " remains" : "s remain"} in this packet.`,
+          },
+        ] as const;
+        const blockedChecks = readinessChecks.filter((check) => check.status === "blocked");
         return {
           generatedAt: new Date().toISOString(),
           intent,
           snapshot,
-          readyOperations: (snapshot?.items ?? [])
-            .filter((item) => item.state === "ready")
-            .map((item) => ({
-              input: item.input,
-              detectedKind: item.detectedKind,
-              targetPath: item.targetPath,
-              actions: item.actions,
-            })),
-          blockedItems: (snapshot?.items ?? [])
-            .filter((item) => item.state === "blocked")
-            .map((item) => ({
-              input: item.input,
-              detectedKind: item.detectedKind,
-              reason: item.reason,
-            })),
+          readyOperations,
+          blockedItems,
+          packetReadiness: {
+            status: blockedChecks.length ? "blocked" : "ready",
+            checks: readinessChecks.map((check) => ({ ...check })),
+            summary: blockedChecks.length
+              ? blockedChecks.map((check) => check.name).join(", ")
+              : "Ready for remote handoff review.",
+          },
         };
       })()
     : null;
@@ -804,14 +844,15 @@ function renderApp(appState: AppState): string {
         <h2>Latest WebDAV ready-operation packet</h2>
         ${latestWebdavHandoffPacket
           ? latestWebdavHandoffPacket.readyOperations.length
-            ? `<p>${escapeHtml(`${latestWebdavHandoffPacket.readyOperations.length} ready operation packet item${latestWebdavHandoffPacket.readyOperations.length === 1 ? "" : "s"}, ${latestWebdavHandoffPacket.blockedItems.length} blocked item${latestWebdavHandoffPacket.blockedItems.length === 1 ? "" : "s"}.`)}</p><pre>${escapeHtml(JSON.stringify({
+            ? `<p>${escapeHtml(`${latestWebdavHandoffPacket.readyOperations.length} ready operation packet item${latestWebdavHandoffPacket.readyOperations.length === 1 ? "" : "s"}, ${latestWebdavHandoffPacket.blockedItems.length} blocked item${latestWebdavHandoffPacket.blockedItems.length === 1 ? "" : "s"}. Packet readiness: ${latestWebdavHandoffPacket.packetReadiness.status} (${latestWebdavHandoffPacket.packetReadiness.summary}).`)}</p><ul>${latestWebdavHandoffPacket.packetReadiness.checks.map((check) => `<li>${escapeHtml(check.name)} • ${escapeHtml(check.status)} • ${escapeHtml(check.detail)}</li>`).join("")}</ul><pre>${escapeHtml(JSON.stringify({
                 generatedAt: latestWebdavHandoffPacket.generatedAt,
                 intentId: latestWebdavHandoffPacket.intent.id,
                 snapshotId: latestWebdavHandoffPacket.intent.snapshotId,
+                packetReadiness: latestWebdavHandoffPacket.packetReadiness,
                 readyOperations: latestWebdavHandoffPacket.readyOperations,
                 blockedItems: latestWebdavHandoffPacket.blockedItems,
               }, null, 2))}</pre>`
-            : `<p>${escapeHtml(`No ready remote operations are packaged yet. ${latestWebdavHandoffPacket.blockedItems.length} blocked item${latestWebdavHandoffPacket.blockedItems.length === 1 ? " remains" : "s remain"}.`)}</p>`
+            : `<p>${escapeHtml(`No ready remote operations are packaged yet. ${latestWebdavHandoffPacket.blockedItems.length} blocked item${latestWebdavHandoffPacket.blockedItems.length === 1 ? " remains" : "s remain"}. Packet readiness: ${latestWebdavHandoffPacket.packetReadiness.status} (${latestWebdavHandoffPacket.packetReadiness.summary}).`)}</p><ul>${latestWebdavHandoffPacket.packetReadiness.checks.map((check) => `<li>${escapeHtml(check.name)} • ${escapeHtml(check.status)} • ${escapeHtml(check.detail)}</li>`).join("")}</ul>`
           : "<p>No pending WebDAV transfer intents yet.</p>"}
       </section>
       <section>

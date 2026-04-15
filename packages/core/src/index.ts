@@ -256,6 +256,15 @@ export interface WebdavTransferHandoffPacket {
     detectedKind: MediaKind;
     reason: string;
   }>;
+  packetReadiness: {
+    status: "ready" | "blocked";
+    checks: Array<{
+      name: string;
+      status: "ready" | "blocked";
+      detail: string;
+    }>;
+    summary: string;
+  };
 }
 
 export interface WebdavTransferHandoffPacketSummary {
