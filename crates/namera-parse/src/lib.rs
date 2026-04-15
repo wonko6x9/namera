@@ -1,7 +1,7 @@
 use namera_core::media::{EpisodeInfo, MediaKind, MovieInfo, ParsedMedia};
 
 const KNOWN_NOISE: &[&str] = &[
-    "2160p", "1080p", "720p", "480p", "web", "webrip", "web-dl", "webdl", "bluray",
+    "2160p", "1080p", "720p", "480p", "web", "webrip", "web-dl", "webdl", "dl", "bluray",
     "brrip", "dvdrip", "hdrip", "x264", "x265", "h264", "h265", "hevc", "aac", "ddp5",
     "ddp5.1", "atmos", "dts", "proper", "repack", "remux", "nf", "amzn", "yts", "rarbg",
 ];

@@ -10,9 +10,9 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 serde = { workspace = true }
 serde_json = { workspace = true }
-namera-core = { path = "../../crates/namera-core" }
-namera-parse = { path = "../../crates/namera-parse" }
-namera-match = { path = "../../crates/namera-match" }
-namera-plan = { path = "../../crates/namera-plan" }
-namera-exec = { path = "../../crates/namera-exec" }
-namera-config = { path = "../../crates/namera-config" }
+namera-core = { path = "../../../crates/namera-core" }
+namera-parse = { path = "../../../crates/namera-parse" }
+namera-match = { path = "../../../crates/namera-match" }
+namera-plan = { path = "../../../crates/namera-plan" }
+namera-exec = { path = "../../../crates/namera-exec" }
+namera-config = { path = "../../../crates/namera-config" }

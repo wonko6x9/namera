@@ -20,6 +20,6 @@ fn creates_apply_batch_for_movie_plan() {
     let batch = create_execution_batch(&plan, "apply");
 
     assert_eq!(batch.mode, "apply");
-    assert_eq!(batch.actions[0].status, "planned");
+    assert_eq!(batch.actions[0].status, "ready");
     assert_eq!(batch.summary, "Ready to apply 2 actions");
 }

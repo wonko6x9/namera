@@ -8,3 +8,6 @@ anyhow = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 namera-plan = { path = "../namera-plan" }
+
+[dev-dependencies]
+namera-parse = { path = "../namera-parse" }

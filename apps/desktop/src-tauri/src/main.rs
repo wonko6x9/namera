@@ -1,5 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    namera_desktop_lib::run()
+    namera_desktop::run()
 }
