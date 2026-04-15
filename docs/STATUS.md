@@ -18,7 +18,7 @@ Phase 1 and Phase 2 wrapped to a defendable MVP baseline, Phase 3 scaffold start
 - Product direction is primarily media matching, renaming, and tagging, with Plex-friendly organization as an important workflow target
 
 ## Current next step
-Push TV/provider usefulness beyond the early OMDb lane, then decide whether phase 2 is finally close enough to call done before native filesystem apply/undo.
+Do the final closure pass for phases 1 and 2, then decide whether any remaining gaps are real blockers or just honest future work before native filesystem apply/undo.
 
 ## Working implementation snapshot
 - TypeScript/Vite desktop MVP is real and runnable
@@ -28,7 +28,7 @@ Push TV/provider usefulness beyond the early OMDb lane, then decide whether phas
 - Plex-style rename-plan generation works
 - Exportable plan sets and local config/history scaffolding exist
 - Real text/file/folder ingest is wired into the desktop flow
-- Provider request shaping exists, first live OMDb lookup wiring is present when an API key is configured, provider candidates now feed the preview-selection path, provider results are cached locally, provider diagnostics now surface idle / empty / cached / error states visibly, remembered corrections now persist and can bias future ranking for matching parsed items, the batch review flow now exposes summary counts and review filters, candidate stacks are deduplicated and biased toward live-provider results over equivalent heuristics, match reasons and confidence labels are surfaced visibly in the desktop flow, and manual candidate override is wired into the desktop flow
+- Provider request shaping exists, live provider lookup is no longer movie-only: OMDb remains wired when configured, TVmaze now adds a TV-specific provider lane for episode searches, provider candidates now feed the preview-selection path, provider results are cached locally, provider diagnostics now surface idle / empty / cached / error states visibly, remembered corrections now persist and can bias future ranking for matching parsed items, the batch review flow now exposes summary counts and review filters, candidate stacks are deduplicated and biased toward live-provider results over equivalent heuristics, match reasons and confidence labels are surfaced visibly in the desktop flow, and manual candidate override is wired into the desktop flow
 - Config editing for destination roots and OMDb key is wired into the desktop flow, and configured destination roots now affect generated plans
 - TV parsing now separates series title from episode title for better preview naming
 - Local execution steps are modeled as explicit dry-run/apply/undo execution batches, apply/undo actions are persisted into a local execution log, and the Tauri side now exposes a native execution-batch preview command

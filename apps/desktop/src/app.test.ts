@@ -276,6 +276,42 @@ describe("Namera MVP flow", () => {
     expect(request.episode).toBe(1);
   });
 
+  it("adds a TV-specific provider lane for episode lookups", async () => {
+    const parsed = parseFilename("Foundation.S02E01.In.Seldons.Shadow.2160p.WEB-DL.mkv");
+    const fetchMock = vi.fn(async (input: URL | RequestInfo) => {
+      const url = String(input);
+      if (url.includes("omdbapi.com")) {
+        return {
+          ok: true,
+          json: async () => ({ Response: "False", Error: "Too many results." }),
+        } as Response;
+      }
+
+      if (url.includes("api.tvmaze.com")) {
+        return {
+          ok: true,
+          json: async () => [
+            {
+              score: 1,
+              show: {
+                id: 123,
+                name: "Foundation",
+                premiered: "2022-02-18",
+              },
+            },
+          ],
+        } as Response;
+      }
+
+      throw new Error(`unexpected url ${url}`);
+    });
+
+    const result = await fetchProviderLookup(parsed, { omdbApiKey: "x" }, fetchMock as unknown as typeof fetch);
+
+    expect(result.candidates.some((candidate) => candidate.provider === "tvmaze")).toBe(true);
+    expect(result.diagnostics.map((diagnostic) => `${diagnostic.provider}:${diagnostic.status}`).join(",")).toContain("tvmaze:ok");
+  });
+
   it("labels low-confidence fallback candidates honestly", () => {
     const parsed = parseFilename("Some.Confusing.File.Name.Thing.bin");
     const candidate = rankCandidates(parsed)[0];
@@ -326,7 +362,7 @@ describe("Namera MVP flow", () => {
       }) as unknown as typeof fetch,
     );
 
-    expect(idle.diagnostics[0]?.status).toBe("idle");
+    expect(idle.diagnostics.some((diagnostic) => diagnostic.status === "idle")).toBe(true);
     expect(failed.diagnostics[0]?.status).toBe("error");
     expect(failed.diagnostics[0]?.detail).toContain("network down");
   });
