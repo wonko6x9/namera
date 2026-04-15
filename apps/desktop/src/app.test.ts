@@ -137,6 +137,12 @@ describe("Namera MVP flow", () => {
     expect(looksLikeMediaFile("notes.txt")).toBe(false);
   });
 
+  it("advertises subtitle sidecars in the file picker accept list", async () => {
+    const { App } = await import("./App");
+
+    expect(App()).toContain('accept=".mkv,.mp4,.avi,.mov,.m4v,.mp3,.flac,.wav,.srt,.ass,.ssa,.vtt,.sub,.idx"');
+  });
+
   it("prefers live provider candidates over local heuristics when available", () => {
     const preview = buildPreview("The.Matrix.1999.1080p.BluRay.mkv", [
       {

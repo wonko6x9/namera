@@ -176,6 +176,7 @@ export function createAppController(rerender: (markup: string) => void): AppCont
       const previews = getVisiblePreviews(state);
       if (!previews.length) {
         state.nativeExecutionMessage = "No visible items to apply";
+        state.nativeBatchResults = [];
         rerender(renderApp(state));
         return;
       }
@@ -385,7 +386,7 @@ function renderApp(appState: AppState): string {
         <div>
           <label>
             <strong>Pick files:</strong>
-            <input data-role="file-input" type="file" multiple accept=".mkv,.mp4,.avi,.mov,.m4v,.mp3,.flac,.wav" />
+            <input data-role="file-input" type="file" multiple accept=".mkv,.mp4,.avi,.mov,.m4v,.mp3,.flac,.wav,.srt,.ass,.ssa,.vtt,.sub,.idx" />
           </label>
         </div>
         <div>
