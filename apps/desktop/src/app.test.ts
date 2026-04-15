@@ -519,8 +519,10 @@ describe("Namera MVP flow", () => {
 
     expect(loadWebdavTransferIntents()[0]?.handoffOwner).toBe("remote-handoff");
     expect(loadWebdavTransferIntents()[0]?.handoffNote).toContain("manual remote execution handoff");
+    expect(loadWebdavTransferIntents()[0]?.handoffAssignedAt).toBeTruthy();
     expect(renders.at(-1)).toContain("Assigned WebDAV transfer intent");
     expect(renders.at(-1)).toContain('&quot;handoffOwner&quot;: &quot;remote-handoff&quot;');
+    expect(renders.at(-1)).toContain('&quot;handoffAssignedAt&quot;');
   });
 
   it("acknowledges the latest webdav transfer intent prerequisites", () => {

@@ -280,6 +280,7 @@ export function annotateWebdavTransferIntent(
           ...intent,
           handoffOwner,
           handoffNote,
+          handoffAssignedAt: intent.handoffAssignedAt ?? new Date().toISOString(),
         }
       : intent,
   );

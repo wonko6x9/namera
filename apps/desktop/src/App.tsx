@@ -393,7 +393,7 @@ function renderApp(appState: AppState): string {
     ? JSON.stringify(appState.webdavTransferSnapshots[0], null, 2)
     : "";
   const webdavIntentMarkup = appState.webdavTransferIntents.length
-    ? `<ul>${appState.webdavTransferIntents.slice(0, 5).map((intent) => `<li>${escapeHtml(intent.createdAt)} • snapshot=${escapeHtml(intent.snapshotId)} • ${escapeHtml(intent.status)} • ${escapeHtml(`${intent.summary.ready} ready, ${intent.summary.blocked} blocked, ${intent.itemCount} items`)} • ${escapeHtml(`${intent.prerequisites.filter((entry) => entry.status === "ready").length}/${intent.prerequisites.length} prerequisites ready`)}${intent.handoffOwner ? ` • owner ${escapeHtml(intent.handoffOwner)}` : ""}${intent.acknowledgedAt ? ` • acknowledged ${escapeHtml(intent.acknowledgedAt)}` : ""}</li>`).join("")}</ul>`
+    ? `<ul>${appState.webdavTransferIntents.slice(0, 5).map((intent) => `<li>${escapeHtml(intent.createdAt)} • snapshot=${escapeHtml(intent.snapshotId)} • ${escapeHtml(intent.status)} • ${escapeHtml(`${intent.summary.ready} ready, ${intent.summary.blocked} blocked, ${intent.itemCount} items`)} • ${escapeHtml(`${intent.prerequisites.filter((entry) => entry.status === "ready").length}/${intent.prerequisites.length} prerequisites ready`)}${intent.handoffOwner ? ` • owner ${escapeHtml(intent.handoffOwner)}` : ""}${intent.handoffAssignedAt ? ` • assigned ${escapeHtml(intent.handoffAssignedAt)}` : ""}${intent.acknowledgedAt ? ` • acknowledged ${escapeHtml(intent.acknowledgedAt)}` : ""}</li>`).join("")}</ul>`
     : "<p>No pending WebDAV transfer intents yet.</p>";
   const latestWebdavIntentExport = appState.webdavTransferIntents.length
     ? JSON.stringify(appState.webdavTransferIntents[0], null, 2)

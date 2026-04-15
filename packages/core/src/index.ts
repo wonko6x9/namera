@@ -229,6 +229,7 @@ export interface WebdavTransferIntent {
   }>;
   handoffOwner?: string;
   handoffNote?: string;
+  handoffAssignedAt?: string;
   acknowledgedAt?: string;
   acknowledgementNote?: string;
 }
