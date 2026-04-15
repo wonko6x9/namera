@@ -5,7 +5,7 @@ import { buildCorrectionKey, rankCandidates } from "@namera/match";
 import { buildPlan } from "@namera/plan";
 import { createPhase3DestinationPlan, createPhase3TransferPlan } from "@namera/destination";
 import { buildProviderCacheKey, buildProviderRequest, fetchProviderCandidates, fetchProviderLookup, providerStatus } from "@namera/provider";
-import { createExecutionBatch, createPlannedExecutions, exportPlanSet, exportReviewPlanSet, exportWebdavTransferQueue, listExecutionLog, summarizeExecutionActions } from "@namera/exec";
+import { buildWebdavTransferQueue, createExecutionBatch, createPlannedExecutions, exportPlanSet, exportReviewPlanSet, exportWebdavTransferQueue, listExecutionLog, summarizeExecutionActions } from "@namera/exec";
 import { looksLikeMediaFile, parseTextIngest } from "@namera/ingest";
 import { buildArtworkSearchUrl, buildMediaSearchUrl, buildPreview, createAppController, exportFailedBatchResults, resetAppState, summarizeIngest, summarizeReview } from "./App";
 import { getCorrection, loadConfig, loadExecutionLog, loadRecentIngestRoots, pushExecutionLog } from "@namera/config";
@@ -449,6 +449,8 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("Exported review plan set");
     expect(renders.at(-1)).toContain("Exported visible review plan set");
     expect(renders.at(-1)).toContain("Exported WebDAV transfer queue");
+    expect(renders.at(-1)).toContain("Exported ready WebDAV queue items");
+    expect(renders.at(-1)).toContain("Exported blocked WebDAV queue items");
     expect(renders.at(-1)).toContain('&quot;backend&quot;: &quot;webdav&quot;');
 
     controller.setPreviewDestinationBackend("local");
@@ -824,6 +826,12 @@ describe("Namera MVP flow", () => {
       musicRoot: "Music",
       webdavMovieRoot: "/remote/movies",
     })).toContain('"state": "ready"');
+    expect(buildWebdavTransferQueue([preview], {
+      movieRoot: "Movies",
+      tvRoot: "TV Shows",
+      musicRoot: "Music",
+      webdavMovieRoot: "/remote/movies",
+    })[0]?.state).toBe("ready");
     expect(providerStatus({})).toContain("No live metadata providers configured yet");
   });
 
@@ -880,6 +888,7 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("Exported visible review plan set");
     expect(renders.at(-1)).toContain('&quot;input&quot;: &quot;The.Matrix.1999.1080p.BluRay.mkv&quot;');
     expect(renders.at(-1)).toContain('&quot;state&quot;: &quot;ready&quot;');
+    expect(renders.at(-1)).toContain("Exported ready WebDAV queue items");
 
     controller.setReviewFilter("webdav-blocked");
 
@@ -889,6 +898,7 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("1 × Phase 3 routing knows the media type, but no WebDAV root is configured for it yet.");
     expect(renders.at(-1)).toContain('&quot;input&quot;: &quot;Some.Confusing.File.Name.Thing.bin&quot;');
     expect(renders.at(-1)).toContain('&quot;state&quot;: &quot;blocked&quot;');
+    expect(renders.at(-1)).toContain("Exported blocked WebDAV queue items");
   });
 
   it("builds deterministic provider cache keys", () => {

@@ -101,8 +101,8 @@ export function exportReviewPlanSet(
   return JSON.stringify({ backend, items: exported }, null, 2);
 }
 
-export function exportWebdavTransferQueue(previews: PreviewResult[], config?: DestinationProfile): string {
-  const items: WebdavTransferQueueItem[] = previews.map((preview) => {
+export function buildWebdavTransferQueue(previews: PreviewResult[], config?: DestinationProfile): WebdavTransferQueueItem[] {
+  return previews.map((preview) => {
     const destination = createPhase3DestinationPlan(preview.plan, preview.parsed.kind, config, "webdav");
     const transfer = createPhase3TransferPlan(preview.plan, preview.parsed.kind, config);
 
@@ -115,6 +115,10 @@ export function exportWebdavTransferQueue(previews: PreviewResult[], config?: De
       reason: transfer.summary,
     };
   });
+}
+
+export function exportWebdavTransferQueue(previews: PreviewResult[], config?: DestinationProfile): string {
+  const items = buildWebdavTransferQueue(previews, config);
 
   return JSON.stringify({
     backend: "webdav",
