@@ -136,11 +136,12 @@
 ### Destination and media pipeline enhancements
 
 - **WebDAV destination backend**
-  - configure WebDAV roots per library type
+  - configure WebDAV roots per library type (Movies / TV / Music independently)
   - create missing remote folders
   - upload/copy verified outputs to WebDAV
   - verify success before source cleanup
   - resume/retry-aware transfer behavior
+  - allow prompt-time choice to copy matched files to the configured per-type WebDAV destination instead of treating remote transfer as all-or-nothing global behavior
 
 - **Library-specific destination routing**
   - separate destination profiles for Movies / TV / Music
