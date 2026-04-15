@@ -205,6 +205,7 @@ describe("Namera MVP flow", () => {
     expect(App()).toContain('data-role="preview-backend-local"');
     expect(App()).toContain('data-role="preview-backend-webdav"');
     expect(App()).toContain("Destination preview mode:</strong> local");
+    expect(App()).toContain("WebDAV transfer readiness:</strong>");
   });
 
   it("builds useful manual search URLs for movies and TV", () => {
@@ -439,13 +440,15 @@ describe("Namera MVP flow", () => {
     controller.setPreviewDestinationBackend("webdav");
 
     expect(renders.at(-1)).toContain("Destination preview mode:</strong> webdav");
-    expect(renders.at(-1)).toContain("Phase 3 transfer:</strong> blocked /");
+    expect(renders.at(-1)).toContain("WebDAV transfer readiness:</strong>");
+    expect(renders.at(-1)).toContain("Phase 3 transfer:</strong>");
     expect(renders.at(-1)).toContain("Exported review plan set");
     expect(renders.at(-1)).toContain('&quot;backend&quot;: &quot;webdav&quot;');
 
     controller.setPreviewDestinationBackend("local");
 
     expect(renders.at(-1)).toContain("Destination preview mode:</strong> local");
+    expect(renders.at(-1)).toContain("WebDAV transfer readiness:</strong>");
     expect(renders.at(-1)).toContain("Not needed for local destination preview.");
     expect(renders.at(-1)).toContain('&quot;backend&quot;: &quot;local&quot;');
   });
@@ -810,6 +813,27 @@ describe("Namera MVP flow", () => {
       webdavMovieRoot: "/remote/movies",
     }, "webdav")).toContain('"transferPlan"');
     expect(providerStatus({})).toContain("No live metadata providers configured yet");
+  });
+
+  it("summarizes webdav readiness honestly when some roots are configured", () => {
+    const renders: string[] = [];
+    const controller = createAppController((markup) => renders.push(markup));
+
+    controller.updateConfig({
+      destinations: {
+        movieRoot: "Movies",
+        tvRoot: "TV Shows",
+        musicRoot: "Music",
+        sourceRoot: ".",
+        targetRoot: ".",
+        webdavMovieRoot: "/remote/movies",
+        webdavTvRoot: "/remote/tv",
+        webdavMusicRoot: "",
+        collisionPolicy: "skip",
+      },
+    });
+
+    expect(renders.at(-1)).toContain("WebDAV transfer readiness:</strong> 3 ready, 1 blocked");
   });
 
   it("builds deterministic provider cache keys", () => {
