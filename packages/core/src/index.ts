@@ -291,6 +291,18 @@ export interface WebdavTransferHandoffPacket {
       detail: string;
     }>;
   };
+  remoteChecklist: {
+    status: "ready" | "needs-work";
+    summary: string;
+    steps: Array<{
+      order: number;
+      stage: "assign" | "acknowledge" | "mkdir" | "upload" | "verify" | "blocked-items";
+      status: "ready" | "blocked";
+      targets: string[];
+      detail: string;
+    }>;
+    blockedReasons: string[];
+  };
 }
 
 export interface WebdavTransferHandoffPacketSummary {
