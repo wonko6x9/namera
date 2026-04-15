@@ -256,7 +256,7 @@ export function pushWebdavTransferIntent(intent: WebdavTransferIntent, storage: 
 export function recordWebdavTransferIntentStageProgress(
   id: string,
   stage: "mkdir" | "upload" | "verify",
-  status: "completed" | "blocked",
+  status: "pending" | "completed" | "blocked",
   note: string,
   storage: Storage = getStorage(),
 ): WebdavTransferIntent[] {

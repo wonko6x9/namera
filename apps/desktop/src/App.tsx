@@ -29,7 +29,7 @@ export interface AppController {
   acknowledgeLatestWebdavIntent: () => void;
   assignLatestWebdavIntent: () => void;
   resolveLatestWebdavBlockedItems: () => void;
-  recordLatestWebdavStageProgress: (stage: "mkdir" | "upload" | "verify", status?: "completed" | "blocked") => void;
+  recordLatestWebdavStageProgress: (stage: "mkdir" | "upload" | "verify", status?: "pending" | "completed" | "blocked") => void;
   updateConfig: (patch: Partial<AppConfig>) => void;
   applyNativeExecution: (input: string) => Promise<void>;
   undoNativeExecution: (input: string) => Promise<void>;
@@ -339,11 +339,15 @@ export function createAppController(rerender: (markup: string) => void): AppCont
         status,
         status === "completed"
           ? `Manual ${stage} work was recorded after operator review.`
-          : `Manual ${stage} work is blocked after operator review.`,
+          : status === "blocked"
+            ? `Manual ${stage} work is blocked after operator review.`
+            : `Manual ${stage} work was reset to pending for retry after operator review.`,
       );
       state.nativeExecutionMessage = status === "completed"
         ? `Recorded WebDAV ${stage} stage progress for transfer intent ${intent.id}`
-        : `Marked WebDAV ${stage} stage blocked for transfer intent ${intent.id}`;
+        : status === "blocked"
+          ? `Marked WebDAV ${stage} stage blocked for transfer intent ${intent.id}`
+          : `Reset WebDAV ${stage} stage to pending for transfer intent ${intent.id}`;
       rerender(renderApp(state));
     },
     updateConfig(patch: Partial<AppConfig>) {
@@ -1113,10 +1117,13 @@ function renderApp(appState: AppState): string {
           <button data-role="resolve-latest-webdav-blocked" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Mark latest blocked items resolved</button>
           <button data-role="record-latest-webdav-mkdir" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Record latest WebDAV mkdir</button>
           <button data-role="block-latest-webdav-mkdir" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Block latest WebDAV mkdir</button>
+          <button data-role="reset-latest-webdav-mkdir" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Reset latest WebDAV mkdir</button>
           <button data-role="record-latest-webdav-upload" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Record latest WebDAV upload</button>
           <button data-role="block-latest-webdav-upload" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Block latest WebDAV upload</button>
+          <button data-role="reset-latest-webdav-upload" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Reset latest WebDAV upload</button>
           <button data-role="record-latest-webdav-verify" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Record latest WebDAV verify</button>
           <button data-role="block-latest-webdav-verify" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Block latest WebDAV verify</button>
+          <button data-role="reset-latest-webdav-verify" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Reset latest WebDAV verify</button>
           <button data-role="apply-visible-batch" type="button" ${hasTauriInvoke() ? "" : "disabled"}>Apply visible batch</button>
           <button data-role="retry-failed-batch" type="button" ${hasTauriInvoke() && failedBatchCount ? "" : "disabled"}>Retry failed batch</button>
         </div>

@@ -37,6 +37,15 @@ function wireApp(root: HTMLElement): void {
   const assignLatestWebdavIntentButton = root.querySelector<HTMLButtonElement>("[data-role='assign-latest-webdav-intent']");
   const acknowledgeLatestWebdavIntentButton = root.querySelector<HTMLButtonElement>("[data-role='acknowledge-latest-webdav-intent']");
   const resolveLatestWebdavBlockedButton = root.querySelector<HTMLButtonElement>("[data-role='resolve-latest-webdav-blocked']");
+  const recordLatestWebdavMkdirButton = root.querySelector<HTMLButtonElement>("[data-role='record-latest-webdav-mkdir']");
+  const blockLatestWebdavMkdirButton = root.querySelector<HTMLButtonElement>("[data-role='block-latest-webdav-mkdir']");
+  const resetLatestWebdavMkdirButton = root.querySelector<HTMLButtonElement>("[data-role='reset-latest-webdav-mkdir']");
+  const recordLatestWebdavUploadButton = root.querySelector<HTMLButtonElement>("[data-role='record-latest-webdav-upload']");
+  const blockLatestWebdavUploadButton = root.querySelector<HTMLButtonElement>("[data-role='block-latest-webdav-upload']");
+  const resetLatestWebdavUploadButton = root.querySelector<HTMLButtonElement>("[data-role='reset-latest-webdav-upload']");
+  const recordLatestWebdavVerifyButton = root.querySelector<HTMLButtonElement>("[data-role='record-latest-webdav-verify']");
+  const blockLatestWebdavVerifyButton = root.querySelector<HTMLButtonElement>("[data-role='block-latest-webdav-verify']");
+  const resetLatestWebdavVerifyButton = root.querySelector<HTMLButtonElement>("[data-role='reset-latest-webdav-verify']");
   const movieRootInput = root.querySelector<HTMLInputElement>("[data-role='config-movie-root']");
   const tvRootInput = root.querySelector<HTMLInputElement>("[data-role='config-tv-root']");
   const musicRootInput = root.querySelector<HTMLInputElement>("[data-role='config-music-root']");
@@ -204,6 +213,42 @@ function wireApp(root: HTMLElement): void {
 
   resolveLatestWebdavBlockedButton?.addEventListener("click", () => {
     controller.resolveLatestWebdavBlockedItems();
+  });
+
+  recordLatestWebdavMkdirButton?.addEventListener("click", () => {
+    controller.recordLatestWebdavStageProgress("mkdir", "completed");
+  });
+
+  blockLatestWebdavMkdirButton?.addEventListener("click", () => {
+    controller.recordLatestWebdavStageProgress("mkdir", "blocked");
+  });
+
+  resetLatestWebdavMkdirButton?.addEventListener("click", () => {
+    controller.recordLatestWebdavStageProgress("mkdir", "pending");
+  });
+
+  recordLatestWebdavUploadButton?.addEventListener("click", () => {
+    controller.recordLatestWebdavStageProgress("upload", "completed");
+  });
+
+  blockLatestWebdavUploadButton?.addEventListener("click", () => {
+    controller.recordLatestWebdavStageProgress("upload", "blocked");
+  });
+
+  resetLatestWebdavUploadButton?.addEventListener("click", () => {
+    controller.recordLatestWebdavStageProgress("upload", "pending");
+  });
+
+  recordLatestWebdavVerifyButton?.addEventListener("click", () => {
+    controller.recordLatestWebdavStageProgress("verify", "completed");
+  });
+
+  blockLatestWebdavVerifyButton?.addEventListener("click", () => {
+    controller.recordLatestWebdavStageProgress("verify", "blocked");
+  });
+
+  resetLatestWebdavVerifyButton?.addEventListener("click", () => {
+    controller.recordLatestWebdavStageProgress("verify", "pending");
   });
 }
 

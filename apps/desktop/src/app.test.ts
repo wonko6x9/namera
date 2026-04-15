@@ -694,6 +694,27 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain('&quot;status&quot;: &quot;blocked&quot;');
   });
 
+  it("can reset a recorded webdav stage back to pending for retry", () => {
+    const renders: string[] = [];
+    const controller = createAppController((markup) => renders.push(markup));
+
+    controller.setReviewFilter("webdav-ready");
+    controller.snapshotVisibleWebdavQueue();
+    controller.saveLatestWebdavIntent();
+    controller.assignLatestWebdavIntent();
+    controller.acknowledgeLatestWebdavIntent();
+    controller.recordLatestWebdavStageProgress("upload");
+    controller.recordLatestWebdavStageProgress("upload", "pending");
+
+    expect(loadWebdavTransferIntents()[0]?.remoteStageProgress.upload.status).toBe("pending");
+    expect(loadWebdavTransferIntents()[0]?.remoteStageProgress.upload.note).toContain("reset to pending for retry");
+    expect(loadWebdavTransferIntents()[0]?.lifecycleEvents[0]?.detail).toContain("upload marked pending");
+    expect(renders.at(-1)).toContain("Reset WebDAV upload stage to pending");
+    expect(renders.at(-1)).toContain("upload • pending • 3 targets • Manual upload work was reset to pending for retry after operator review.");
+    expect(renders.at(-1)).toContain("0 of 3 remote stages have recorded operator progress, and 0 are explicitly blocked.");
+    expect(renders.at(-1)).toContain('&quot;status&quot;: &quot;pending&quot;');
+  });
+
   it("removes a single ingest item from the queue", () => {
     const renders: string[] = [];
     const controller = createAppController((markup) => renders.push(markup));
