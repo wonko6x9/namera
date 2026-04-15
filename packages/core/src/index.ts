@@ -104,6 +104,13 @@ export interface ProviderConfig {
   omdbApiKey?: string;
 }
 
+export interface ProviderDiagnostic {
+  provider: string;
+  status: "idle" | "configured" | "ok" | "empty" | "error";
+  detail: string;
+  cached?: boolean;
+}
+
 export interface AppConfig {
   destinations: DestinationProfile;
   providers: ProviderConfig;

@@ -1,12 +1,12 @@
 import { loadConfig, loadExecutionLog, loadHistory, pushHistory, saveConfig } from "@namera/config";
-import type { AppConfig, IngestItem, MatchCandidate, PreviewResult } from "@namera/core";
+import type { AppConfig, IngestItem, MatchCandidate, PreviewResult, ProviderDiagnostic } from "@namera/core";
 import { createPhase3DestinationPlan } from "@namera/destination";
 import { createExecutionBatch, createExecutionRecord, createPlannedExecutions, exportPlanSet, summarizeExecutionActions } from "@namera/exec";
 import { parseFileListIngest, parseTextIngest } from "@namera/ingest";
 import { rankCandidates } from "@namera/match";
 import { parseFilename } from "@namera/parse";
 import { buildPlan } from "@namera/plan";
-import { buildProviderRequest, fetchProviderCandidates, providerStatus } from "@namera/provider";
+import { buildProviderRequest, fetchProviderLookup, providerStatus } from "@namera/provider";
 
 const DEFAULT_INPUT = `The.Matrix.1999.1080p.BluRay.mkv
 Severance.S01E01.Good.News.About.Hell.2160p.WEB-DL.mkv
@@ -26,6 +26,7 @@ interface AppState {
   ingestedItems: IngestItem[];
   liveProviderMessage: string;
   providerCandidatesByInput: Record<string, MatchCandidate[]>;
+  providerDiagnosticsByInput: Record<string, ProviderDiagnostic[]>;
   selectedCandidateKeyByInput: Record<string, string>;
   config: AppConfig;
 }
@@ -35,6 +36,7 @@ const state: AppState = {
   ingestedItems: parseTextIngest(DEFAULT_INPUT),
   liveProviderMessage: "No live provider lookup attempted yet",
   providerCandidatesByInput: {},
+  providerDiagnosticsByInput: {},
   selectedCandidateKeyByInput: {},
   config: loadConfig(),
 };
@@ -59,12 +61,16 @@ export function createAppController(rerender: (markup: string) => void): AppCont
       }
 
       const providerCandidatesByInput: Record<string, MatchCandidate[]> = {};
+      const providerDiagnosticsByInput: Record<string, ProviderDiagnostic[]> = {};
       for (const item of state.ingestedItems.slice(0, 10)) {
         const parsed = parseFilename(item.name);
-        providerCandidatesByInput[item.name] = await fetchProviderCandidates(parsed, state.config.providers);
+        const lookup = await fetchProviderLookup(parsed, state.config.providers);
+        providerCandidatesByInput[item.name] = lookup.candidates;
+        providerDiagnosticsByInput[item.name] = lookup.diagnostics;
       }
 
       state.providerCandidatesByInput = providerCandidatesByInput;
+      state.providerDiagnosticsByInput = providerDiagnosticsByInput;
       const totalLiveCandidates = Object.values(providerCandidatesByInput).reduce((sum, candidates) => sum + candidates.length, 0);
       state.liveProviderMessage = totalLiveCandidates
         ? `Live provider lookup loaded ${totalLiveCandidates} candidate${totalLiveCandidates === 1 ? "" : "s"}`
@@ -113,6 +119,10 @@ function renderApp(appState: AppState): string {
       const destination = createPhase3DestinationPlan(preview.plan, "webdav");
       const request = buildProviderRequest(preview.parsed, appState.config.providers);
       const warningText = preview.plan.warnings.length ? preview.plan.warnings.join("; ") : "none";
+      const diagnostics = appState.providerDiagnosticsByInput[preview.input] ?? [];
+      const diagnosticsText = diagnostics.length
+        ? diagnostics.map((diagnostic) => `${diagnostic.provider}: ${diagnostic.status}${diagnostic.cached ? " (cached)" : ""} - ${diagnostic.detail}`).join("; ")
+        : "no provider diagnostics yet";
       const executionActions = createPlannedExecutions(preview.plan);
       const dryRunBatch = createExecutionBatch(preview.plan, "dry-run");
       const applyBatch = createExecutionBatch(preview.plan, "apply");
@@ -146,6 +156,7 @@ function renderApp(appState: AppState): string {
             )
             .join("")}</ul>
           <p><strong>Provider request:</strong> <code>${escapeHtml(JSON.stringify(request))}</code></p>
+          <p><strong>Provider diagnostics:</strong> ${escapeHtml(diagnosticsText)}</p>
           <p><strong>Phase 3 destination:</strong> ${escapeHtml(destination.backend)} / ${escapeHtml(destination.status)} / ${escapeHtml(destination.note)}</p>
         </article>
       `;

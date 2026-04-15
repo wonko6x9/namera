@@ -18,7 +18,7 @@ Phase 1 and Phase 2 wrapped to a defendable MVP baseline, Phase 3 scaffold start
 - Product direction is primarily media matching, renaming, and tagging, with Plex-friendly organization as an important workflow target
 
 ## Current next step
-Decide whether phase 1 is now comfortable enough to call done, then move into native filesystem apply/undo in Tauri/Rust and phase-2 diagnostics/correction memory.
+Keep pushing phase-2 usefulness: remembered corrections, stronger review flow, and then native filesystem apply/undo in Tauri/Rust.
 
 ## Working implementation snapshot
 - TypeScript/Vite desktop MVP is real and runnable
@@ -28,7 +28,7 @@ Decide whether phase 1 is now comfortable enough to call done, then move into na
 - Plex-style rename-plan generation works
 - Exportable plan sets and local config/history scaffolding exist
 - Real text/file/folder ingest is wired into the desktop flow
-- Provider request shaping exists, first live OMDb lookup wiring is present when an API key is configured, provider candidates now feed the preview-selection path, provider results are cached locally, candidate stacks are deduplicated and biased toward live-provider results over equivalent heuristics, match reasons and confidence labels are surfaced visibly in the desktop flow, and manual candidate override is wired into the desktop flow
+- Provider request shaping exists, first live OMDb lookup wiring is present when an API key is configured, provider candidates now feed the preview-selection path, provider results are cached locally, provider diagnostics now surface idle / empty / cached / error states visibly, candidate stacks are deduplicated and biased toward live-provider results over equivalent heuristics, match reasons and confidence labels are surfaced visibly in the desktop flow, and manual candidate override is wired into the desktop flow
 - Config editing for destination roots and OMDb key is wired into the desktop flow, and configured destination roots now affect generated plans
 - TV parsing now separates series title from episode title for better preview naming
 - Local execution steps are modeled as explicit dry-run/apply/undo execution batches, apply/undo actions are persisted into a local execution log, and the Tauri side now exposes a native execution-batch preview command

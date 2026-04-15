@@ -1,5 +1,5 @@
 import { getProviderCacheEntry, setProviderCacheEntry } from "@namera/config";
-import type { MatchCandidate, ParsedMedia, ProviderConfig } from "@namera/core";
+import type { MatchCandidate, ParsedMedia, ProviderConfig, ProviderDiagnostic } from "@namera/core";
 
 interface ProviderRequest {
   kind: ParsedMedia["kind"];
@@ -19,6 +19,11 @@ interface OmdbSearchResponse {
   }>;
   Response: "True" | "False";
   Error?: string;
+}
+
+export interface ProviderLookupResult {
+  candidates: MatchCandidate[];
+  diagnostics: ProviderDiagnostic[];
 }
 
 export function buildProviderRequest(parsed: ParsedMedia, config: ProviderConfig): ProviderRequest {
@@ -43,27 +48,51 @@ export async function fetchProviderCandidates(
   config: ProviderConfig,
   fetchImpl: typeof fetch = fetch,
 ): Promise<MatchCandidate[]> {
+  const result = await fetchProviderLookup(parsed, config, fetchImpl);
+  return result.candidates;
+}
+
+export async function fetchProviderLookup(
+  parsed: ParsedMedia,
+  config: ProviderConfig,
+  fetchImpl: typeof fetch = fetch,
+): Promise<ProviderLookupResult> {
   if (!config.omdbApiKey) {
-    return [];
+    return {
+      candidates: [],
+      diagnostics: [{ provider: "omdb", status: "idle", detail: "OMDb API key not configured" }],
+    };
   }
 
   if (parsed.kind !== "movie" && parsed.kind !== "episode") {
-    return [];
+    return {
+      candidates: [],
+      diagnostics: [{ provider: "omdb", status: "idle", detail: `No live lookup for kind ${parsed.kind}` }],
+    };
   }
 
   const cacheKey = buildProviderCacheKey(parsed);
   const cached = getProviderCacheEntry(cacheKey);
   if (cached) {
     try {
-      return JSON.parse(cached) as MatchCandidate[];
+      const candidates = JSON.parse(cached) as MatchCandidate[];
+      return {
+        candidates,
+        diagnostics: [
+          {
+            provider: "omdb",
+            status: candidates.length ? "ok" : "empty",
+            detail: candidates.length ? `Loaded ${candidates.length} cached OMDb candidate${candidates.length === 1 ? "" : "s"}` : "Cached OMDb lookup returned no candidates",
+            cached: true,
+          },
+        ],
+      };
     } catch {
-      // fall through and refresh
+      // ignore broken cache and refresh below
     }
   }
 
-  const candidates = await fetchOmdbCandidates(parsed, config.omdbApiKey, fetchImpl);
-  setProviderCacheEntry(cacheKey, JSON.stringify(candidates));
-  return candidates;
+  return fetchOmdbCandidates(parsed, config.omdbApiKey, fetchImpl, cacheKey);
 }
 
 export function buildProviderCacheKey(parsed: ParsedMedia): string {
@@ -76,7 +105,8 @@ async function fetchOmdbCandidates(
   parsed: ParsedMedia,
   omdbApiKey: string,
   fetchImpl: typeof fetch,
-): Promise<MatchCandidate[]> {
+  cacheKey: string,
+): Promise<ProviderLookupResult> {
   const url = new URL("https://www.omdbapi.com/");
   url.searchParams.set("apikey", omdbApiKey);
   url.searchParams.set("s", parsed.kind === "episode" ? parsed.episode?.seriesTitle ?? parsed.title : parsed.title);
@@ -88,22 +118,50 @@ async function fetchOmdbCandidates(
     url.searchParams.set("type", "series");
   }
 
-  const response = await fetchImpl(url, {
-    headers: {
-      Accept: "application/json",
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetchImpl(url, {
+      headers: {
+        Accept: "application/json",
+      },
+    });
+  } catch (error) {
+    return {
+      candidates: [],
+      diagnostics: [
+        {
+          provider: "omdb",
+          status: "error",
+          detail: `OMDb request failed: ${error instanceof Error ? error.message : String(error)}`,
+        },
+      ],
+    };
+  }
 
   if (!response.ok) {
-    return [];
+    return {
+      candidates: [],
+      diagnostics: [
+        {
+          provider: "omdb",
+          status: "error",
+          detail: `OMDb HTTP ${response.status}`,
+        },
+      ],
+    };
   }
 
   const data = (await response.json()) as OmdbSearchResponse;
   if (data.Response !== "True" || !data.Search?.length) {
-    return [];
+    const detail = data.Error ? `OMDb returned no candidates: ${data.Error}` : "OMDb returned no candidates";
+    setProviderCacheEntry(cacheKey, JSON.stringify([]));
+    return {
+      candidates: [],
+      diagnostics: [{ provider: "omdb", status: "empty", detail }],
+    };
   }
 
-  return data.Search.slice(0, 5).map((result, index) => {
+  const candidates = data.Search.slice(0, 5).map((result, index) => {
     const requestTitle = parsed.kind === "episode" ? parsed.episode?.seriesTitle ?? parsed.title : parsed.title;
     const exactTitle = result.Title.toLowerCase() === requestTitle.toLowerCase();
     const sameYear = parsed.movie?.year ? result.Year.includes(String(parsed.movie.year)) : false;
@@ -121,6 +179,18 @@ async function fetchOmdbCandidates(
           ? "Live OMDb match by exact title and year"
           : "Live OMDb match by exact title"
         : "Live OMDb candidate from title search",
-    };
+    } satisfies MatchCandidate;
   });
+
+  setProviderCacheEntry(cacheKey, JSON.stringify(candidates));
+  return {
+    candidates,
+    diagnostics: [
+      {
+        provider: "omdb",
+        status: "ok",
+        detail: `OMDb returned ${candidates.length} candidate${candidates.length === 1 ? "" : "s"}`,
+      },
+    ],
+  };
 }

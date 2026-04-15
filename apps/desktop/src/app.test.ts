@@ -3,7 +3,7 @@ import { parseFilename } from "@namera/parse";
 import { rankCandidates } from "@namera/match";
 import { buildPlan } from "@namera/plan";
 import { createPhase3DestinationPlan } from "@namera/destination";
-import { buildProviderCacheKey, buildProviderRequest, fetchProviderCandidates, providerStatus } from "@namera/provider";
+import { buildProviderCacheKey, buildProviderRequest, fetchProviderCandidates, fetchProviderLookup, providerStatus } from "@namera/provider";
 import { createExecutionBatch, createPlannedExecutions, exportPlanSet, listExecutionLog, summarizeExecutionActions } from "@namera/exec";
 import { looksLikeMediaFile, parseTextIngest } from "@namera/ingest";
 import { buildPreview, createAppController, summarizeIngest } from "./App";
@@ -279,6 +279,22 @@ describe("Namera MVP flow", () => {
     const key = buildProviderCacheKey(parsed);
 
     expect(key).toContain("movie|the matrix|1999");
+  });
+
+  it("surfaces provider diagnostics for missing config and failures", async () => {
+    const parsed = parseFilename("The.Matrix.1999.1080p.BluRay.mkv");
+    const idle = await fetchProviderLookup(parsed, {});
+    const failed = await fetchProviderLookup(
+      parsed,
+      { omdbApiKey: "x" },
+      vi.fn(async () => {
+        throw new Error("network down");
+      }) as unknown as typeof fetch,
+    );
+
+    expect(idle.diagnostics[0]?.status).toBe("idle");
+    expect(failed.diagnostics[0]?.status).toBe("error");
+    expect(failed.diagnostics[0]?.detail).toContain("network down");
   });
 
   it("reuses cached provider results before network fetch", async () => {
