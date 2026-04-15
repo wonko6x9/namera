@@ -318,6 +318,57 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("Applied 2 actions");
   });
 
+  it("marks the matching apply record undone after a successful native undo", async () => {
+    const renders: string[] = [];
+    const controller = createAppController((markup) => renders.push(markup));
+
+    pushExecutionLog({
+      id: "apply-1",
+      mode: "apply",
+      sourceName: "The.Matrix.1999.1080p.BluRay.mkv",
+      proposedPath: "/library/Movies/The Matrix (1999)/The Matrix (1999).mkv",
+      createdAt: "1Z",
+      sourceSizeBytes: 6,
+      actions: [],
+    });
+
+    const invoke = vi.fn(async () => ({
+      mode: "undo",
+      summary: "Undid 1 action",
+      actions: [
+        { action_type: "rename", from_path: "/library/Movies/The Matrix (1999)/The Matrix (1999).mkv", to_path: "/incoming/The.Matrix.1999.1080p.BluRay.mkv", status: "reverted", note: "ok" },
+      ],
+      log_entry: {
+        id: "undo-1",
+        mode: "undo",
+        source_name: "The.Matrix.1999.1080p.BluRay.mkv",
+        proposed_path: "/library/Movies/The Matrix (1999)/The Matrix (1999).mkv",
+        created_at: "2Z",
+        apply_log_id: "apply-1",
+        source_size_bytes: 6,
+        undone_at: "2Z",
+        actions: [],
+      },
+    } satisfies NativeExecutionBatch));
+
+    const fakeWindow = { __TAURI__: { core: { invoke } } };
+    Object.defineProperty(globalThis, "window", {
+      value: fakeWindow,
+      configurable: true,
+    });
+
+    await controller.undoNativeExecution("The.Matrix.1999.1080p.BluRay.mkv");
+
+    const [undoEntry, applyEntry] = loadExecutionLog();
+    expect(invoke).toHaveBeenCalledWith(
+      "undo_execution_batch_command",
+      expect.objectContaining({ expectedLogId: "apply-1", expectedSizeBytes: 6, appliedPath: "/library/Movies/The Matrix (1999)/The Matrix (1999).mkv" }),
+    );
+    expect(undoEntry?.mode).toBe("undo");
+    expect(applyEntry?.undoneAt).toBeTruthy();
+    expect(renders.at(-1)).toContain("Undid 1 action");
+  });
+
   it("surfaces configured collision policy in preview warnings", () => {
     const preview = buildPreview(
       "The.Matrix.1999.1080p.BluRay.mkv",

@@ -1,4 +1,4 @@
-import { loadConfig, loadCorrections, loadExecutionLog, loadHistory, pushExecutionLog, pushHistory, saveConfig, setCorrection } from "@namera/config";
+import { loadConfig, loadCorrections, loadExecutionLog, loadHistory, markExecutionUndone, pushExecutionLog, pushHistory, saveConfig, setCorrection } from "@namera/config";
 import type { AppConfig, IngestItem, MatchCandidate, PreviewResult, ProviderDiagnostic, ReviewSummary } from "@namera/core";
 import { createPhase3DestinationPlan } from "@namera/destination";
 import { createExecutionBatch, createExecutionRecord, createPlannedExecutions, exportPlanSet, summarizeExecutionActions } from "@namera/exec";
@@ -147,6 +147,9 @@ export function createAppController(rerender: (markup: string) => void): AppCont
           applyEntry?.sourceSizeBytes,
           applyEntry?.proposedPath,
         );
+        if (applyEntry?.id) {
+          markExecutionUndone(applyEntry.id);
+        }
         if (batch.log_entry) {
           pushExecutionLog(mapNativeLogEntry(batch.log_entry));
         }
