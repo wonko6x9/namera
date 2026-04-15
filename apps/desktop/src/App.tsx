@@ -24,6 +24,7 @@ export interface AppController {
   updateConfig: (patch: Partial<AppConfig>) => void;
   applyNativeExecution: (input: string) => Promise<void>;
   undoNativeExecution: (input: string) => Promise<void>;
+  applyVisibleNativeBatch: () => Promise<void>;
 }
 
 interface AppState {
@@ -159,18 +160,47 @@ export function createAppController(rerender: (markup: string) => void): AppCont
       }
       rerender(renderApp(state));
     },
+    async applyVisibleNativeBatch() {
+      const previews = getVisiblePreviews(state);
+      if (!previews.length) {
+        state.nativeExecutionMessage = "No visible items to apply";
+        rerender(renderApp(state));
+        return;
+      }
+
+      let applied = 0;
+      let skipped = 0;
+      let failed = 0;
+
+      for (const preview of previews) {
+        try {
+          const batch = await applyExecutionBatchNative(
+            state.config.destinations.sourceRoot || ".",
+            state.config.destinations.targetRoot || ".",
+            preview.input,
+            state.config.destinations.collisionPolicy,
+          );
+          if (batch.log_entry) {
+            pushExecutionLog(mapNativeLogEntry(batch.log_entry));
+          }
+          if (batch.actions.some((action) => action.status === "skipped")) {
+            skipped += 1;
+          } else {
+            applied += 1;
+          }
+        } catch {
+          failed += 1;
+        }
+      }
+
+      state.nativeExecutionMessage = `Batch apply finished: ${applied} applied, ${skipped} skipped, ${failed} failed`;
+      rerender(renderApp(state));
+    },
   };
 }
 
 function renderApp(appState: AppState): string {
-  const previews = appState.ingestedItems.map((item) =>
-    buildPreview(
-      item.name,
-      appState.providerCandidatesByInput[item.name] ?? [],
-      appState.selectedCandidateKeyByInput[item.name],
-      appState.config,
-    ),
-  );
+  const previews = getAllPreviews(appState);
   const reviewSummary = summarizeReview(previews);
   const filteredPreviews = previews.filter((preview) => matchesReviewFilter(preview, appState.reviewFilter));
   const persistedHistory = previews.map((preview) => pushHistory(createExecutionRecord(preview.plan)));
@@ -343,6 +373,7 @@ function renderApp(appState: AppState): string {
           <button data-role="filter-all" type="button">All</button>
           <button data-role="filter-needs-review" type="button">Needs review</button>
           <button data-role="filter-provider-backed" type="button">Provider-backed</button>
+          <button data-role="apply-visible-batch" type="button" ${hasTauriInvoke() ? "" : "disabled"}>Apply visible batch</button>
         </div>
         <p><strong>Current filter:</strong> ${escapeHtml(appState.reviewFilter)}</p>
         ${previewMarkup || "<p>No items match the current review filter.</p>"}
@@ -367,6 +398,21 @@ function renderApp(appState: AppState): string {
       </section>
     </main>
   `;
+}
+
+function getAllPreviews(appState: AppState): PreviewResult[] {
+  return appState.ingestedItems.map((item) =>
+    buildPreview(
+      item.name,
+      appState.providerCandidatesByInput[item.name] ?? [],
+      appState.selectedCandidateKeyByInput[item.name],
+      appState.config,
+    ),
+  );
+}
+
+function getVisiblePreviews(appState: AppState): PreviewResult[] {
+  return getAllPreviews(appState).filter((preview) => matchesReviewFilter(preview, appState.reviewFilter));
 }
 
 export function buildPreview(

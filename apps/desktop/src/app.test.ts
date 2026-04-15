@@ -369,6 +369,51 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("Undid 1 action");
   });
 
+  it("applies the visible batch sequentially and summarizes partial failures", async () => {
+    const renders: string[] = [];
+    const controller = createAppController((markup) => renders.push(markup));
+    controller.setReviewFilter("all");
+    const invoke = vi
+      .fn()
+      .mockImplementationOnce(async () => ({
+        mode: "apply",
+        summary: "Applied 2 actions",
+        actions: [{ action_type: "rename", to_path: "Movies/The Matrix (1999)/The Matrix (1999).mkv", status: "applied" }],
+        log_entry: {
+          id: "apply-1",
+          mode: "apply",
+          source_name: "The.Matrix.1999.1080p.BluRay.mkv",
+          proposed_path: "Movies/The Matrix (1999)/The Matrix (1999).mkv",
+          created_at: "1Z",
+          actions: [],
+        },
+      }))
+      .mockRejectedValueOnce(new Error("boom"))
+      .mockImplementationOnce(async () => ({
+        mode: "apply",
+        summary: "Skipped apply because destination already exists",
+        actions: [{ action_type: "rename", to_path: "TV Shows/Andor/Season 01/Andor - S01E03 - Reckoning.mp4", status: "skipped" }],
+        log_entry: null,
+      }))
+      .mockImplementationOnce(async () => ({
+        mode: "apply",
+        summary: "Skipped apply because destination already exists",
+        actions: [{ action_type: "rename", to_path: "Unsorted/Some Confusing File Name Thing.bin", status: "skipped" }],
+        log_entry: null,
+      }));
+
+    const fakeWindow = { __TAURI__: { core: { invoke } } };
+    Object.defineProperty(globalThis, "window", {
+      value: fakeWindow,
+      configurable: true,
+    });
+
+    await controller.applyVisibleNativeBatch();
+
+    expect(invoke).toHaveBeenCalledTimes(4);
+    expect(renders.at(-1)).toContain("Batch apply finished: 1 applied, 2 skipped, 1 failed");
+  });
+
   it("surfaces configured collision policy in preview warnings", () => {
     const preview = buildPreview(
       "The.Matrix.1999.1080p.BluRay.mkv",
