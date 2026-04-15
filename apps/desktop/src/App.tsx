@@ -1,6 +1,6 @@
 import { loadConfig, loadCorrections, loadExecutionLog, loadHistory, markExecutionUndone, pushExecutionLog, pushHistory, saveConfig, setCorrection } from "@namera/config";
 import type { AppConfig, IngestItem, MatchCandidate, ParsedMedia, PreviewResult, ProviderDiagnostic, ReviewSummary } from "@namera/core";
-import { createPhase3DestinationPlan } from "@namera/destination";
+import { createPhase3DestinationPlan, createPhase3TransferPlan } from "@namera/destination";
 import { createExecutionBatch, createExecutionRecord, createPlannedExecutions, exportPlanSet, summarizeExecutionActions } from "@namera/exec";
 import { parseFileListIngest, parseTextIngest } from "@namera/ingest";
 import { buildCorrectionKey, getCandidateKey, rankCandidates } from "@namera/match";
@@ -285,6 +285,7 @@ function renderApp(appState: AppState): string {
   const previewMarkup = filteredPreviews
     .map((preview) => {
       const destination = createPhase3DestinationPlan(preview.plan, preview.parsed.kind, appState.config.destinations, "webdav");
+      const transfer = createPhase3TransferPlan(preview.plan, preview.parsed.kind, appState.config.destinations);
       const request = buildProviderRequest(preview.parsed, appState.config.providers);
       const warningText = preview.plan.warnings.length ? preview.plan.warnings.join("; ") : "none";
       const diagnostics = appState.providerDiagnosticsByInput[preview.input] ?? [];
@@ -333,6 +334,8 @@ function renderApp(appState: AppState): string {
           <p><strong>Provider request:</strong> <code>${escapeHtml(JSON.stringify(request))}</code></p>
           <p><strong>Provider diagnostics:</strong> ${escapeHtml(diagnosticsText)}</p>
           <p><strong>Phase 3 destination:</strong> ${escapeHtml(destination.backend)} / ${escapeHtml(destination.status)} / ${escapeHtml(destination.note)}</p>
+          <p><strong>Phase 3 transfer:</strong> ${escapeHtml(transfer.status)} / ${escapeHtml(transfer.summary)}</p>
+          <ul>${transfer.actions.map((action) => `<li>${escapeHtml(action)}</li>`).join("")}</ul>
           <div>
             <button data-role="open-search" data-url="${escapeHtmlAttribute(searchUrl)}" type="button">Search title</button>
             <button data-role="open-art-search" data-url="${escapeHtmlAttribute(artworkSearchUrl)}" type="button">Search poster/cover</button>

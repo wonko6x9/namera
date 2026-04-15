@@ -3,7 +3,7 @@ import type { NativeExecutionBatch } from "./tauri";
 import { parseFilename } from "@namera/parse";
 import { buildCorrectionKey, rankCandidates } from "@namera/match";
 import { buildPlan } from "@namera/plan";
-import { createPhase3DestinationPlan } from "@namera/destination";
+import { createPhase3DestinationPlan, createPhase3TransferPlan } from "@namera/destination";
 import { buildProviderCacheKey, buildProviderRequest, fetchProviderCandidates, fetchProviderLookup, providerStatus } from "@namera/provider";
 import { createExecutionBatch, createPlannedExecutions, exportPlanSet, listExecutionLog, summarizeExecutionActions } from "@namera/exec";
 import { looksLikeMediaFile, parseTextIngest } from "@namera/ingest";
@@ -150,6 +150,25 @@ describe("Namera MVP flow", () => {
 
     expect(destination.status).toBe("ready");
     expect(destination.targetPath).toBe("/remote/movies/The Matrix (1999)/The Matrix (1999).mkv");
+  });
+
+  it("builds a blocked or planned phase 3 transfer contract honestly", () => {
+    const parsed = parseFilename("The.Matrix.1999.1080p.BluRay.mkv");
+    const candidate = rankCandidates(parsed)[0];
+    const plan = buildPlan(parsed, candidate);
+
+    const blocked = createPhase3TransferPlan(plan, parsed.kind, undefined);
+    expect(blocked.status).toBe("blocked");
+    expect(blocked.summary).toContain("no WebDAV root");
+
+    const planned = createPhase3TransferPlan(plan, parsed.kind, {
+      movieRoot: "Movies",
+      tvRoot: "TV Shows",
+      musicRoot: "Music",
+      webdavMovieRoot: "/remote/movies",
+    });
+    expect(planned.status).toBe("planned");
+    expect(planned.actions[1]).toContain("/remote/movies/The Matrix (1999)/The Matrix (1999).mkv");
   });
 
   it("parses newline-separated ingest input for the preview lane", () => {

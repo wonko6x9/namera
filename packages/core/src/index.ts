@@ -151,3 +151,10 @@ export interface Phase3DestinationPlan {
   status: "ready" | "stub";
   note: string;
 }
+
+export interface Phase3TransferPlan {
+  backend: "webdav";
+  status: "planned" | "blocked";
+  actions: string[];
+  summary: string;
+}
