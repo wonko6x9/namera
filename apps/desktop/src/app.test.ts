@@ -39,6 +39,15 @@ describe("Namera MVP flow", () => {
     expect(candidate.reason).toContain("episode title");
   });
 
+  it("routes audio files into the music lane", () => {
+    const parsed = parseFilename("Daft.Punk.Harder.Better.Faster.Stronger.mp3");
+    const candidate = rankCandidates(parsed)[0];
+    const plan = buildPlan(parsed, candidate);
+
+    expect(parsed.kind).toBe("music");
+    expect(plan.proposedPath).toBe("Music/Daft Punk Harder Better Faster Stronger.mp3");
+  });
+
   it("preserves language qualifiers on movie subtitle sidecars", () => {
     const parsed = parseFilename("The.Matrix.1999.en.forced.srt");
     const candidate = rankCandidates(parsed)[0];

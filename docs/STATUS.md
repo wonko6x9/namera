@@ -23,6 +23,7 @@ Push phase 3 beyond routing into actual transfer semantics, while continuing to 
 ## Working implementation snapshot
 - TypeScript/Vite desktop MVP is real and runnable
 - Filename normalization handles dotted/ugly separators, common release noise, multi-episode markers, and the first pass of edition / part-disc junk trimming
+- Filename normalization handles dotted/ugly separators, common release noise, multi-episode markers, the first pass of edition / part-disc junk trimming, subtitle sidecar qualifiers, and basic audio-file classification into the music lane
 - Movie year extraction and `SxxExx` TV parsing work
 - Local heuristic ranking works for movie/episode happy paths
 - Plex-style rename-plan generation works

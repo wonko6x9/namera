@@ -75,6 +75,7 @@ const QUALIFIER_TOKENS = new Set([
   "hi",
 ]);
 const SIDECARExtENSIONS = new Set(["srt", "ass", "ssa", "vtt", "sub", "idx"]);
+const AUDIO_EXTENSIONS = new Set(["mp3", "flac", "wav", "m4a", "aac", "ogg"]);
 const LANGUAGE_TAG_PATTERN = /^[a-z]{2,3}(?:-[a-z]{2,4})?$/i;
 
 export function parseFilename(input: string): ParsedMedia {
@@ -89,6 +90,7 @@ export function parseFilename(input: string): ParsedMedia {
 
   let kind: MediaKind = "unknown";
   if (episode) kind = "episode";
+  else if (extension && AUDIO_EXTENSIONS.has(extension)) kind = "music";
   else if (year) kind = "movie";
 
   const title = cleanupTitle(titleTokens.join(" "));
