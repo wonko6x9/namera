@@ -29,6 +29,9 @@ function wireApp(root: HTMLElement): void {
   const omdbKeyInput = root.querySelector<HTMLInputElement>("[data-role='config-omdb-key']");
   const sourceRootInput = root.querySelector<HTMLInputElement>("[data-role='config-source-root']");
   const targetRootInput = root.querySelector<HTMLInputElement>("[data-role='config-target-root']");
+  const webdavMovieRootInput = root.querySelector<HTMLInputElement>("[data-role='config-webdav-movie-root']");
+  const webdavTvRootInput = root.querySelector<HTMLInputElement>("[data-role='config-webdav-tv-root']");
+  const webdavMusicRootInput = root.querySelector<HTMLInputElement>("[data-role='config-webdav-music-root']");
   const collisionPolicyInput = root.querySelector<HTMLSelectElement>("[data-role='config-collision-policy']");
 
   fileInput?.addEventListener("change", async (event) => {
@@ -69,6 +72,9 @@ function wireApp(root: HTMLElement): void {
         musicRoot: musicRootInput?.value || "Music",
         sourceRoot: sourceRootInput?.value || ".",
         targetRoot: targetRootInput?.value || ".",
+        webdavMovieRoot: webdavMovieRootInput?.value || "",
+        webdavTvRoot: webdavTvRootInput?.value || "",
+        webdavMusicRoot: webdavMusicRootInput?.value || "",
         collisionPolicy: (collisionPolicyInput?.value as "skip" | "overwrite" | "rename-new" | undefined) || "skip",
       },
       providers: {

@@ -143,6 +143,7 @@
   - verify success before source cleanup
   - resume/retry-aware transfer behavior
   - allow prompt-time choice to copy matched files to the configured per-type WebDAV destination instead of treating remote transfer as all-or-nothing global behavior
+  - current honest state: per-type WebDAV destination routing is now configurable and previewable, but transfer/upload semantics remain unimplemented
 
 - **Library-specific destination routing**
   - separate destination profiles for Movies / TV / Music

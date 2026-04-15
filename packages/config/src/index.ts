@@ -8,6 +8,9 @@ export const DEFAULT_CONFIG: AppConfig = {
     sourceRoot: ".",
     targetRoot: ".",
     collisionPolicy: "skip",
+    webdavMovieRoot: "",
+    webdavTvRoot: "",
+    webdavMusicRoot: "",
   },
   providers: {},
 };

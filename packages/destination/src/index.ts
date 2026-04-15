@@ -1,13 +1,80 @@
-import type { Phase3DestinationPlan, RenamePlan } from "@namera/core";
+import type { DestinationProfile, MediaKind, Phase3DestinationPlan, RenamePlan } from "@namera/core";
 
-export function createPhase3DestinationPlan(plan: RenamePlan, backend: "local" | "webdav" = "webdav"): Phase3DestinationPlan {
+export function createPhase3DestinationPlan(
+  plan: RenamePlan,
+  mediaKind: MediaKind,
+  config?: DestinationProfile,
+  backend: "local" | "webdav" = "webdav",
+): Phase3DestinationPlan {
+  if (backend === "local") {
+    return {
+      backend,
+      targetPath: plan.proposedPath,
+      status: "ready",
+      note: "Local destination path ready.",
+    };
+  }
+
+  const webdavRoot = resolveWebdavRoot(mediaKind, config);
+  if (!webdavRoot) {
+    return {
+      backend,
+      targetPath: plan.proposedPath,
+      status: "stub",
+      note: "Phase 3 routing knows the media type, but no WebDAV root is configured for it yet.",
+    };
+  }
+
   return {
     backend,
-    targetPath: plan.proposedPath,
-    status: backend === "webdav" ? "stub" : "ready",
-    note:
-      backend === "webdav"
-        ? "Phase 3 stub only. Remote upload/copy verification not implemented yet."
-        : "Local destination path ready.",
+    targetPath: joinRemotePath(webdavRoot, stripLibraryRoot(plan.proposedPath, mediaKind, config)),
+    status: "ready",
+    note: `WebDAV destination prepared for ${mediaKind}. Transfer/upload still not implemented.`,
   };
+}
+
+function resolveWebdavRoot(mediaKind: MediaKind, config?: DestinationProfile): string | undefined {
+  const raw = mediaKind === "movie"
+    ? config?.webdavMovieRoot
+    : mediaKind === "episode"
+      ? config?.webdavTvRoot
+      : mediaKind === "music"
+        ? config?.webdavMusicRoot
+        : undefined;
+
+  const trimmed = raw?.trim();
+  return trimmed || undefined;
+}
+
+function stripLibraryRoot(path: string, mediaKind: MediaKind, config?: DestinationProfile): string {
+  const libraryRoot = mediaKind === "movie"
+    ? config?.movieRoot ?? "Movies"
+    : mediaKind === "episode"
+      ? config?.tvRoot ?? "TV Shows"
+      : mediaKind === "music"
+        ? config?.musicRoot ?? "Music"
+        : undefined;
+
+  if (!libraryRoot) {
+    return path;
+  }
+
+  const prefix = `${trimSlashes(libraryRoot)}/`;
+  return path.startsWith(prefix) ? path.slice(prefix.length) : path;
+}
+
+function joinRemotePath(root: string, relativePath: string): string {
+  return `${trimTrailingSlash(root)}/${trimLeadingSlash(relativePath)}`;
+}
+
+function trimSlashes(value: string): string {
+  return value.replace(/^\/+|\/+$/g, "");
+}
+
+function trimTrailingSlash(value: string): string {
+  return value.replace(/\/+$/g, "");
+}
+
+function trimLeadingSlash(value: string): string {
+  return value.replace(/^\/+/, "");
 }

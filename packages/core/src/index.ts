@@ -111,6 +111,9 @@ export interface DestinationProfile {
   sourceRoot?: string;
   targetRoot?: string;
   collisionPolicy?: CollisionPolicy;
+  webdavMovieRoot?: string;
+  webdavTvRoot?: string;
+  webdavMusicRoot?: string;
 }
 
 export interface ProviderConfig {

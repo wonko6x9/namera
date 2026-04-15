@@ -117,10 +117,30 @@ describe("Namera MVP flow", () => {
     const parsed = parseFilename("The.Matrix.1999.1080p.BluRay.mkv");
     const candidate = rankCandidates(parsed)[0];
     const plan = buildPlan(parsed, candidate);
-    const destination = createPhase3DestinationPlan(plan, "webdav");
+    const destination = createPhase3DestinationPlan(plan, parsed.kind, undefined, "webdav");
 
     expect(destination.backend).toBe("webdav");
     expect(destination.status).toBe("stub");
+  });
+
+  it("builds a phase 3 WebDAV target path per media type when configured", () => {
+    const parsed = parseFilename("The.Matrix.1999.1080p.BluRay.mkv");
+    const candidate = rankCandidates(parsed)[0];
+    const plan = buildPlan(parsed, candidate);
+    const destination = createPhase3DestinationPlan(
+      plan,
+      parsed.kind,
+      {
+        movieRoot: "Movies",
+        tvRoot: "TV Shows",
+        musicRoot: "Music",
+        webdavMovieRoot: "/remote/movies",
+      },
+      "webdav",
+    );
+
+    expect(destination.status).toBe("ready");
+    expect(destination.targetPath).toBe("/remote/movies/The Matrix (1999)/The Matrix (1999).mkv");
   });
 
   it("parses newline-separated ingest input for the preview lane", () => {
@@ -242,6 +262,9 @@ describe("Namera MVP flow", () => {
         musicRoot: "Tracks",
         sourceRoot: "/incoming",
         targetRoot: "/library",
+        webdavMovieRoot: "/dav/movies",
+        webdavTvRoot: "/dav/tv",
+        webdavMusicRoot: "/dav/music",
         collisionPolicy: "overwrite",
       },
       providers: {
@@ -253,6 +276,9 @@ describe("Namera MVP flow", () => {
     expect(config.destinations.movieRoot).toBe("Films");
     expect(config.destinations.sourceRoot).toBe("/incoming");
     expect(config.destinations.targetRoot).toBe("/library");
+    expect(config.destinations.webdavMovieRoot).toBe("/dav/movies");
+    expect(config.destinations.webdavTvRoot).toBe("/dav/tv");
+    expect(config.destinations.webdavMusicRoot).toBe("/dav/music");
     expect(config.destinations.collisionPolicy).toBe("overwrite");
     expect(config.providers.omdbApiKey).toBe("test-key");
     expect(renders.at(-1)).toContain("Configuration");

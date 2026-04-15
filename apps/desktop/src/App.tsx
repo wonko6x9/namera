@@ -284,7 +284,7 @@ function renderApp(appState: AppState): string {
 
   const previewMarkup = filteredPreviews
     .map((preview) => {
-      const destination = createPhase3DestinationPlan(preview.plan, "webdav");
+      const destination = createPhase3DestinationPlan(preview.plan, preview.parsed.kind, appState.config.destinations, "webdav");
       const request = buildProviderRequest(preview.parsed, appState.config.providers);
       const warningText = preview.plan.warnings.length ? preview.plan.warnings.join("; ") : "none";
       const diagnostics = appState.providerDiagnosticsByInput[preview.input] ?? [];
@@ -372,6 +372,7 @@ function renderApp(appState: AppState): string {
         <h2>Status</h2>
         <p><strong>Destination roots:</strong> Movies=${escapeHtml(appState.config.destinations.movieRoot)}, TV=${escapeHtml(appState.config.destinations.tvRoot)}, Music=${escapeHtml(appState.config.destinations.musicRoot)}</p>
         <p><strong>Execution roots:</strong> Source=${escapeHtml(appState.config.destinations.sourceRoot || ".")}, Target=${escapeHtml(appState.config.destinations.targetRoot || ".")}</p>
+        <p><strong>WebDAV roots:</strong> Movies=${escapeHtml(appState.config.destinations.webdavMovieRoot || "(not set)")}, TV=${escapeHtml(appState.config.destinations.webdavTvRoot || "(not set)")}, Music=${escapeHtml(appState.config.destinations.webdavMusicRoot || "(not set)")}</p>
         <p><strong>Collision policy:</strong> ${escapeHtml(appState.config.destinations.collisionPolicy || "skip")}</p>
         <p><strong>Providers:</strong> ${escapeHtml(providerSummary)}</p>
         <p><strong>Ingest summary:</strong> ${escapeHtml(summarizeIngest(appState.ingestedItems))}</p>
@@ -401,6 +402,15 @@ function renderApp(appState: AppState): string {
         </div>
         <div>
           <label>Target root <input data-role="config-target-root" value="${escapeHtmlAttribute(appState.config.destinations.targetRoot ?? ".")}" /></label>
+        </div>
+        <div>
+          <label>WebDAV movie root <input data-role="config-webdav-movie-root" value="${escapeHtmlAttribute(appState.config.destinations.webdavMovieRoot ?? "")}" /></label>
+        </div>
+        <div>
+          <label>WebDAV TV root <input data-role="config-webdav-tv-root" value="${escapeHtmlAttribute(appState.config.destinations.webdavTvRoot ?? "")}" /></label>
+        </div>
+        <div>
+          <label>WebDAV music root <input data-role="config-webdav-music-root" value="${escapeHtmlAttribute(appState.config.destinations.webdavMusicRoot ?? "")}" /></label>
         </div>
         <div>
           <label>Collision policy
