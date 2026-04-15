@@ -8,7 +8,8 @@ Cross-platform Plex-focused media matching, renaming, and tagging tool.
 - macOS low priority
 - parity with core FileBot workflows before major enhancements
 - robust filename normalization in MVP
-- WebDAV destination support targeted for phase 3
+- local rename/move execution and undo hardening are the active lane
+- WebDAV destination support remains a later lane after local execution is defendable
 - durable planning and backlog so work survives interruptions
 
 ## Product shape
@@ -64,8 +65,9 @@ Still intentionally stubbed:
 
 - Phase 1: parser + planner MVP, wrapped to a solid baseline
 - Phase 2: batch preview + settings/history/provider scaffolding, wrapped to a solid baseline
-- Phase 3: destination backend and truthful manual handoff state are now in place, but real remote transfer execution is still open
+- Phase 3: destination backend and truthful manual handoff state are in place as an honest preview/export layer, but remote transfer execution is still deferred
+- Phase 4: safe local execution and undo hardening is the active implementation lane
 
 ## Immediate next implementation step
 
-Keep pushing the WebDAV lane toward truthful resumable/manual execution semantics, or land the next real local/native execution hardening slice, then deepen TV/provider metadata.
+Keep pushing the local/native execution lane until batch sequencing, collision handling, recovery, and interruption behavior are genuinely trustworthy. After that, resume real WebDAV transfer execution and richer provider-backed metadata.
