@@ -220,6 +220,7 @@ describe("Namera MVP flow", () => {
     expect(App()).toContain("Latest saved WebDAV queue snapshot");
     expect(App()).toContain("Saved WebDAV transfer intents");
     expect(App()).toContain("Latest saved WebDAV transfer intent");
+    expect(App()).toContain("Latest WebDAV transfer intent lifecycle");
   });
 
   it("builds useful manual search URLs for movies and TV", () => {
@@ -501,6 +502,7 @@ describe("Namera MVP flow", () => {
     expect(loadWebdavTransferIntents()[0]?.status).toBe("pending");
     expect(loadWebdavTransferIntents()[0]?.nextActions.length).toBeGreaterThan(0);
     expect(loadWebdavTransferIntents()[0]?.prerequisites.length).toBeGreaterThan(0);
+    expect(loadWebdavTransferIntents()[0]?.lifecycleEvents[0]?.type).toBe("created");
     expect(renders.at(-1)).toContain("Saved pending WebDAV transfer intent");
     expect(renders.at(-1)).toContain("Saved WebDAV transfer intents");
     expect(renders.at(-1)).toContain("Latest saved WebDAV transfer intent");
@@ -520,6 +522,7 @@ describe("Namera MVP flow", () => {
     expect(loadWebdavTransferIntents()[0]?.handoffOwner).toBe("remote-handoff");
     expect(loadWebdavTransferIntents()[0]?.handoffNote).toContain("manual remote execution handoff");
     expect(loadWebdavTransferIntents()[0]?.handoffAssignedAt).toBeTruthy();
+    expect(loadWebdavTransferIntents()[0]?.lifecycleEvents[0]?.type).toBe("assigned");
     expect(renders.at(-1)).toContain("Assigned WebDAV transfer intent");
     expect(renders.at(-1)).toContain('&quot;handoffOwner&quot;: &quot;remote-handoff&quot;');
     expect(renders.at(-1)).toContain('&quot;handoffAssignedAt&quot;');
@@ -536,6 +539,7 @@ describe("Namera MVP flow", () => {
 
     expect(loadWebdavTransferIntents()[0]?.status).toBe("acknowledged");
     expect(loadWebdavTransferIntents()[0]?.acknowledgementNote).toContain("Prerequisites reviewed");
+    expect(loadWebdavTransferIntents()[0]?.lifecycleEvents[0]?.type).toBe("acknowledged");
     expect(renders.at(-1)).toContain("Acknowledged WebDAV transfer intent");
     expect(renders.at(-1)).toContain('&quot;status&quot;: &quot;acknowledged&quot;');
   });

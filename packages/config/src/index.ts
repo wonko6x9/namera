@@ -254,16 +254,24 @@ export function pushWebdavTransferIntent(intent: WebdavTransferIntent, storage: 
 }
 
 export function acknowledgeWebdavTransferIntent(id: string, note: string, storage: Storage = getStorage()): WebdavTransferIntent[] {
-  const next = loadWebdavTransferIntents(storage).map((intent) =>
-    intent.id === id
-      ? {
-          ...intent,
-          status: "acknowledged",
-          acknowledgedAt: intent.acknowledgedAt ?? new Date().toISOString(),
-          acknowledgementNote: note,
-        }
-      : intent,
-  );
+  const next = loadWebdavTransferIntents(storage).map((intent) => {
+    if (intent.id !== id) return intent;
+    const acknowledgedAt = intent.acknowledgedAt ?? new Date().toISOString();
+    return {
+      ...intent,
+      status: "acknowledged",
+      acknowledgedAt,
+      acknowledgementNote: note,
+      lifecycleEvents: [
+        {
+          at: acknowledgedAt,
+          type: "acknowledged",
+          detail: note,
+        },
+        ...intent.lifecycleEvents,
+      ],
+    };
+  });
   saveWebdavTransferIntents(next, storage);
   return next;
 }
@@ -274,16 +282,24 @@ export function annotateWebdavTransferIntent(
   handoffNote: string,
   storage: Storage = getStorage(),
 ): WebdavTransferIntent[] {
-  const next = loadWebdavTransferIntents(storage).map((intent) =>
-    intent.id === id
-      ? {
-          ...intent,
-          handoffOwner,
-          handoffNote,
-          handoffAssignedAt: intent.handoffAssignedAt ?? new Date().toISOString(),
-        }
-      : intent,
-  );
+  const next = loadWebdavTransferIntents(storage).map((intent) => {
+    if (intent.id !== id) return intent;
+    const handoffAssignedAt = intent.handoffAssignedAt ?? new Date().toISOString();
+    return {
+      ...intent,
+      handoffOwner,
+      handoffNote,
+      handoffAssignedAt,
+      lifecycleEvents: [
+        {
+          at: handoffAssignedAt,
+          type: "assigned",
+          detail: `${handoffOwner}: ${handoffNote}`,
+        },
+        ...intent.lifecycleEvents,
+      ],
+    };
+  });
   saveWebdavTransferIntents(next, storage);
   return next;
 }

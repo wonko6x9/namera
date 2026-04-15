@@ -232,4 +232,9 @@ export interface WebdavTransferIntent {
   handoffAssignedAt?: string;
   acknowledgedAt?: string;
   acknowledgementNote?: string;
+  lifecycleEvents: Array<{
+    at: string;
+    type: "created" | "assigned" | "acknowledged";
+    detail: string;
+  }>;
 }

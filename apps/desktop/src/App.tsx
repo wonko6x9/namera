@@ -246,9 +246,10 @@ export function createAppController(rerender: (markup: string) => void): AppCont
         rerender(renderApp(state));
         return;
       }
+      const createdAt = new Date().toISOString();
       state.webdavTransferIntents = pushWebdavTransferIntent({
         id: `webdav-intent-${Date.now()}`,
-        createdAt: new Date().toISOString(),
+        createdAt,
         snapshotId: snapshot.id,
         snapshotCreatedAt: snapshot.createdAt,
         filter: snapshot.filter,
@@ -258,6 +259,13 @@ export function createAppController(rerender: (markup: string) => void): AppCont
         nextActions: summarizeWebdavTransferActions(snapshot.items),
         blockers: snapshot.summary.blockedReasons,
         prerequisites: buildWebdavIntentPrerequisites(snapshot),
+        lifecycleEvents: [
+          {
+            at: createdAt,
+            type: "created",
+            detail: `Intent created from snapshot ${snapshot.id}`,
+          },
+        ],
       });
       state.nativeExecutionMessage = `Saved pending WebDAV transfer intent for snapshot ${snapshot.id}`;
       rerender(renderApp(state));
@@ -398,6 +406,9 @@ function renderApp(appState: AppState): string {
   const latestWebdavIntentExport = appState.webdavTransferIntents.length
     ? JSON.stringify(appState.webdavTransferIntents[0], null, 2)
     : "";
+  const latestWebdavIntentLifecycleMarkup = appState.webdavTransferIntents.length
+    ? `<ul>${appState.webdavTransferIntents[0].lifecycleEvents.map((event) => `<li>${escapeHtml(event.at)} • ${escapeHtml(event.type)} • ${escapeHtml(event.detail)}</li>`).join("")}</ul>`
+    : "<p>No pending WebDAV transfer intents yet.</p>";
   const recentRootsMarkup = appState.recentIngestRoots.length
     ? `<ul>${appState.recentIngestRoots.map((root) => `<li>${escapeHtml(root)}</li>`).join("")}</ul>`
     : "<p>No recent ingest roots yet</p>";
@@ -709,6 +720,10 @@ function renderApp(appState: AppState): string {
       <section>
         <h2>Latest saved WebDAV transfer intent</h2>
         ${latestWebdavIntentExport ? `<pre>${escapeHtml(latestWebdavIntentExport)}</pre>` : "<p>No pending WebDAV transfer intents yet.</p>"}
+      </section>
+      <section>
+        <h2>Latest WebDAV transfer intent lifecycle</h2>
+        ${latestWebdavIntentLifecycleMarkup}
       </section>
       <section>
         <h2>Exported WebDAV transfer queue</h2>
