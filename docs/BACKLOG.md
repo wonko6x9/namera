@@ -83,8 +83,9 @@
 - **Better ambiguity tooling**
   - searchable manual series/movie picker
   - sticky correction for repeated series patterns in same batch
-  - when a title is unmatched or low-confidence, offer a desktop action to open the system default web search prefilled with the parsed media query (movie title + year, or series + season/episode)
-  - add a lightweight artwork grab flow from that search path so the user can choose a poster / DVD cover image and pull it back into the item without pretending we fully solved artwork matching
+  - current honest state: desktop preview now exposes manual title/artwork search buttons populated from parsed media context, but provider selection and artwork import remain unfinished
+  - make the manual search provider configurable with sane defaults/presets instead of today’s hardcoded first pass
+  - add a lightweight artwork grab/import flow from that search path so the user can choose a poster / DVD cover image and pull it back into the item without pretending we fully solved artwork matching
 
 - **Status and diagnostics**
   - provider error details

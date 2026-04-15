@@ -15,6 +15,8 @@ function wireApp(root: HTMLElement): void {
   const providerButton = root.querySelector<HTMLButtonElement>("[data-role='refresh-providers']");
   const candidateButtons = root.querySelectorAll<HTMLButtonElement>("[data-role='candidate-pick']");
   const rememberButtons = root.querySelectorAll<HTMLButtonElement>("[data-role='candidate-remember']");
+  const searchButtons = root.querySelectorAll<HTMLButtonElement>("[data-role='open-search']");
+  const artworkSearchButtons = root.querySelectorAll<HTMLButtonElement>("[data-role='open-art-search']");
   const saveConfigButton = root.querySelector<HTMLButtonElement>("[data-role='save-config']");
   const applyNativeButtons = root.querySelectorAll<HTMLButtonElement>("[data-role='apply-native']");
   const applyVisibleBatchButton = root.querySelector<HTMLButtonElement>("[data-role='apply-visible-batch']");
@@ -61,6 +63,24 @@ function wireApp(root: HTMLElement): void {
       const input = button.dataset.input ?? "";
       const candidateKey = button.dataset.key ?? "";
       controller.rememberCandidateChoice(input, candidateKey);
+    });
+  });
+
+  searchButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const url = button.dataset.url;
+      if (url) {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+    });
+  });
+
+  artworkSearchButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const url = button.dataset.url;
+      if (url) {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
     });
   });
 

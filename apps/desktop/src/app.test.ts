@@ -7,7 +7,7 @@ import { createPhase3DestinationPlan } from "@namera/destination";
 import { buildProviderCacheKey, buildProviderRequest, fetchProviderCandidates, fetchProviderLookup, providerStatus } from "@namera/provider";
 import { createExecutionBatch, createPlannedExecutions, exportPlanSet, listExecutionLog, summarizeExecutionActions } from "@namera/exec";
 import { looksLikeMediaFile, parseTextIngest } from "@namera/ingest";
-import { buildPreview, createAppController, resetAppState, summarizeIngest, summarizeReview } from "./App";
+import { buildArtworkSearchUrl, buildMediaSearchUrl, buildPreview, createAppController, resetAppState, summarizeIngest, summarizeReview } from "./App";
 import { getCorrection, loadConfig, loadExecutionLog, pushExecutionLog } from "@namera/config";
 
 describe("Namera MVP flow", () => {
@@ -162,6 +162,16 @@ describe("Namera MVP flow", () => {
     const { App } = await import("./App");
 
     expect(App()).toContain('accept=".mkv,.mp4,.avi,.mov,.m4v,.mp3,.flac,.wav,.srt,.ass,.ssa,.vtt,.sub,.idx"');
+  });
+
+  it("builds useful manual search URLs for movies and TV", () => {
+    const movie = parseFilename("The.Matrix.1999.1080p.BluRay.mkv");
+    const episode = parseFilename("Severance.S01E01.Good.News.About.Hell.2160p.WEB-DL.mkv");
+
+    expect(decodeURIComponent(buildMediaSearchUrl(movie))).toContain("The Matrix 1999");
+    expect(decodeURIComponent(buildMediaSearchUrl(episode))).toContain("Severance S01E01 Good News About Hell");
+    expect(decodeURIComponent(buildArtworkSearchUrl(movie))).toContain("movie poster dvd cover");
+    expect(decodeURIComponent(buildArtworkSearchUrl(episode))).toContain("Severance season 1 poster");
   });
 
   it("prefers live provider candidates over local heuristics when available", () => {

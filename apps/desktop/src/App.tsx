@@ -291,6 +291,8 @@ function renderApp(appState: AppState): string {
       const diagnosticsText = diagnostics.length
         ? diagnostics.map((diagnostic) => `${diagnostic.provider}: ${diagnostic.status}${diagnostic.cached ? " (cached)" : ""} - ${diagnostic.detail}`).join("; ")
         : "no provider diagnostics yet";
+      const searchUrl = buildMediaSearchUrl(preview.parsed);
+      const artworkSearchUrl = buildArtworkSearchUrl(preview.parsed);
       const executionActions = createPlannedExecutions(preview.plan);
       const dryRunBatch = createExecutionBatch(preview.plan, "dry-run");
       const applyBatch = createExecutionBatch(preview.plan, "apply");
@@ -331,6 +333,10 @@ function renderApp(appState: AppState): string {
           <p><strong>Provider request:</strong> <code>${escapeHtml(JSON.stringify(request))}</code></p>
           <p><strong>Provider diagnostics:</strong> ${escapeHtml(diagnosticsText)}</p>
           <p><strong>Phase 3 destination:</strong> ${escapeHtml(destination.backend)} / ${escapeHtml(destination.status)} / ${escapeHtml(destination.note)}</p>
+          <div>
+            <button data-role="open-search" data-url="${escapeHtmlAttribute(searchUrl)}" type="button">Search title</button>
+            <button data-role="open-art-search" data-url="${escapeHtmlAttribute(artworkSearchUrl)}" type="button">Search poster/cover</button>
+          </div>
         </article>
       `;
     })
@@ -570,6 +576,26 @@ function mergeConfig(current: AppConfig, patch: Partial<AppConfig>): AppConfig {
       ...patch.providers,
     },
   };
+}
+
+export function buildMediaSearchUrl(parsed: import("@namera/core").ParsedMedia): string {
+  const query = parsed.kind === "episode" && parsed.episode
+    ? `${parsed.episode.seriesTitle ?? parsed.title} S${String(parsed.episode.season).padStart(2, "0")}E${String(parsed.episode.episode).padStart(2, "0")} ${parsed.episode.episodeTitle ?? ""}`.trim()
+    : parsed.kind === "movie"
+      ? `${parsed.title}${parsed.movie?.year ? ` ${parsed.movie.year}` : ""}`.trim()
+      : parsed.title;
+
+  return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+}
+
+export function buildArtworkSearchUrl(parsed: import("@namera/core").ParsedMedia): string {
+  const query = parsed.kind === "episode" && parsed.episode
+    ? `${parsed.episode.seriesTitle ?? parsed.title} season ${parsed.episode.season} poster`
+    : parsed.kind === "movie"
+      ? `${parsed.title}${parsed.movie?.year ? ` ${parsed.movie.year}` : ""} movie poster dvd cover`
+      : `${parsed.title} album cover`;
+
+  return `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`;
 }
 
 function getCandidateKey(candidate: MatchCandidate): string {
