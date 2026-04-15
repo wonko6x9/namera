@@ -35,13 +35,25 @@ fn apply_execution_batch_command(source_root: String, target_root: String, input
 }
 
 #[tauri::command]
-fn undo_execution_batch_command(source_root: String, target_root: String, input: String) -> Result<namera_exec::ExecutionBatch, String> {
+fn undo_execution_batch_command(
+    source_root: String,
+    target_root: String,
+    input: String,
+    expected_log_id: Option<String>,
+    expected_size_bytes: Option<u64>,
+) -> Result<namera_exec::ExecutionBatch, String> {
     let parsed = parse_filename(&input);
     let candidates = rank_candidates(&parsed);
     let candidate = candidates.first();
     let plan = build_plan(&parsed, candidate);
-    undo_execution_batch(std::path::Path::new(&source_root), std::path::Path::new(&target_root), &plan)
-        .map_err(|error| error.to_string())
+    undo_execution_batch(
+        std::path::Path::new(&source_root),
+        std::path::Path::new(&target_root),
+        &plan,
+        expected_log_id.as_deref(),
+        expected_size_bytes,
+    )
+    .map_err(|error| error.to_string())
 }
 
 pub fn run() {

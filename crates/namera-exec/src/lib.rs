@@ -29,6 +29,8 @@ pub struct ExecutionLogEntry {
     pub actions: Vec<ExecutionAction>,
     pub created_at: String,
     pub undone_at: Option<String>,
+    pub source_size_bytes: Option<u64>,
+    pub apply_log_id: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -103,14 +105,24 @@ pub fn create_execution_batch(plan: &RenamePlan, mode: &str) -> ExecutionBatch {
 }
 
 pub fn apply_execution_batch(source_root: &Path, target_root: &Path, plan: &RenamePlan) -> Result<ExecutionBatch> {
+    validate_relative_plan_path(&plan.proposed_path)?;
     let record = execute_plan(source_root, target_root, plan)?;
 
     if !record.source.exists() {
         return Err(anyhow!("source file does not exist: {}", record.source.display()));
     }
 
+    let source_metadata = fs::metadata(&record.source)?;
+    if !source_metadata.is_file() {
+        return Err(anyhow!("source path is not a regular file: {}", record.source.display()));
+    }
+
     if record.destination.exists() {
         return Err(anyhow!("destination already exists: {}", record.destination.display()));
+    }
+
+    if record.source == record.destination {
+        return Err(anyhow!("source and destination resolve to the same path: {}", record.source.display()));
     }
 
     if let Some(parent) = record.destination.parent() {
@@ -140,20 +152,46 @@ pub fn apply_execution_batch(source_root: &Path, target_root: &Path, plan: &Rena
         },
     ];
 
+    let log_id = create_execution_id(plan);
+
     Ok(ExecutionBatch {
         mode: "apply".to_string(),
         summary: format!("Applied {} actions", actions.len()),
-        log_entry: Some(create_log_entry("apply", plan, actions.clone(), None)),
+        log_entry: Some(create_log_entry("apply", plan, actions.clone(), None, Some(source_metadata.len()), None, Some(log_id))),
         actions,
     })
 }
 
-pub fn undo_execution_batch(source_root: &Path, target_root: &Path, plan: &RenamePlan) -> Result<ExecutionBatch> {
+pub fn undo_execution_batch(
+    source_root: &Path,
+    target_root: &Path,
+    plan: &RenamePlan,
+    expected_log_id: Option<&str>,
+    expected_size_bytes: Option<u64>,
+) -> Result<ExecutionBatch> {
+    validate_relative_plan_path(&plan.proposed_path)?;
     let source = source_root.join(&plan.source_name);
     let destination = target_root.join(&plan.proposed_path);
 
     if !destination.exists() {
         return Err(anyhow!("applied destination does not exist: {}", destination.display()));
+    }
+
+    let destination_metadata = fs::metadata(&destination)?;
+    if !destination_metadata.is_file() {
+        return Err(anyhow!("cannot undo because destination is not a regular file: {}", destination.display()));
+    }
+
+    if let Some(expected_size) = expected_size_bytes {
+        let actual_size = destination_metadata.len();
+        if actual_size != expected_size {
+            return Err(anyhow!(
+                "cannot undo because destination size changed from {} to {} bytes: {}",
+                expected_size,
+                actual_size,
+                destination.display()
+            ));
+        }
     }
 
     if source.exists() {
@@ -179,21 +217,52 @@ pub fn undo_execution_batch(source_root: &Path, target_root: &Path, plan: &Renam
     Ok(ExecutionBatch {
         mode: "undo".to_string(),
         summary: format!("Undid {} action{}", actions.len(), if actions.len() == 1 { "" } else { "s" }),
-        log_entry: Some(create_log_entry("undo", plan, actions.clone(), Some(now_iso_like()))),
+        log_entry: Some(create_log_entry(
+            "undo",
+            plan,
+            actions.clone(),
+            Some(now_iso_like()),
+            expected_size_bytes,
+            expected_log_id.map(ToOwned::to_owned),
+            None,
+        )),
         actions,
     })
 }
 
-fn create_log_entry(mode: &str, plan: &RenamePlan, actions: Vec<ExecutionAction>, undone_at: Option<String>) -> ExecutionLogEntry {
+fn create_log_entry(
+    mode: &str,
+    plan: &RenamePlan,
+    actions: Vec<ExecutionAction>,
+    undone_at: Option<String>,
+    source_size_bytes: Option<u64>,
+    apply_log_id: Option<String>,
+    id: Option<String>,
+) -> ExecutionLogEntry {
     ExecutionLogEntry {
-        id: create_execution_id(plan),
+        id: id.unwrap_or_else(|| create_execution_id(plan)),
         mode: mode.to_string(),
         source_name: plan.source_name.clone(),
         proposed_path: plan.proposed_path.clone(),
         actions,
         created_at: now_iso_like(),
         undone_at,
+        source_size_bytes,
+        apply_log_id,
     }
+}
+
+fn validate_relative_plan_path(proposed_path: &str) -> Result<()> {
+    let path = Path::new(proposed_path);
+    if path.is_absolute() {
+        return Err(anyhow!("proposed path must be relative, got absolute path: {}", proposed_path));
+    }
+
+    if path.components().any(|component| matches!(component, std::path::Component::ParentDir)) {
+        return Err(anyhow!("proposed path must not traverse parent directories: {}", proposed_path));
+    }
+
+    Ok(())
 }
 
 fn create_execution_id(plan: &RenamePlan) -> String {
@@ -248,6 +317,40 @@ mod tests {
         assert!(destination.exists());
         assert_eq!(batch.mode, "apply");
         assert_eq!(batch.actions[1].status, "applied");
+        assert_eq!(batch.log_entry.as_ref().and_then(|entry| entry.source_size_bytes), Some(6));
+
+        let _ = fs::remove_dir_all(&source_root);
+        let _ = fs::remove_dir_all(&target_root);
+    }
+
+    #[test]
+    fn undo_rejects_changed_destination_size() {
+        let source_root = temp_dir("source-undo-size");
+        let target_root = temp_dir("target-undo-size");
+        let plan = sample_plan();
+        let destination = target_root.join(&plan.proposed_path);
+        fs::create_dir_all(destination.parent().unwrap()).unwrap();
+        fs::write(&destination, b"changed-content").unwrap();
+
+        let error = undo_execution_batch(&source_root, &target_root, &plan, Some("apply-1"), Some(6)).unwrap_err();
+        assert!(error.to_string().contains("destination size changed"));
+
+        let _ = fs::remove_dir_all(&source_root);
+        let _ = fs::remove_dir_all(&target_root);
+    }
+
+    #[test]
+    fn apply_rejects_parent_traversal_in_plan_path() {
+        let source_root = temp_dir("source-traversal");
+        let target_root = temp_dir("target-traversal");
+        let source_file = source_root.join("The.Matrix.1999.1080p.BluRay.mkv");
+        fs::write(&source_file, b"matrix").unwrap();
+
+        let mut plan = sample_plan();
+        plan.proposed_path = "../escape.mkv".to_string();
+
+        let error = apply_execution_batch(&source_root, &target_root, &plan).unwrap_err();
+        assert!(error.to_string().contains("must not traverse parent directories"));
 
         let _ = fs::remove_dir_all(&source_root);
         let _ = fs::remove_dir_all(&target_root);

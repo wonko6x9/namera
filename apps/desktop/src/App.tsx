@@ -127,21 +127,7 @@ export function createAppController(rerender: (markup: string) => void): AppCont
           input,
         );
         if (batch.log_entry) {
-          pushExecutionLog({
-            id: batch.log_entry.id,
-            mode: batch.log_entry.mode as "apply" | "undo",
-            sourceName: batch.log_entry.source_name,
-            proposedPath: batch.log_entry.proposed_path,
-            createdAt: batch.log_entry.created_at,
-            undoneAt: batch.log_entry.undone_at ?? undefined,
-            actions: batch.log_entry.actions.map((action) => ({
-              type: mapActionType(action.action_type),
-              fromPath: action.from_path ?? undefined,
-              toPath: action.to_path,
-              status: mapActionStatus(action.status),
-              note: action.note ?? undefined,
-            })),
-          });
+          pushExecutionLog(mapNativeLogEntry(batch.log_entry));
         }
         state.nativeExecutionMessage = batch.summary;
       } catch (error) {
@@ -151,27 +137,16 @@ export function createAppController(rerender: (markup: string) => void): AppCont
     },
     async undoNativeExecution(input: string) {
       try {
+        const applyEntry = loadExecutionLog().find((entry) => entry.mode === "apply" && entry.sourceName === input && !entry.undoneAt);
         const batch = await undoExecutionBatchNative(
           state.config.destinations.sourceRoot || ".",
           state.config.destinations.targetRoot || ".",
           input,
+          applyEntry?.id,
+          applyEntry?.sourceSizeBytes,
         );
         if (batch.log_entry) {
-          pushExecutionLog({
-            id: batch.log_entry.id,
-            mode: batch.log_entry.mode as "apply" | "undo",
-            sourceName: batch.log_entry.source_name,
-            proposedPath: batch.log_entry.proposed_path,
-            createdAt: batch.log_entry.created_at,
-            undoneAt: batch.log_entry.undone_at ?? undefined,
-            actions: batch.log_entry.actions.map((action) => ({
-              type: mapActionType(action.action_type),
-              fromPath: action.from_path ?? undefined,
-              toPath: action.to_path,
-              status: mapActionStatus(action.status),
-              note: action.note ?? undefined,
-            })),
-          });
+          pushExecutionLog(mapNativeLogEntry(batch.log_entry));
         }
         state.nativeExecutionMessage = batch.summary;
       } catch (error) {
@@ -459,6 +434,26 @@ function mergeConfig(current: AppConfig, patch: Partial<AppConfig>): AppConfig {
 
 function getCandidateKey(candidate: MatchCandidate): string {
   return `${candidate.provider}:${candidate.providerId ?? candidate.displayName}`;
+}
+
+function mapNativeLogEntry(entry: import("./tauri").NativeExecutionLogEntry): import("@namera/core").ExecutionLogEntry {
+  return {
+    id: entry.id,
+    mode: entry.mode as "apply" | "undo",
+    sourceName: entry.source_name,
+    proposedPath: entry.proposed_path,
+    createdAt: entry.created_at,
+    undoneAt: entry.undone_at ?? undefined,
+    sourceSizeBytes: entry.source_size_bytes ?? undefined,
+    applyLogId: entry.apply_log_id ?? undefined,
+    actions: entry.actions.map((action) => ({
+      type: mapActionType(action.action_type),
+      fromPath: action.from_path ?? undefined,
+      toPath: action.to_path,
+      status: mapActionStatus(action.status),
+      note: action.note ?? undefined,
+    })),
+  };
 }
 
 function mapActionType(value: string): "rename" | "move" | "mkdir" {

@@ -14,6 +14,8 @@ export interface NativeExecutionLogEntry {
   actions: NativeExecutionAction[];
   created_at: string;
   undone_at?: string | null;
+  source_size_bytes?: number | null;
+  apply_log_id?: string | null;
 }
 
 export interface NativeExecutionBatch {
@@ -50,8 +52,20 @@ export async function applyExecutionBatchNative(sourceRoot: string, targetRoot: 
   return invoke<NativeExecutionBatch>("apply_execution_batch_command", { sourceRoot, targetRoot, input });
 }
 
-export async function undoExecutionBatchNative(sourceRoot: string, targetRoot: string, input: string): Promise<NativeExecutionBatch> {
+export async function undoExecutionBatchNative(
+  sourceRoot: string,
+  targetRoot: string,
+  input: string,
+  expectedLogId?: string,
+  expectedSizeBytes?: number,
+): Promise<NativeExecutionBatch> {
   const invoke = getInvoke();
   if (!invoke) throw new Error("Tauri invoke unavailable in this runtime");
-  return invoke<NativeExecutionBatch>("undo_execution_batch_command", { sourceRoot, targetRoot, input });
+  return invoke<NativeExecutionBatch>("undo_execution_batch_command", {
+    sourceRoot,
+    targetRoot,
+    input,
+    expectedLogId,
+    expectedSizeBytes,
+  });
 }

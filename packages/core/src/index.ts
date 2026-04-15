@@ -90,6 +90,8 @@ export interface ExecutionLogEntry {
   actions: ExecutionAction[];
   createdAt: string;
   undoneAt?: string;
+  sourceSizeBytes?: number;
+  applyLogId?: string;
 }
 
 export interface ExecutionBatch {

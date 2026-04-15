@@ -289,6 +289,7 @@ describe("Namera MVP flow", () => {
         source_name: "The.Matrix.1999.1080p.BluRay.mkv",
         proposed_path: "Movies/The Matrix (1999)/The Matrix (1999).mkv",
         created_at: "1Z",
+        source_size_bytes: 6,
         actions: [],
       },
     } satisfies NativeExecutionBatch));
@@ -303,6 +304,7 @@ describe("Namera MVP flow", () => {
 
     expect(invoke).toHaveBeenCalled();
     expect(loadExecutionLog()[0]?.mode).toBe("apply");
+    expect(loadExecutionLog()[0]?.sourceSizeBytes).toBe(6);
     expect(renders.at(-1)).toContain("Applied 2 actions");
   });
 
