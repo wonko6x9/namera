@@ -306,6 +306,7 @@ function renderApp(appState: AppState): string {
   const webdavBlockedReasons = summarizeWebdavBlockedReasons(previews, appState.config);
   const webdavReadinessByKind = summarizeWebdavReadinessByKind(previews, appState.config);
   const webdavNextActions = summarizeWebdavNextActions(filteredPreviews, appState.config);
+  const visibleBlockedReasons = summarizeWebdavBlockedReasons(filteredPreviews, appState.config);
   const failedBatchCount = appState.nativeBatchResults.filter((result) => result.outcome === "failed").length;
   const failedBatchExport = exportFailedBatchResults(appState.nativeBatchResults);
   const recentRootsMarkup = appState.recentIngestRoots.length
@@ -609,6 +610,12 @@ function renderApp(appState: AppState): string {
           ${webdavNextActions.length
             ? `<ul>${webdavNextActions.map((entry) => `<li>${escapeHtml(String(entry.count))} × ${escapeHtml(entry.action)}</li>`).join("")}</ul>`
             : "<p>No visible WebDAV actions yet.</p>"}
+        </div>
+        <div>
+          <strong>Visible WebDAV blocked reasons:</strong>
+          ${visibleBlockedReasons.length
+            ? `<ul>${visibleBlockedReasons.map((entry) => `<li>${escapeHtml(String(entry.count))} × ${escapeHtml(entry.reason)}</li>`).join("")}</ul>`
+            : "<p>No visible WebDAV blockers in the current filter.</p>"}
         </div>
         <pre>${escapeHtml(exportedWebdavTransferQueue)}</pre>
       </section>
