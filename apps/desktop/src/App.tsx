@@ -1,5 +1,5 @@
 import { acknowledgeWebdavTransferIntent, annotateWebdavTransferIntent, loadConfig, loadCorrections, loadExecutionLog, loadHistory, loadRecentIngestRoots, loadWebdavTransferIntents, loadWebdavTransferSnapshots, markExecutionUndone, pushExecutionLog, pushHistory, pushRecentIngestRoots, pushWebdavTransferIntent, pushWebdavTransferSnapshot, saveConfig, setCorrection } from "@namera/config";
-import type { AppConfig, IngestItem, MatchCandidate, ParsedMedia, PreviewResult, ProviderDiagnostic, ReviewSummary } from "@namera/core";
+import type { AppConfig, IngestItem, MatchCandidate, ParsedMedia, PreviewResult, ProviderDiagnostic, ReviewSummary, WebdavTransferHandoffPacket } from "@namera/core";
 import { createPhase3DestinationPlan, createPhase3TransferPlan } from "@namera/destination";
 import { buildWebdavTransferQueue, createExecutionBatch, createExecutionRecord, createPlannedExecutions, exportPlanSet, exportReviewPlanSet, exportWebdavTransferQueue, summarizeExecutionActions, summarizeWebdavTransferActions, summarizeWebdavTransferQueue } from "@namera/exec";
 import { parseFileListIngest, parseTextIngest } from "@namera/ingest";
@@ -413,6 +413,16 @@ function renderApp(appState: AppState): string {
   const latestWebdavIntentLifecycleMarkup = appState.webdavTransferIntents.length
     ? `<ul>${appState.webdavTransferIntents[0].lifecycleEvents.map((event) => `<li>${escapeHtml(event.at)} • ${escapeHtml(event.type)} • ${escapeHtml(event.detail)}</li>`).join("")}</ul>`
     : "<p>No pending WebDAV transfer intents yet.</p>";
+  const latestWebdavHandoffPacket: WebdavTransferHandoffPacket | null = appState.webdavTransferIntents.length
+    ? {
+        generatedAt: new Date().toISOString(),
+        intent: appState.webdavTransferIntents[0],
+        snapshot: appState.webdavTransferSnapshots.find((snapshot) => snapshot.id === appState.webdavTransferIntents[0].snapshotId),
+      }
+    : null;
+  const latestWebdavHandoffPacketExport = latestWebdavHandoffPacket
+    ? JSON.stringify(latestWebdavHandoffPacket, null, 2)
+    : "";
   const recentRootsMarkup = appState.recentIngestRoots.length
     ? `<ul>${appState.recentIngestRoots.map((root) => `<li>${escapeHtml(root)}</li>`).join("")}</ul>`
     : "<p>No recent ingest roots yet</p>";
@@ -728,6 +738,10 @@ function renderApp(appState: AppState): string {
       <section>
         <h2>Latest WebDAV transfer intent lifecycle</h2>
         ${latestWebdavIntentLifecycleMarkup}
+      </section>
+      <section>
+        <h2>Latest WebDAV handoff packet</h2>
+        ${latestWebdavHandoffPacketExport ? `<pre>${escapeHtml(latestWebdavHandoffPacketExport)}</pre>` : "<p>No pending WebDAV transfer intents yet.</p>"}
       </section>
       <section>
         <h2>Exported WebDAV transfer queue</h2>

@@ -240,3 +240,9 @@ export interface WebdavTransferIntent {
     detail: string;
   }>;
 }
+
+export interface WebdavTransferHandoffPacket {
+  generatedAt: string;
+  intent: WebdavTransferIntent;
+  snapshot?: WebdavTransferQueueSnapshot;
+}
