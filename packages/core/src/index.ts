@@ -245,6 +245,17 @@ export interface WebdavTransferHandoffPacket {
   generatedAt: string;
   intent: WebdavTransferIntent;
   snapshot?: WebdavTransferQueueSnapshot;
+  readyOperations: Array<{
+    input: string;
+    detectedKind: MediaKind;
+    targetPath: string;
+    actions: string[];
+  }>;
+  blockedItems: Array<{
+    input: string;
+    detectedKind: MediaKind;
+    reason: string;
+  }>;
 }
 
 export interface WebdavTransferHandoffPacketSummary {

@@ -431,11 +431,30 @@ function renderApp(appState: AppState): string {
     ? `<ul>${appState.webdavTransferIntents[0].lifecycleEvents.map((event) => `<li>${escapeHtml(event.at)} • ${escapeHtml(event.type)} • ${escapeHtml(event.detail)}</li>`).join("")}</ul>`
     : "<p>No pending WebDAV transfer intents yet.</p>";
   const latestWebdavHandoffPacket: WebdavTransferHandoffPacket | null = appState.webdavTransferIntents.length
-    ? {
-        generatedAt: new Date().toISOString(),
-        intent: appState.webdavTransferIntents[0],
-        snapshot: appState.webdavTransferSnapshots.find((snapshot) => snapshot.id === appState.webdavTransferIntents[0].snapshotId),
-      }
+    ? (() => {
+        const intent = appState.webdavTransferIntents[0];
+        const snapshot = appState.webdavTransferSnapshots.find((entry) => entry.id === intent.snapshotId);
+        return {
+          generatedAt: new Date().toISOString(),
+          intent,
+          snapshot,
+          readyOperations: (snapshot?.items ?? [])
+            .filter((item) => item.state === "ready")
+            .map((item) => ({
+              input: item.input,
+              detectedKind: item.detectedKind,
+              targetPath: item.targetPath,
+              actions: item.actions,
+            })),
+          blockedItems: (snapshot?.items ?? [])
+            .filter((item) => item.state === "blocked")
+            .map((item) => ({
+              input: item.input,
+              detectedKind: item.detectedKind,
+              reason: item.reason,
+            })),
+        };
+      })()
     : null;
   const latestWebdavHandoffPacketExport = latestWebdavHandoffPacket
     ? JSON.stringify(latestWebdavHandoffPacket, null, 2)
@@ -780,6 +799,20 @@ function renderApp(appState: AppState): string {
       <section>
         <h2>Latest WebDAV handoff packet</h2>
         ${latestWebdavHandoffPacketExport ? `<pre>${escapeHtml(latestWebdavHandoffPacketExport)}</pre>` : "<p>No pending WebDAV transfer intents yet.</p>"}
+      </section>
+      <section>
+        <h2>Latest WebDAV ready-operation packet</h2>
+        ${latestWebdavHandoffPacket
+          ? latestWebdavHandoffPacket.readyOperations.length
+            ? `<p>${escapeHtml(`${latestWebdavHandoffPacket.readyOperations.length} ready operation packet item${latestWebdavHandoffPacket.readyOperations.length === 1 ? "" : "s"}, ${latestWebdavHandoffPacket.blockedItems.length} blocked item${latestWebdavHandoffPacket.blockedItems.length === 1 ? "" : "s"}.`)}</p><pre>${escapeHtml(JSON.stringify({
+                generatedAt: latestWebdavHandoffPacket.generatedAt,
+                intentId: latestWebdavHandoffPacket.intent.id,
+                snapshotId: latestWebdavHandoffPacket.intent.snapshotId,
+                readyOperations: latestWebdavHandoffPacket.readyOperations,
+                blockedItems: latestWebdavHandoffPacket.blockedItems,
+              }, null, 2))}</pre>`
+            : `<p>${escapeHtml(`No ready remote operations are packaged yet. ${latestWebdavHandoffPacket.blockedItems.length} blocked item${latestWebdavHandoffPacket.blockedItems.length === 1 ? " remains" : "s remain"}.`)}</p>`
+          : "<p>No pending WebDAV transfer intents yet.</p>"}
       </section>
       <section>
         <h2>Recent WebDAV handoff packets</h2>
