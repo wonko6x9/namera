@@ -1,4 +1,4 @@
-import type { AppConfig, CorrectionRecord, ExecutionLogEntry, HistoryEntry, WebdavTransferQueueSnapshot } from "@namera/core";
+import type { AppConfig, CorrectionRecord, ExecutionLogEntry, HistoryEntry, WebdavTransferIntent, WebdavTransferQueueSnapshot } from "@namera/core";
 
 export const DEFAULT_CONFIG: AppConfig = {
   destinations: {
@@ -26,6 +26,7 @@ const PROVIDER_CACHE_KEY = "namera.provider-cache";
 const CORRECTIONS_KEY = "namera.corrections";
 const RECENT_INGEST_ROOTS_KEY = "namera.recent-ingest-roots";
 const WEBDAV_TRANSFER_SNAPSHOTS_KEY = "namera.webdav-transfer-snapshots";
+const WEBDAV_TRANSFER_INTENTS_KEY = "namera.webdav-transfer-intents";
 const fallbackMemoryStorage = new Map<string, string>();
 
 function getStorage(): Storage {
@@ -229,5 +230,25 @@ export function saveWebdavTransferSnapshots(snapshots: WebdavTransferQueueSnapsh
 export function pushWebdavTransferSnapshot(snapshot: WebdavTransferQueueSnapshot, storage: Storage = getStorage()): WebdavTransferQueueSnapshot[] {
   const next = [snapshot, ...loadWebdavTransferSnapshots(storage)].slice(0, 20);
   saveWebdavTransferSnapshots(next, storage);
+  return next;
+}
+
+export function loadWebdavTransferIntents(storage: Storage = getStorage()): WebdavTransferIntent[] {
+  try {
+    const raw = storage.getItem(WEBDAV_TRANSFER_INTENTS_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw) as WebdavTransferIntent[];
+  } catch {
+    return [];
+  }
+}
+
+export function saveWebdavTransferIntents(intents: WebdavTransferIntent[], storage: Storage = getStorage()): void {
+  storage.setItem(WEBDAV_TRANSFER_INTENTS_KEY, JSON.stringify(intents));
+}
+
+export function pushWebdavTransferIntent(intent: WebdavTransferIntent, storage: Storage = getStorage()): WebdavTransferIntent[] {
+  const next = [intent, ...loadWebdavTransferIntents(storage)].slice(0, 20);
+  saveWebdavTransferIntents(next, storage);
   return next;
 }

@@ -1,4 +1,4 @@
-import { loadConfig, loadCorrections, loadExecutionLog, loadHistory, loadRecentIngestRoots, loadWebdavTransferSnapshots, markExecutionUndone, pushExecutionLog, pushHistory, pushRecentIngestRoots, pushWebdavTransferSnapshot, saveConfig, setCorrection } from "@namera/config";
+import { loadConfig, loadCorrections, loadExecutionLog, loadHistory, loadRecentIngestRoots, loadWebdavTransferIntents, loadWebdavTransferSnapshots, markExecutionUndone, pushExecutionLog, pushHistory, pushRecentIngestRoots, pushWebdavTransferIntent, pushWebdavTransferSnapshot, saveConfig, setCorrection } from "@namera/config";
 import type { AppConfig, IngestItem, MatchCandidate, ParsedMedia, PreviewResult, ProviderDiagnostic, ReviewSummary } from "@namera/core";
 import { createPhase3DestinationPlan, createPhase3TransferPlan } from "@namera/destination";
 import { buildWebdavTransferQueue, createExecutionBatch, createExecutionRecord, createPlannedExecutions, exportPlanSet, exportReviewPlanSet, exportWebdavTransferQueue, summarizeExecutionActions, summarizeWebdavTransferQueue } from "@namera/exec";
@@ -25,6 +25,7 @@ export interface AppController {
   setReviewFilter: (filter: AppState["reviewFilter"]) => void;
   setPreviewDestinationBackend: (backend: AppState["previewDestinationBackend"]) => void;
   snapshotVisibleWebdavQueue: () => void;
+  saveLatestWebdavIntent: () => void;
   updateConfig: (patch: Partial<AppConfig>) => void;
   applyNativeExecution: (input: string) => Promise<void>;
   undoNativeExecution: (input: string) => Promise<void>;
@@ -52,6 +53,7 @@ interface AppState {
   nativeBatchResults: NativeBatchResultItem[];
   recentIngestRoots: string[];
   webdavTransferSnapshots: import("@namera/core").WebdavTransferQueueSnapshot[];
+  webdavTransferIntents: import("@namera/core").WebdavTransferIntent[];
 }
 
 const state: AppState = {
@@ -70,6 +72,7 @@ const state: AppState = {
   nativeBatchResults: [],
   recentIngestRoots: loadRecentIngestRoots(),
   webdavTransferSnapshots: loadWebdavTransferSnapshots(),
+  webdavTransferIntents: loadWebdavTransferIntents(),
 };
 
 export function resetAppState(): void {
@@ -88,6 +91,7 @@ export function resetAppState(): void {
   state.nativeBatchResults = [];
   state.recentIngestRoots = loadRecentIngestRoots();
   state.webdavTransferSnapshots = loadWebdavTransferSnapshots();
+  state.webdavTransferIntents = loadWebdavTransferIntents();
 }
 
 export function App(): string {
@@ -233,6 +237,26 @@ export function createAppController(rerender: (markup: string) => void): AppCont
       state.nativeExecutionMessage = `Saved WebDAV queue snapshot for ${previews.length} visible item${previews.length === 1 ? "" : "s"}`;
       rerender(renderApp(state));
     },
+    saveLatestWebdavIntent() {
+      const snapshot = state.webdavTransferSnapshots[0];
+      if (!snapshot) {
+        state.nativeExecutionMessage = "No saved WebDAV snapshot available to mark as transfer intent";
+        rerender(renderApp(state));
+        return;
+      }
+      state.webdavTransferIntents = pushWebdavTransferIntent({
+        id: `webdav-intent-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        snapshotId: snapshot.id,
+        snapshotCreatedAt: snapshot.createdAt,
+        filter: snapshot.filter,
+        status: "pending",
+        summary: snapshot.summary,
+        itemCount: snapshot.items.length,
+      });
+      state.nativeExecutionMessage = `Saved pending WebDAV transfer intent for snapshot ${snapshot.id}`;
+      rerender(renderApp(state));
+    },
     updateConfig(patch: Partial<AppConfig>) {
       state.config = mergeConfig(state.config, patch);
       saveConfig(state.config);
@@ -334,6 +358,9 @@ function renderApp(appState: AppState): string {
   const latestWebdavSnapshotExport = appState.webdavTransferSnapshots.length
     ? JSON.stringify(appState.webdavTransferSnapshots[0], null, 2)
     : "";
+  const webdavIntentMarkup = appState.webdavTransferIntents.length
+    ? `<ul>${appState.webdavTransferIntents.slice(0, 5).map((intent) => `<li>${escapeHtml(intent.createdAt)} • snapshot=${escapeHtml(intent.snapshotId)} • ${escapeHtml(intent.status)} • ${escapeHtml(`${intent.summary.ready} ready, ${intent.summary.blocked} blocked, ${intent.itemCount} items`)}</li>`).join("")}</ul>`
+    : "<p>No pending WebDAV transfer intents yet.</p>";
   const recentRootsMarkup = appState.recentIngestRoots.length
     ? `<ul>${appState.recentIngestRoots.map((root) => `<li>${escapeHtml(root)}</li>`).join("")}</ul>`
     : "<p>No recent ingest roots yet</p>";
@@ -593,6 +620,7 @@ function renderApp(appState: AppState): string {
           <button data-role="preview-backend-local" type="button" ${appState.previewDestinationBackend === "local" ? "disabled" : ""}>Preview local destination</button>
           <button data-role="preview-backend-webdav" type="button" ${appState.previewDestinationBackend === "webdav" ? "disabled" : ""}>Preview WebDAV destination</button>
           <button data-role="snapshot-webdav-queue" type="button">Save visible WebDAV queue</button>
+          <button data-role="save-latest-webdav-intent" type="button" ${appState.webdavTransferSnapshots.length ? "" : "disabled"}>Save latest WebDAV intent</button>
           <button data-role="apply-visible-batch" type="button" ${hasTauriInvoke() ? "" : "disabled"}>Apply visible batch</button>
           <button data-role="retry-failed-batch" type="button" ${hasTauriInvoke() && failedBatchCount ? "" : "disabled"}>Retry failed batch</button>
         </div>
@@ -634,6 +662,10 @@ function renderApp(appState: AppState): string {
       <section>
         <h2>Latest saved WebDAV queue snapshot</h2>
         ${latestWebdavSnapshotExport ? `<pre>${escapeHtml(latestWebdavSnapshotExport)}</pre>` : "<p>No saved WebDAV queue snapshots yet.</p>"}
+      </section>
+      <section>
+        <h2>Saved WebDAV transfer intents</h2>
+        ${webdavIntentMarkup}
       </section>
       <section>
         <h2>Exported WebDAV transfer queue</h2>

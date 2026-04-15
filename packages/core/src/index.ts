@@ -204,3 +204,14 @@ export interface WebdavTransferQueueSnapshot {
   summary: WebdavTransferQueueSummary;
   items: WebdavTransferQueueItem[];
 }
+
+export interface WebdavTransferIntent {
+  id: string;
+  createdAt: string;
+  snapshotId: string;
+  snapshotCreatedAt: string;
+  filter: string;
+  status: "pending";
+  summary: WebdavTransferQueueSummary;
+  itemCount: number;
+}

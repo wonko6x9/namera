@@ -8,7 +8,7 @@ import { buildProviderCacheKey, buildProviderRequest, fetchProviderCandidates, f
 import { buildWebdavTransferQueue, createExecutionBatch, createPlannedExecutions, exportPlanSet, exportReviewPlanSet, exportWebdavTransferQueue, listExecutionLog, summarizeExecutionActions, summarizeWebdavTransferQueue } from "@namera/exec";
 import { looksLikeMediaFile, parseTextIngest } from "@namera/ingest";
 import { buildArtworkSearchUrl, buildMediaSearchUrl, buildPreview, createAppController, exportFailedBatchResults, resetAppState, summarizeIngest, summarizeReview } from "./App";
-import { getCorrection, loadConfig, loadExecutionLog, loadRecentIngestRoots, loadWebdavTransferSnapshots, pushExecutionLog } from "@namera/config";
+import { getCorrection, loadConfig, loadExecutionLog, loadRecentIngestRoots, loadWebdavTransferIntents, loadWebdavTransferSnapshots, pushExecutionLog } from "@namera/config";
 
 describe("Namera MVP flow", () => {
   beforeEach(() => {
@@ -213,8 +213,10 @@ describe("Namera MVP flow", () => {
     expect(App()).toContain("Visible WebDAV next actions:</strong>");
     expect(App()).toContain("Visible WebDAV blocked reasons:</strong>");
     expect(App()).toContain('data-role="snapshot-webdav-queue"');
+    expect(App()).toContain('data-role="save-latest-webdav-intent"');
     expect(App()).toContain("Saved WebDAV queue snapshots");
     expect(App()).toContain("Latest saved WebDAV queue snapshot");
+    expect(App()).toContain("Saved WebDAV transfer intents");
   });
 
   it("builds useful manual search URLs for movies and TV", () => {
@@ -482,6 +484,20 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("Saved WebDAV queue snapshots");
     expect(renders.at(-1)).toContain("Latest saved WebDAV queue snapshot");
     expect(renders.at(-1)).toContain('&quot;filter&quot;: &quot;webdav-blocked&quot;');
+  });
+
+  it("persists pending webdav transfer intents from the latest snapshot", () => {
+    const renders: string[] = [];
+    const controller = createAppController((markup) => renders.push(markup));
+
+    controller.setReviewFilter("webdav-ready");
+    controller.snapshotVisibleWebdavQueue();
+    controller.saveLatestWebdavIntent();
+
+    expect(loadWebdavTransferIntents()[0]?.filter).toBe("webdav-ready");
+    expect(loadWebdavTransferIntents()[0]?.status).toBe("pending");
+    expect(renders.at(-1)).toContain("Saved pending WebDAV transfer intent");
+    expect(renders.at(-1)).toContain("Saved WebDAV transfer intents");
   });
 
   it("removes a single ingest item from the queue", () => {
