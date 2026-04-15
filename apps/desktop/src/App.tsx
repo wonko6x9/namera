@@ -1,7 +1,7 @@
 import { loadConfig, loadCorrections, loadExecutionLog, loadHistory, loadRecentIngestRoots, loadWebdavTransferIntents, loadWebdavTransferSnapshots, markExecutionUndone, pushExecutionLog, pushHistory, pushRecentIngestRoots, pushWebdavTransferIntent, pushWebdavTransferSnapshot, saveConfig, setCorrection } from "@namera/config";
 import type { AppConfig, IngestItem, MatchCandidate, ParsedMedia, PreviewResult, ProviderDiagnostic, ReviewSummary } from "@namera/core";
 import { createPhase3DestinationPlan, createPhase3TransferPlan } from "@namera/destination";
-import { buildWebdavTransferQueue, createExecutionBatch, createExecutionRecord, createPlannedExecutions, exportPlanSet, exportReviewPlanSet, exportWebdavTransferQueue, summarizeExecutionActions, summarizeWebdavTransferQueue } from "@namera/exec";
+import { buildWebdavTransferQueue, createExecutionBatch, createExecutionRecord, createPlannedExecutions, exportPlanSet, exportReviewPlanSet, exportWebdavTransferQueue, summarizeExecutionActions, summarizeWebdavTransferActions, summarizeWebdavTransferQueue } from "@namera/exec";
 import { parseFileListIngest, parseTextIngest } from "@namera/ingest";
 import { buildCorrectionKey, getCandidateKey, rankCandidates } from "@namera/match";
 import { parseFilename } from "@namera/parse";
@@ -253,6 +253,8 @@ export function createAppController(rerender: (markup: string) => void): AppCont
         status: "pending",
         summary: snapshot.summary,
         itemCount: snapshot.items.length,
+        nextActions: summarizeWebdavTransferActions(snapshot.items),
+        blockers: snapshot.summary.blockedReasons,
       });
       state.nativeExecutionMessage = `Saved pending WebDAV transfer intent for snapshot ${snapshot.id}`;
       rerender(renderApp(state));
@@ -361,6 +363,9 @@ function renderApp(appState: AppState): string {
   const webdavIntentMarkup = appState.webdavTransferIntents.length
     ? `<ul>${appState.webdavTransferIntents.slice(0, 5).map((intent) => `<li>${escapeHtml(intent.createdAt)} • snapshot=${escapeHtml(intent.snapshotId)} • ${escapeHtml(intent.status)} • ${escapeHtml(`${intent.summary.ready} ready, ${intent.summary.blocked} blocked, ${intent.itemCount} items`)}</li>`).join("")}</ul>`
     : "<p>No pending WebDAV transfer intents yet.</p>";
+  const latestWebdavIntentExport = appState.webdavTransferIntents.length
+    ? JSON.stringify(appState.webdavTransferIntents[0], null, 2)
+    : "";
   const recentRootsMarkup = appState.recentIngestRoots.length
     ? `<ul>${appState.recentIngestRoots.map((root) => `<li>${escapeHtml(root)}</li>`).join("")}</ul>`
     : "<p>No recent ingest roots yet</p>";
@@ -666,6 +671,10 @@ function renderApp(appState: AppState): string {
       <section>
         <h2>Saved WebDAV transfer intents</h2>
         ${webdavIntentMarkup}
+      </section>
+      <section>
+        <h2>Latest saved WebDAV transfer intent</h2>
+        ${latestWebdavIntentExport ? `<pre>${escapeHtml(latestWebdavIntentExport)}</pre>` : "<p>No pending WebDAV transfer intents yet.</p>"}
       </section>
       <section>
         <h2>Exported WebDAV transfer queue</h2>

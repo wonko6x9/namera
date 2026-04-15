@@ -214,4 +214,12 @@ export interface WebdavTransferIntent {
   status: "pending";
   summary: WebdavTransferQueueSummary;
   itemCount: number;
+  nextActions: Array<{
+    action: string;
+    count: number;
+  }>;
+  blockers: Array<{
+    reason: string;
+    count: number;
+  }>;
 }

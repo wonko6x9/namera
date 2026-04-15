@@ -217,6 +217,7 @@ describe("Namera MVP flow", () => {
     expect(App()).toContain("Saved WebDAV queue snapshots");
     expect(App()).toContain("Latest saved WebDAV queue snapshot");
     expect(App()).toContain("Saved WebDAV transfer intents");
+    expect(App()).toContain("Latest saved WebDAV transfer intent");
   });
 
   it("builds useful manual search URLs for movies and TV", () => {
@@ -496,8 +497,11 @@ describe("Namera MVP flow", () => {
 
     expect(loadWebdavTransferIntents()[0]?.filter).toBe("webdav-ready");
     expect(loadWebdavTransferIntents()[0]?.status).toBe("pending");
+    expect(loadWebdavTransferIntents()[0]?.nextActions.length).toBeGreaterThan(0);
     expect(renders.at(-1)).toContain("Saved pending WebDAV transfer intent");
     expect(renders.at(-1)).toContain("Saved WebDAV transfer intents");
+    expect(renders.at(-1)).toContain("Latest saved WebDAV transfer intent");
+    expect(renders.at(-1)).toContain('&quot;nextActions&quot;');
   });
 
   it("removes a single ingest item from the queue", () => {

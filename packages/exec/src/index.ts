@@ -117,6 +117,20 @@ export function buildWebdavTransferQueue(previews: PreviewResult[], config?: Des
   });
 }
 
+export function summarizeWebdavTransferActions(items: WebdavTransferQueueItem[]): Array<{ action: string; count: number }> {
+  const actions = new Map<string, number>();
+
+  for (const item of items) {
+    for (const action of item.actions) {
+      actions.set(action, (actions.get(action) ?? 0) + 1);
+    }
+  }
+
+  return Array.from(actions.entries())
+    .map(([action, count]) => ({ action, count }))
+    .sort((left, right) => right.count - left.count || left.action.localeCompare(right.action));
+}
+
 export function summarizeWebdavTransferQueue(items: WebdavTransferQueueItem[]): WebdavTransferQueueSummary {
   const byKind = new Map<string, { ready: number; blocked: number }>();
   const blockedReasons = new Map<string, number>();
