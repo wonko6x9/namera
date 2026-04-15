@@ -38,6 +38,24 @@ describe("Namera MVP flow", () => {
     expect(candidate.reason).toContain("episode title");
   });
 
+  it("preserves language qualifiers on movie subtitle sidecars", () => {
+    const parsed = parseFilename("The.Matrix.1999.en.forced.srt");
+    const candidate = rankCandidates(parsed)[0];
+    const plan = buildPlan(parsed, candidate);
+
+    expect(parsed.qualifierSuffix).toBe(".en.forced");
+    expect(plan.proposedPath).toBe("Movies/The Matrix (1999)/The Matrix (1999).en.forced.srt");
+  });
+
+  it("preserves language qualifiers on episode subtitle sidecars", () => {
+    const parsed = parseFilename("Severance.S01E01.Good.News.About.Hell.es.sdh.ass");
+    const candidate = rankCandidates(parsed)[0];
+    const plan = buildPlan(parsed, candidate);
+
+    expect(parsed.qualifierSuffix).toBe(".es.sdh");
+    expect(plan.proposedPath).toBe("TV Shows/Severance/Season 01/Severance - S01E01 - Good News About Hell.es.sdh.ass");
+  });
+
   it("trims movie edition and part-disc junk out of the core title", () => {
     const parsed = parseFilename("Blade.Runner.Final.Cut.2007.1080p.BluRay.Part.1.mkv");
 
@@ -114,6 +132,7 @@ describe("Namera MVP flow", () => {
 
   it("filters obvious non-media names for file picker ingest", () => {
     expect(looksLikeMediaFile("movie.mkv")).toBe(true);
+    expect(looksLikeMediaFile("movie.en.srt")).toBe(true);
     expect(looksLikeMediaFile("cover.jpg")).toBe(false);
     expect(looksLikeMediaFile("notes.txt")).toBe(false);
   });

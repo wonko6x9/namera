@@ -60,15 +60,32 @@ const EDITION_PHRASES = [
   ["criterion", "collection"],
   ["ultimate", "edition"],
 ];
+const QUALIFIER_TOKENS = new Set([
+  "sdh",
+  "cc",
+  "sub",
+  "subs",
+  "dub",
+  "dubbed",
+  "forced",
+  "default",
+  "signs",
+  "commentary",
+  "hearingimpaired",
+  "hi",
+]);
+const SIDECARExtENSIONS = new Set(["srt", "ass", "ssa", "vtt", "sub", "idx"]);
+const LANGUAGE_TAG_PATTERN = /^[a-z]{2,3}(?:-[a-z]{2,4})?$/i;
 
 export function parseFilename(input: string): ParsedMedia {
   const [baseName, extension] = splitExtension(input);
   const normalizedName = normalizeSeparators(baseName);
   const tokens = normalizedName.split(/\s+/).filter(Boolean);
-  const episode = detectEpisode(tokens);
+  const episode = detectEpisode(tokens, extension);
   const year = detectYear(tokens);
   const noiseTokens = tokens.filter((token) => isNoiseToken(token));
   const titleTokens = extractTitleTokens(tokens, year, episode);
+  const qualifierSuffix = extractQualifierSuffix(tokens, extension, year, episode);
 
   let kind: MediaKind = "unknown";
   if (episode) kind = "episode";
@@ -87,6 +104,7 @@ export function parseFilename(input: string): ParsedMedia {
     episode,
     noiseTokens,
     tokens,
+    qualifierSuffix,
   };
 }
 
@@ -106,7 +124,7 @@ function normalizeSeparators(input: string): string {
     .trim();
 }
 
-function detectEpisode(tokens: string[]): EpisodeInfo | undefined {
+function detectEpisode(tokens: string[], extension?: string): EpisodeInfo | undefined {
   const explicitMarkers = tokens
     .map((candidate, index) => ({ candidate, index }))
     .filter(({ candidate }) => /^S\d{2}E\d{2}(?:E\d{2})*$/i.test(candidate));
@@ -120,10 +138,13 @@ function detectEpisode(tokens: string[]): EpisodeInfo | undefined {
   if (!primaryEpisode) return undefined;
 
   const seriesTokens = tokens.slice(0, firstMarker.index).filter((candidate) => !isNoiseToken(candidate));
-  const episodeTitleTokens = tokens
+  const episodeTitleTokens = trimTrailingQualifierTokens(
+    tokens
     .slice(firstMarker.index + 1)
     .filter((candidate, index, list) => !isNoiseToken(candidate))
-    .filter((candidate, index, list) => !looksLikePartOrDiscTail(candidate, index, list));
+    .filter((candidate, index, list) => !looksLikePartOrDiscTail(candidate, index, list)),
+    extension,
+  );
 
   return {
     season: Number(token.slice(1, 3)),
@@ -231,4 +252,71 @@ function cleanupTitle(title: string): string {
       return token.charAt(0).toUpperCase() + token.slice(1).toLowerCase();
     })
     .join(" ");
+}
+
+function extractQualifierSuffix(
+  tokens: string[],
+  extension?: string,
+  year?: number,
+  episode?: EpisodeInfo,
+): string | undefined {
+  if (!extension || !SIDECARExtENSIONS.has(extension.toLowerCase())) {
+    return undefined;
+  }
+
+  const titleBoundary = getTitleBoundaryIndex(tokens, year, episode);
+  const qualifiers: string[] = [];
+
+  for (let index = tokens.length - 1; index >= titleBoundary; index -= 1) {
+    const token = tokens[index]!;
+    if (isQualifierToken(token)) {
+      qualifiers.unshift(normalizeQualifierToken(token));
+      continue;
+    }
+    if (qualifiers.length > 0) {
+      break;
+    }
+  }
+
+  return qualifiers.length ? `.${qualifiers.join(".")}` : undefined;
+}
+
+function getTitleBoundaryIndex(tokens: string[], year?: number, episode?: EpisodeInfo): number {
+  const episodeMarkerIndex = tokens.findIndex((token) => /^S\d{2}E\d{2}(?:E\d{2})*$/i.test(token));
+  if (episodeMarkerIndex >= 0) {
+    let boundary = episodeMarkerIndex + 1;
+    const titleTokenCount = episode?.episodeTitle?.split(/\s+/).filter(Boolean).length ?? 0;
+    boundary += titleTokenCount;
+    return Math.min(boundary, tokens.length);
+  }
+
+  if (year) {
+    const yearIndex = tokens.findIndex((token) => token === String(year));
+    if (yearIndex >= 0) {
+      return yearIndex + 1;
+    }
+  }
+
+  return tokens.length;
+}
+
+function isQualifierToken(token: string): boolean {
+  const lower = token.toLowerCase();
+  return QUALIFIER_TOKENS.has(lower) || LANGUAGE_TAG_PATTERN.test(lower);
+}
+
+function normalizeQualifierToken(token: string): string {
+  return token.toLowerCase();
+}
+
+function trimTrailingQualifierTokens(tokens: string[], extension?: string): string[] {
+  if (!extension || !SIDECARExtENSIONS.has(extension.toLowerCase())) {
+    return tokens;
+  }
+
+  const trimmed = [...tokens];
+  while (trimmed.length && isQualifierToken(trimmed[trimmed.length - 1]!)) {
+    trimmed.pop();
+  }
+  return trimmed;
 }

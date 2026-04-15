@@ -3,6 +3,7 @@ import type { MatchCandidate, ParsedMedia, PlanOptions, RenamePlan } from "@name
 export function buildPlan(parsed: ParsedMedia, candidate?: MatchCandidate, options: PlanOptions = {}): RenamePlan {
   let proposedPath: string;
   const candidateName = extractCandidateTitle(candidate?.displayName) ?? parsed.title;
+  const qualifierSuffix = parsed.qualifierSuffix ?? "";
   const movieRoot = options.movieRoot ?? "Movies";
   const tvRoot = options.tvRoot ?? "TV Shows";
   const musicRoot = options.musicRoot ?? "Music";
@@ -11,20 +12,20 @@ export function buildPlan(parsed: ParsedMedia, candidate?: MatchCandidate, optio
     const year = extractCandidateYear(candidate?.displayName) ?? parsed.movie?.year;
     const yearSuffix = year ? ` (${year})` : "";
     const ext = parsed.extension ?? "mkv";
-    proposedPath = `${movieRoot}/${candidateName}${yearSuffix}/${candidateName}${yearSuffix}.${ext}`;
+    proposedPath = `${movieRoot}/${candidateName}${yearSuffix}/${candidateName}${yearSuffix}${qualifierSuffix}.${ext}`;
   } else if (parsed.kind === "episode" && parsed.episode) {
     const ext = parsed.extension ?? "mkv";
     const season = String(parsed.episode.season).padStart(2, "0");
     const episode = String(parsed.episode.episode).padStart(2, "0");
     const seriesTitle = parsed.episode.seriesTitle ?? candidateName;
     const episodeTitle = parsed.episode.episodeTitle ? ` - ${parsed.episode.episodeTitle}` : "";
-    proposedPath = `${tvRoot}/${seriesTitle}/Season ${season}/${seriesTitle} - S${season}E${episode}${episodeTitle}.${ext}`;
+    proposedPath = `${tvRoot}/${seriesTitle}/Season ${season}/${seriesTitle} - S${season}E${episode}${episodeTitle}${qualifierSuffix}.${ext}`;
   } else if (parsed.kind === "music") {
     const ext = parsed.extension ?? "mp3";
-    proposedPath = `${musicRoot}/${parsed.title}.${ext}`;
+    proposedPath = `${musicRoot}/${parsed.title}${qualifierSuffix}.${ext}`;
   } else {
     const ext = parsed.extension ?? "bin";
-    proposedPath = `Unsorted/${parsed.title}.${ext}`;
+    proposedPath = `Unsorted/${parsed.title}${qualifierSuffix}.${ext}`;
   }
 
   const warnings: string[] = [];

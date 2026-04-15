@@ -21,6 +21,7 @@ export interface ParsedMedia {
   episode?: EpisodeInfo;
   noiseTokens: string[];
   tokens: string[];
+  qualifierSuffix?: string;
 }
 
 export interface MatchCandidate {

@@ -1,6 +1,6 @@
 import type { IngestItem } from "@namera/core";
 
-const MEDIA_EXTENSIONS = new Set(["mkv", "mp4", "avi", "mov", "m4v", "mp3", "flac", "wav"]);
+const MEDIA_EXTENSIONS = new Set(["mkv", "mp4", "avi", "mov", "m4v", "mp3", "flac", "wav", "srt", "ass", "ssa", "vtt", "sub", "idx"]);
 
 export function parseTextIngest(input: string): IngestItem[] {
   return input
