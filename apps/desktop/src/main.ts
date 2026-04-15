@@ -25,6 +25,8 @@ function wireApp(root: HTMLElement): void {
   const tvRootInput = root.querySelector<HTMLInputElement>("[data-role='config-tv-root']");
   const musicRootInput = root.querySelector<HTMLInputElement>("[data-role='config-music-root']");
   const omdbKeyInput = root.querySelector<HTMLInputElement>("[data-role='config-omdb-key']");
+  const sourceRootInput = root.querySelector<HTMLInputElement>("[data-role='config-source-root']");
+  const targetRootInput = root.querySelector<HTMLInputElement>("[data-role='config-target-root']");
 
   fileInput?.addEventListener("change", async (event) => {
     const files = Array.from((event.currentTarget as HTMLInputElement).files ?? []);
@@ -62,6 +64,8 @@ function wireApp(root: HTMLElement): void {
         movieRoot: movieRootInput?.value || "Movies",
         tvRoot: tvRootInput?.value || "TV Shows",
         musicRoot: musicRootInput?.value || "Music",
+        sourceRoot: sourceRootInput?.value || ".",
+        targetRoot: targetRootInput?.value || ".",
       },
       providers: {
         omdbApiKey: omdbKeyInput?.value || undefined,

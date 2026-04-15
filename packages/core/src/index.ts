@@ -103,6 +103,8 @@ export interface DestinationProfile {
   movieRoot: string;
   tvRoot: string;
   musicRoot: string;
+  sourceRoot?: string;
+  targetRoot?: string;
 }
 
 export interface ProviderConfig {

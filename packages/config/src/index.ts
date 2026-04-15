@@ -5,6 +5,8 @@ export const DEFAULT_CONFIG: AppConfig = {
     movieRoot: "Movies",
     tvRoot: "TV Shows",
     musicRoot: "Music",
+    sourceRoot: ".",
+    targetRoot: ".",
   },
   providers: {},
 };

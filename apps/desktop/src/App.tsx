@@ -121,7 +121,11 @@ export function createAppController(rerender: (markup: string) => void): AppCont
     },
     async applyNativeExecution(input: string) {
       try {
-        const batch = await applyExecutionBatchNative(".", ".", input);
+        const batch = await applyExecutionBatchNative(
+          state.config.destinations.sourceRoot || ".",
+          state.config.destinations.targetRoot || ".",
+          input,
+        );
         if (batch.log_entry) {
           pushExecutionLog({
             id: batch.log_entry.id,
@@ -147,7 +151,11 @@ export function createAppController(rerender: (markup: string) => void): AppCont
     },
     async undoNativeExecution(input: string) {
       try {
-        const batch = await undoExecutionBatchNative(".", ".", input);
+        const batch = await undoExecutionBatchNative(
+          state.config.destinations.sourceRoot || ".",
+          state.config.destinations.targetRoot || ".",
+          input,
+        );
         if (batch.log_entry) {
           pushExecutionLog({
             id: batch.log_entry.id,
@@ -289,6 +297,7 @@ function renderApp(appState: AppState): string {
       <section>
         <h2>Status</h2>
         <p><strong>Destination roots:</strong> Movies=${escapeHtml(appState.config.destinations.movieRoot)}, TV=${escapeHtml(appState.config.destinations.tvRoot)}, Music=${escapeHtml(appState.config.destinations.musicRoot)}</p>
+        <p><strong>Execution roots:</strong> Source=${escapeHtml(appState.config.destinations.sourceRoot || ".")}, Target=${escapeHtml(appState.config.destinations.targetRoot || ".")}</p>
         <p><strong>Providers:</strong> ${escapeHtml(providerSummary)}</p>
         <p><strong>Ingest summary:</strong> ${escapeHtml(summarizeIngest(appState.ingestedItems))}</p>
         <p><strong>Live provider state:</strong> ${escapeHtml(appState.liveProviderMessage)}</p>
@@ -307,6 +316,12 @@ function renderApp(appState: AppState): string {
         </div>
         <div>
           <label>OMDb API key <input data-role="config-omdb-key" value="${escapeHtmlAttribute(appState.config.providers.omdbApiKey ?? "")}" /></label>
+        </div>
+        <div>
+          <label>Source root <input data-role="config-source-root" value="${escapeHtmlAttribute(appState.config.destinations.sourceRoot ?? ".")}" /></label>
+        </div>
+        <div>
+          <label>Target root <input data-role="config-target-root" value="${escapeHtmlAttribute(appState.config.destinations.targetRoot ?? ".")}" /></label>
         </div>
         <button data-role="save-config" type="button">Save config</button>
       </section>

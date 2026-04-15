@@ -194,6 +194,8 @@ describe("Namera MVP flow", () => {
           movieRoot: "Films",
           tvRoot: "Series",
           musicRoot: "Tracks",
+          sourceRoot: "/incoming",
+          targetRoot: "/library",
         },
         providers: {},
       },
@@ -211,6 +213,8 @@ describe("Namera MVP flow", () => {
         movieRoot: "Films",
         tvRoot: "Series",
         musicRoot: "Tracks",
+        sourceRoot: "/incoming",
+        targetRoot: "/library",
       },
       providers: {
         omdbApiKey: "test-key",
@@ -219,6 +223,8 @@ describe("Namera MVP flow", () => {
 
     const config = loadConfig();
     expect(config.destinations.movieRoot).toBe("Films");
+    expect(config.destinations.sourceRoot).toBe("/incoming");
+    expect(config.destinations.targetRoot).toBe("/library");
     expect(config.providers.omdbApiKey).toBe("test-key");
     expect(renders.at(-1)).toContain("Configuration");
   });
