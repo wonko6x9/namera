@@ -495,6 +495,11 @@ function renderApp(appState: AppState): string {
           }
           return [`Resolve validation check: ${check.name}`];
         });
+        const groupedOperations = {
+          mkdirTargets: readyOperations.flatMap((operation) => operation.actions.filter((action) => action.startsWith("Create remote parent folders for ")).map((action) => action.replace("Create remote parent folders for ", ""))),
+          uploadTargets: readyOperations.flatMap((operation) => operation.actions.filter((action) => action.startsWith("Upload/copy renamed file to ")).map((action) => action.replace("Upload/copy renamed file to ", ""))),
+          verifyTargets: readyOperations.flatMap((operation) => operation.actions.filter((action) => action.startsWith("Verify remote file exists")).map(() => operation.targetPath)),
+        };
         return {
           generatedAt: new Date().toISOString(),
           intent,
@@ -527,6 +532,7 @@ function renderApp(appState: AppState): string {
             readyTargets: readyOperations.map((operation) => operation.targetPath),
             blockers: blockedItems.map((item) => `${item.input}: ${item.reason}`),
             nextSteps: validationNextSteps,
+            groupedOperations,
           },
         };
       })()
@@ -915,7 +921,7 @@ function renderApp(appState: AppState): string {
       <section>
         <h2>Latest WebDAV execution brief</h2>
         ${latestWebdavHandoffPacket
-          ? `<p>${escapeHtml(latestWebdavHandoffPacket.executionBrief.summary)}</p><p><strong>Execution brief status:</strong> ${escapeHtml(latestWebdavHandoffPacket.executionBrief.status)}</p>${latestWebdavHandoffPacket.executionBrief.owner ? `<p><strong>Owner:</strong> ${escapeHtml(latestWebdavHandoffPacket.executionBrief.owner)}</p>` : ""}${latestWebdavHandoffPacket.executionBrief.nextSteps.length ? `<div><strong>Execution next steps:</strong><ul>${latestWebdavHandoffPacket.executionBrief.nextSteps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ul></div>` : ""}<pre>${escapeHtml(latestWebdavExecutionBriefExport)}</pre>`
+          ? `<p>${escapeHtml(latestWebdavHandoffPacket.executionBrief.summary)}</p><p><strong>Execution brief status:</strong> ${escapeHtml(latestWebdavHandoffPacket.executionBrief.status)}</p>${latestWebdavHandoffPacket.executionBrief.owner ? `<p><strong>Owner:</strong> ${escapeHtml(latestWebdavHandoffPacket.executionBrief.owner)}</p>` : ""}<div><strong>Grouped operations:</strong><ul><li>${escapeHtml(`${latestWebdavHandoffPacket.executionBrief.groupedOperations.mkdirTargets.length} mkdir target${latestWebdavHandoffPacket.executionBrief.groupedOperations.mkdirTargets.length === 1 ? "" : "s"}`)}</li><li>${escapeHtml(`${latestWebdavHandoffPacket.executionBrief.groupedOperations.uploadTargets.length} upload target${latestWebdavHandoffPacket.executionBrief.groupedOperations.uploadTargets.length === 1 ? "" : "s"}`)}</li><li>${escapeHtml(`${latestWebdavHandoffPacket.executionBrief.groupedOperations.verifyTargets.length} verify target${latestWebdavHandoffPacket.executionBrief.groupedOperations.verifyTargets.length === 1 ? "" : "s"}`)}</li></ul></div>${latestWebdavHandoffPacket.executionBrief.nextSteps.length ? `<div><strong>Execution next steps:</strong><ul>${latestWebdavHandoffPacket.executionBrief.nextSteps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ul></div>` : ""}<pre>${escapeHtml(latestWebdavExecutionBriefExport)}</pre>`
           : "<p>No pending WebDAV transfer intents yet.</p>"}
       </section>
       <section>

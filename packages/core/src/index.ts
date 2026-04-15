@@ -280,6 +280,11 @@ export interface WebdavTransferHandoffPacket {
     readyTargets: string[];
     blockers: string[];
     nextSteps: string[];
+    groupedOperations: {
+      mkdirTargets: string[];
+      uploadTargets: string[];
+      verifyTargets: string[];
+    };
   };
 }
 
