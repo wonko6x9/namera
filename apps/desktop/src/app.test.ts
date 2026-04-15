@@ -522,10 +522,13 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("Latest WebDAV handoff validation");
     expect(renders.at(-1)).toContain('&quot;packetReadiness&quot;');
     expect(renders.at(-1)).toContain('&quot;validation&quot;');
+    expect(renders.at(-1)).toContain('&quot;nextSteps&quot;');
     expect(renders.at(-1)).toContain('&quot;readyOperations&quot;');
     expect(renders.at(-1)).toContain('&quot;blockedItems&quot;');
     expect(renders.at(-1)).toContain("Intent assigned");
     expect(renders.at(-1)).toContain("Packet validation failed");
+    expect(renders.at(-1)).toContain("Validation next steps:");
+    expect(renders.at(-1)).toContain("Assign the latest WebDAV intent to a handoff owner.");
     expect(renders.at(-1)).toContain("Recent WebDAV handoff packets");
     expect(renders.at(-1)).toContain("Acknowledged WebDAV handoff packets");
     expect(renders.at(-1)).toContain("Handoff-ready WebDAV packets");
@@ -588,6 +591,9 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("Marked blocked items resolved for WebDAV transfer intent");
     expect(renders.at(-1)).toContain('&quot;handoffReadiness&quot;: &quot;ready&quot;');
     expect(renders.at(-1)).toContain("Packet validation failed: Intent assigned, Intent acknowledged, Blocked items cleared");
+    expect(renders.at(-1)).toContain("Assign the latest WebDAV intent to a handoff owner.");
+    expect(renders.at(-1)).toContain("Acknowledge the latest WebDAV intent prerequisites.");
+    expect(renders.at(-1)).toContain("Resolve or remove blocked WebDAV items before remote handoff.");
     expect(renders.at(-1)).toContain('&quot;status&quot;: &quot;fail&quot;');
   });
 

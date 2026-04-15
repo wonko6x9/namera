@@ -270,6 +270,7 @@ export interface WebdavTransferHandoffPacket {
     readyCount: number;
     blockedCount: number;
     failedChecks: string[];
+    nextSteps: string[];
     summary: string;
   };
 }

@@ -480,6 +480,21 @@ function renderApp(appState: AppState): string {
           },
         ] as const;
         const blockedChecks = readinessChecks.filter((check) => check.status === "blocked");
+        const validationNextSteps = blockedChecks.flatMap((check) => {
+          if (check.name === "Intent assigned") {
+            return ["Assign the latest WebDAV intent to a handoff owner."];
+          }
+          if (check.name === "Intent acknowledged") {
+            return ["Acknowledge the latest WebDAV intent prerequisites."];
+          }
+          if (check.name === "Ready operations available") {
+            return ["Save a snapshot that includes at least one WebDAV-ready item."];
+          }
+          if (check.name === "Blocked items cleared") {
+            return ["Resolve or remove blocked WebDAV items before remote handoff."];
+          }
+          return [`Resolve validation check: ${check.name}`];
+        });
         return {
           generatedAt: new Date().toISOString(),
           intent,
@@ -498,6 +513,7 @@ function renderApp(appState: AppState): string {
             readyCount: readyOperations.length,
             blockedCount: blockedItems.length,
             failedChecks: blockedChecks.map((check) => check.name),
+            nextSteps: validationNextSteps,
             summary: blockedChecks.length
               ? `Packet validation failed: ${blockedChecks.map((check) => check.name).join(", ")}`
               : "Packet validation passed for remote handoff review.",
@@ -875,7 +891,7 @@ function renderApp(appState: AppState): string {
       <section>
         <h2>Latest WebDAV handoff validation</h2>
         ${latestWebdavHandoffPacket
-          ? `<p>${escapeHtml(`${latestWebdavHandoffPacket.validation.summary} (${latestWebdavHandoffPacket.validation.readyCount} ready, ${latestWebdavHandoffPacket.validation.blockedCount} blocked).`)}</p><pre>${escapeHtml(latestWebdavValidationExport)}</pre>`
+          ? `<p>${escapeHtml(`${latestWebdavHandoffPacket.validation.summary} (${latestWebdavHandoffPacket.validation.readyCount} ready, ${latestWebdavHandoffPacket.validation.blockedCount} blocked).`)}</p>${latestWebdavHandoffPacket.validation.nextSteps.length ? `<div><strong>Validation next steps:</strong><ul>${latestWebdavHandoffPacket.validation.nextSteps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ul></div>` : ""}<pre>${escapeHtml(latestWebdavValidationExport)}</pre>`
           : "<p>No pending WebDAV transfer intents yet.</p>"}
       </section>
       <section>
