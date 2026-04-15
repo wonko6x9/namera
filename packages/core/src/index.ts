@@ -273,6 +273,14 @@ export interface WebdavTransferHandoffPacket {
     nextSteps: string[];
     summary: string;
   };
+  executionBrief: {
+    status: "ready" | "needs-work";
+    owner?: string;
+    summary: string;
+    readyTargets: string[];
+    blockers: string[];
+    nextSteps: string[];
+  };
 }
 
 export interface WebdavTransferHandoffPacketSummary {
