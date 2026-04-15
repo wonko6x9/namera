@@ -329,6 +329,22 @@ export interface WebdavTransferHandoffPacket {
       reason: string;
     }>;
   };
+  ownerPacket: {
+    status: "ready" | "needs-work";
+    owner: string;
+    summary: string;
+    acknowledgement: string;
+    readyTargets: Array<{
+      input: string;
+      targetPath: string;
+      stages: Array<"mkdir" | "upload" | "verify">;
+    }>;
+    blockers: Array<{
+      input: string;
+      reason: string;
+    }>;
+    requiredActions: string[];
+  };
 }
 
 export interface WebdavTransferHandoffPacketSummary {
