@@ -285,6 +285,11 @@ export interface WebdavTransferHandoffPacket {
       uploadTargets: string[];
       verifyTargets: string[];
     };
+    checklist: Array<{
+      stage: "assign" | "acknowledge" | "mkdir" | "upload" | "verify" | "blocked-items";
+      status: "ready" | "blocked";
+      detail: string;
+    }>;
   };
 }
 
