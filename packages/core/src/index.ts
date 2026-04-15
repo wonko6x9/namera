@@ -172,3 +172,12 @@ export interface ReviewPlanExportItem {
   destinationPlan: Phase3DestinationPlan;
   transferPlan?: Phase3TransferPlan;
 }
+
+export interface WebdavTransferQueueItem {
+  input: string;
+  detectedKind: MediaKind;
+  targetPath: string;
+  state: "ready" | "blocked";
+  actions: string[];
+  reason: string;
+}

@@ -1,6 +1,6 @@
 import { loadExecutionLog, markExecutionUndone, pushExecutionLog } from "@namera/config";
 import { createPhase3DestinationPlan, createPhase3TransferPlan } from "@namera/destination";
-import type { DestinationProfile, ExecutionAction, ExecutionBatch, ExecutionLogEntry, HistoryEntry, PreviewResult, RenamePlan, ReviewPlanExportItem } from "@namera/core";
+import type { DestinationProfile, ExecutionAction, ExecutionBatch, ExecutionLogEntry, HistoryEntry, PreviewResult, RenamePlan, ReviewPlanExportItem, WebdavTransferQueueItem } from "@namera/core";
 
 export function createExecutionRecord(plan: RenamePlan): HistoryEntry {
   return {
@@ -99,6 +99,29 @@ export function exportReviewPlanSet(
   }));
 
   return JSON.stringify({ backend, items: exported }, null, 2);
+}
+
+export function exportWebdavTransferQueue(previews: PreviewResult[], config?: DestinationProfile): string {
+  const items: WebdavTransferQueueItem[] = previews.map((preview) => {
+    const destination = createPhase3DestinationPlan(preview.plan, preview.parsed.kind, config, "webdav");
+    const transfer = createPhase3TransferPlan(preview.plan, preview.parsed.kind, config);
+
+    return {
+      input: preview.input,
+      detectedKind: preview.parsed.kind,
+      targetPath: destination.targetPath,
+      state: transfer.status === "planned" ? "ready" : "blocked",
+      actions: transfer.actions,
+      reason: transfer.summary,
+    };
+  });
+
+  return JSON.stringify({
+    backend: "webdav",
+    ready: items.filter((item) => item.state === "ready").length,
+    blocked: items.filter((item) => item.state === "blocked").length,
+    items,
+  }, null, 2);
 }
 
 export function listExecutionLog(): ExecutionLogEntry[] {
