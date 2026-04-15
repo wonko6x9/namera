@@ -228,6 +228,7 @@ describe("Namera MVP flow", () => {
     expect(App()).toContain("Latest WebDAV execution brief");
     expect(App()).toContain("Latest WebDAV remote checklist packet");
     expect(App()).toContain("Latest WebDAV handoff summary");
+    expect(App()).toContain("Latest WebDAV operation manifest");
     expect(App()).toContain("Recent WebDAV handoff packets");
     expect(App()).toContain("Acknowledged WebDAV handoff packets");
     expect(App()).toContain("Handoff-ready WebDAV packets");
@@ -531,6 +532,7 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain('&quot;checklist&quot;');
     expect(renders.at(-1)).toContain('&quot;remoteChecklist&quot;');
     expect(renders.at(-1)).toContain('&quot;handoffSummary&quot;');
+    expect(renders.at(-1)).toContain('&quot;operationManifest&quot;');
     expect(renders.at(-1)).toContain('&quot;nextSteps&quot;');
     expect(renders.at(-1)).toContain('&quot;readyOperations&quot;');
     expect(renders.at(-1)).toContain('&quot;blockedItems&quot;');
@@ -541,8 +543,10 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("Execution checklist:");
     expect(renders.at(-1)).toContain("Latest WebDAV remote checklist packet");
     expect(renders.at(-1)).toContain("Latest WebDAV handoff summary");
+    expect(renders.at(-1)).toContain("Latest WebDAV operation manifest");
     expect(renders.at(-1)).toContain("Remote checklist is blocked on Intent assigned, Intent acknowledged.");
     expect(renders.at(-1)).toContain("Handoff summary needs work for unassigned.");
+    expect(renders.at(-1)).toContain("Operation manifest prepared with 3 ready targets and 0 blocked items.");
     expect(renders.at(-1)).toContain("assign • blocked");
     expect(renders.at(-1)).toContain("Grouped operations:");
     expect(renders.at(-1)).toContain("3 upload targets");
@@ -592,6 +596,7 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("Execution brief ready for 3 remote targets.");
     expect(renders.at(-1)).toContain("Remote checklist is ready for 3 targets.");
     expect(renders.at(-1)).toContain("Handoff summary ready for remote-handoff.");
+    expect(renders.at(-1)).toContain("Operation manifest ready with 3 ready targets.");
     expect(renders.at(-1)).toContain("assign • ready");
     expect(renders.at(-1)).toContain("blocked-items • ready");
     expect(renders.at(-1)).toContain("3 upload targets");
@@ -620,6 +625,7 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("Execution brief needs work before remote handoff.");
     expect(renders.at(-1)).toContain("Remote checklist is blocked on Intent assigned, Intent acknowledged, Blocked items cleared.");
     expect(renders.at(-1)).toContain("Handoff summary needs work for unassigned.");
+    expect(renders.at(-1)).toContain("Operation manifest prepared with 3 ready targets and 1 blocked item.");
     expect(renders.at(-1)).toContain("assign • blocked");
     expect(renders.at(-1)).toContain("blocked-items • blocked");
     expect(renders.at(-1)).toContain("3 upload targets");

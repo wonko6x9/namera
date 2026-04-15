@@ -311,6 +311,19 @@ export interface WebdavTransferHandoffPacket {
     readyTargetCount: number;
     blockedItemCount: number;
   };
+  operationManifest: {
+    status: "ready" | "needs-work";
+    summary: string;
+    stages: Array<{
+      stage: "mkdir" | "upload" | "verify";
+      targets: string[];
+      count: number;
+    }>;
+    blockedItems: Array<{
+      input: string;
+      reason: string;
+    }>;
+  };
 }
 
 export interface WebdavTransferHandoffPacketSummary {

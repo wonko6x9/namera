@@ -584,6 +584,18 @@ function renderApp(appState: AppState): string {
           readyTargetCount: readyOperations.length,
           blockedItemCount: blockedItems.length,
         } as const;
+        const operationManifest = {
+          status: blockedChecks.length ? "needs-work" : "ready",
+          summary: blockedChecks.length
+            ? `Operation manifest prepared with ${readyOperations.length} ready target${readyOperations.length === 1 ? "" : "s"} and ${blockedItems.length} blocked item${blockedItems.length === 1 ? "" : "s"}.`
+            : `Operation manifest ready with ${readyOperations.length} ready target${readyOperations.length === 1 ? "" : "s"}.`,
+          stages: [
+            { stage: "mkdir", targets: groupedOperations.mkdirTargets, count: groupedOperations.mkdirTargets.length },
+            { stage: "upload", targets: groupedOperations.uploadTargets, count: groupedOperations.uploadTargets.length },
+            { stage: "verify", targets: groupedOperations.verifyTargets, count: groupedOperations.verifyTargets.length },
+          ],
+          blockedItems: blockedItems.map((item) => ({ input: item.input, reason: item.reason })),
+        } as const;
         return {
           generatedAt: new Date().toISOString(),
           intent,
@@ -621,6 +633,7 @@ function renderApp(appState: AppState): string {
           },
           remoteChecklist,
           handoffSummary,
+          operationManifest,
         };
       })()
     : null;
@@ -657,6 +670,14 @@ function renderApp(appState: AppState): string {
         intentId: latestWebdavHandoffPacket.intent.id,
         snapshotId: latestWebdavHandoffPacket.intent.snapshotId,
         handoffSummary: latestWebdavHandoffPacket.handoffSummary,
+      }, null, 2)
+    : "";
+  const latestWebdavOperationManifestExport = latestWebdavHandoffPacket
+    ? JSON.stringify({
+        generatedAt: latestWebdavHandoffPacket.generatedAt,
+        intentId: latestWebdavHandoffPacket.intent.id,
+        snapshotId: latestWebdavHandoffPacket.intent.snapshotId,
+        operationManifest: latestWebdavHandoffPacket.operationManifest,
       }, null, 2)
     : "";
   const webdavHandoffPacketHistory: WebdavTransferHandoffPacketSummary[] = appState.webdavTransferIntents.slice(0, 5).map((intent) => ({
@@ -1037,6 +1058,12 @@ function renderApp(appState: AppState): string {
         <h2>Latest WebDAV handoff summary</h2>
         ${latestWebdavHandoffPacket
           ? `<p>${escapeHtml(latestWebdavHandoffPacket.handoffSummary.summary)}</p><p><strong>Handoff owner:</strong> ${escapeHtml(latestWebdavHandoffPacket.handoffSummary.owner)}</p><p><strong>Ready targets:</strong> ${escapeHtml(String(latestWebdavHandoffPacket.handoffSummary.readyTargetCount))} • <strong>Blocked items:</strong> ${escapeHtml(String(latestWebdavHandoffPacket.handoffSummary.blockedItemCount))}</p><div><strong>Operator asks:</strong><ul>${latestWebdavHandoffPacket.handoffSummary.asks.map((ask) => `<li>${escapeHtml(ask)}</li>`).join("")}</ul></div><pre>${escapeHtml(latestWebdavHandoffSummaryExport)}</pre>`
+          : "<p>No pending WebDAV transfer intents yet.</p>"}
+      </section>
+      <section>
+        <h2>Latest WebDAV operation manifest</h2>
+        ${latestWebdavHandoffPacket
+          ? `<p>${escapeHtml(latestWebdavHandoffPacket.operationManifest.summary)}</p><ul>${latestWebdavHandoffPacket.operationManifest.stages.map((stage) => `<li>${escapeHtml(stage.stage)} • ${escapeHtml(String(stage.count))} target${stage.count === 1 ? "" : "s"}</li>`).join("")}</ul><pre>${escapeHtml(latestWebdavOperationManifestExport)}</pre>`
           : "<p>No pending WebDAV transfer intents yet.</p>"}
       </section>
       <section>
