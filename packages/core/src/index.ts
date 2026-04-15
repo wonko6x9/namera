@@ -303,6 +303,14 @@ export interface WebdavTransferHandoffPacket {
     }>;
     blockedReasons: string[];
   };
+  handoffSummary: {
+    status: "ready" | "needs-work";
+    owner: string;
+    summary: string;
+    asks: string[];
+    readyTargetCount: number;
+    blockedItemCount: number;
+  };
 }
 
 export interface WebdavTransferHandoffPacketSummary {

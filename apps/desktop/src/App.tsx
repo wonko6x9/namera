@@ -566,6 +566,24 @@ function renderApp(appState: AppState): string {
           })),
           blockedReasons: blockedItems.map((item) => `${item.input}: ${item.reason}`),
         } as const;
+        const handoffSummaryOwner = intent.handoffOwner ?? "unassigned";
+        const handoffSummaryAsks = blockedChecks.length
+          ? validationNextSteps
+          : [
+              `Proceed with ${groupedOperations.mkdirTargets.length} mkdir step${groupedOperations.mkdirTargets.length === 1 ? "" : "s"}.`,
+              `Proceed with ${groupedOperations.uploadTargets.length} upload step${groupedOperations.uploadTargets.length === 1 ? "" : "s"}.`,
+              `Verify ${groupedOperations.verifyTargets.length} remote target${groupedOperations.verifyTargets.length === 1 ? "" : "s"} before cleanup.`,
+            ];
+        const handoffSummary = {
+          status: blockedChecks.length ? "needs-work" : "ready",
+          owner: handoffSummaryOwner,
+          summary: blockedChecks.length
+            ? `Handoff summary needs work for ${handoffSummaryOwner}. ${readyOperations.length} ready target${readyOperations.length === 1 ? "" : "s"}, ${blockedItems.length} blocked item${blockedItems.length === 1 ? "" : "s"}.`
+            : `Handoff summary ready for ${handoffSummaryOwner}. ${readyOperations.length} ready target${readyOperations.length === 1 ? "" : "s"}, no blocked items.`,
+          asks: handoffSummaryAsks,
+          readyTargetCount: readyOperations.length,
+          blockedItemCount: blockedItems.length,
+        } as const;
         return {
           generatedAt: new Date().toISOString(),
           intent,
@@ -602,6 +620,7 @@ function renderApp(appState: AppState): string {
             checklist: executionChecklist.map((item) => ({ ...item })),
           },
           remoteChecklist,
+          handoffSummary,
         };
       })()
     : null;
@@ -630,6 +649,14 @@ function renderApp(appState: AppState): string {
         intentId: latestWebdavHandoffPacket.intent.id,
         snapshotId: latestWebdavHandoffPacket.intent.snapshotId,
         remoteChecklist: latestWebdavHandoffPacket.remoteChecklist,
+      }, null, 2)
+    : "";
+  const latestWebdavHandoffSummaryExport = latestWebdavHandoffPacket
+    ? JSON.stringify({
+        generatedAt: latestWebdavHandoffPacket.generatedAt,
+        intentId: latestWebdavHandoffPacket.intent.id,
+        snapshotId: latestWebdavHandoffPacket.intent.snapshotId,
+        handoffSummary: latestWebdavHandoffPacket.handoffSummary,
       }, null, 2)
     : "";
   const webdavHandoffPacketHistory: WebdavTransferHandoffPacketSummary[] = appState.webdavTransferIntents.slice(0, 5).map((intent) => ({
@@ -1004,6 +1031,12 @@ function renderApp(appState: AppState): string {
         <h2>Latest WebDAV remote checklist packet</h2>
         ${latestWebdavHandoffPacket
           ? `<p>${escapeHtml(latestWebdavHandoffPacket.remoteChecklist.summary)}</p><ul>${latestWebdavHandoffPacket.remoteChecklist.steps.map((step) => `<li>${escapeHtml(`#${String(step.order)}`)} • ${escapeHtml(step.stage)} • ${escapeHtml(step.status)} • ${escapeHtml(step.detail)}</li>`).join("")}</ul><pre>${escapeHtml(latestWebdavRemoteChecklistExport)}</pre>`
+          : "<p>No pending WebDAV transfer intents yet.</p>"}
+      </section>
+      <section>
+        <h2>Latest WebDAV handoff summary</h2>
+        ${latestWebdavHandoffPacket
+          ? `<p>${escapeHtml(latestWebdavHandoffPacket.handoffSummary.summary)}</p><p><strong>Handoff owner:</strong> ${escapeHtml(latestWebdavHandoffPacket.handoffSummary.owner)}</p><p><strong>Ready targets:</strong> ${escapeHtml(String(latestWebdavHandoffPacket.handoffSummary.readyTargetCount))} • <strong>Blocked items:</strong> ${escapeHtml(String(latestWebdavHandoffPacket.handoffSummary.blockedItemCount))}</p><div><strong>Operator asks:</strong><ul>${latestWebdavHandoffPacket.handoffSummary.asks.map((ask) => `<li>${escapeHtml(ask)}</li>`).join("")}</ul></div><pre>${escapeHtml(latestWebdavHandoffSummaryExport)}</pre>`
           : "<p>No pending WebDAV transfer intents yet.</p>"}
       </section>
       <section>
