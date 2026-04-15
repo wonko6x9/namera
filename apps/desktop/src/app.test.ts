@@ -204,6 +204,8 @@ describe("Namera MVP flow", () => {
 
     expect(App()).toContain('data-role="preview-backend-local"');
     expect(App()).toContain('data-role="preview-backend-webdav"');
+    expect(App()).toContain('data-role="filter-webdav-ready"');
+    expect(App()).toContain('data-role="filter-webdav-blocked"');
     expect(App()).toContain("Destination preview mode:</strong> local");
     expect(App()).toContain("WebDAV transfer readiness:</strong>");
   });
@@ -834,6 +836,36 @@ describe("Namera MVP flow", () => {
     });
 
     expect(renders.at(-1)).toContain("WebDAV transfer readiness:</strong> 3 ready, 1 blocked");
+  });
+
+  it("filters the review lane by webdav readiness state", () => {
+    const renders: string[] = [];
+    const controller = createAppController((markup) => renders.push(markup));
+
+    controller.updateConfig({
+      destinations: {
+        movieRoot: "Movies",
+        tvRoot: "TV Shows",
+        musicRoot: "Music",
+        sourceRoot: ".",
+        targetRoot: ".",
+        webdavMovieRoot: "/remote/movies",
+        webdavTvRoot: "/remote/tv",
+        webdavMusicRoot: "",
+        collisionPolicy: "skip",
+      },
+    });
+    controller.setReviewFilter("webdav-ready");
+
+    expect(renders.at(-1)).toContain("Current filter:</strong> webdav-ready");
+    expect(renders.at(-1)).toContain("The.Matrix.1999.1080p.BluRay.mkv</h3>");
+    expect(renders.at(-1)).not.toContain("Some.Confusing.File.Name.Thing.bin</h3>");
+
+    controller.setReviewFilter("webdav-blocked");
+
+    expect(renders.at(-1)).toContain("Current filter:</strong> webdav-blocked");
+    expect(renders.at(-1)).toContain("Some.Confusing.File.Name.Thing.bin</h3>");
+    expect(renders.at(-1)).not.toContain("The.Matrix.1999.1080p.BluRay.mkv</h3>");
   });
 
   it("builds deterministic provider cache keys", () => {

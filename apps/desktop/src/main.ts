@@ -28,6 +28,8 @@ function wireApp(root: HTMLElement): void {
   const filterNeedsReviewButton = root.querySelector<HTMLButtonElement>("[data-role='filter-needs-review']");
   const filterProviderBackedButton = root.querySelector<HTMLButtonElement>("[data-role='filter-provider-backed']");
   const filterFailedBatchButton = root.querySelector<HTMLButtonElement>("[data-role='filter-failed-batch']");
+  const filterWebdavReadyButton = root.querySelector<HTMLButtonElement>("[data-role='filter-webdav-ready']");
+  const filterWebdavBlockedButton = root.querySelector<HTMLButtonElement>("[data-role='filter-webdav-blocked']");
   const previewBackendLocalButton = root.querySelector<HTMLButtonElement>("[data-role='preview-backend-local']");
   const previewBackendWebdavButton = root.querySelector<HTMLButtonElement>("[data-role='preview-backend-webdav']");
   const movieRootInput = root.querySelector<HTMLInputElement>("[data-role='config-movie-root']");
@@ -161,6 +163,14 @@ function wireApp(root: HTMLElement): void {
 
   filterFailedBatchButton?.addEventListener("click", () => {
     controller.setReviewFilter("failed-batch");
+  });
+
+  filterWebdavReadyButton?.addEventListener("click", () => {
+    controller.setReviewFilter("webdav-ready");
+  });
+
+  filterWebdavBlockedButton?.addEventListener("click", () => {
+    controller.setReviewFilter("webdav-blocked");
   });
 
   previewBackendLocalButton?.addEventListener("click", () => {

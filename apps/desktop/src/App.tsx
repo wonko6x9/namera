@@ -44,7 +44,7 @@ interface AppState {
   providerCandidatesByInput: Record<string, MatchCandidate[]>;
   providerDiagnosticsByInput: Record<string, ProviderDiagnostic[]>;
   selectedCandidateKeyByInput: Record<string, string>;
-  reviewFilter: "all" | "needs-review" | "provider-backed" | "failed-batch";
+  reviewFilter: "all" | "needs-review" | "provider-backed" | "failed-batch" | "webdav-ready" | "webdav-blocked";
   previewDestinationBackend: "local" | "webdav";
   config: AppConfig;
   nativeExecutionMessage: string;
@@ -541,6 +541,8 @@ function renderApp(appState: AppState): string {
           <button data-role="filter-needs-review" type="button">Needs review</button>
           <button data-role="filter-provider-backed" type="button">Provider-backed</button>
           <button data-role="filter-failed-batch" type="button">Failed batch</button>
+          <button data-role="filter-webdav-ready" type="button">WebDAV ready</button>
+          <button data-role="filter-webdav-blocked" type="button">WebDAV blocked</button>
           <button data-role="preview-backend-local" type="button" ${appState.previewDestinationBackend === "local" ? "disabled" : ""}>Preview local destination</button>
           <button data-role="preview-backend-webdav" type="button" ${appState.previewDestinationBackend === "webdav" ? "disabled" : ""}>Preview WebDAV destination</button>
           <button data-role="apply-visible-batch" type="button" ${hasTauriInvoke() ? "" : "disabled"}>Apply visible batch</button>
@@ -657,6 +659,12 @@ function matchesReviewFilter(preview: PreviewResult, filter: AppState["reviewFil
   if (filter === "provider-backed") return preview.candidate.provider !== "local-heuristic";
   if (filter === "failed-batch") {
     return state.nativeBatchResults.some((result) => result.outcome === "failed" && result.input === preview.input);
+  }
+  if (filter === "webdav-ready") {
+    return createPhase3TransferPlan(preview.plan, preview.parsed.kind, state.config.destinations).status === "planned";
+  }
+  if (filter === "webdav-blocked") {
+    return createPhase3TransferPlan(preview.plan, preview.parsed.kind, state.config.destinations).status === "blocked";
   }
   return preview.candidate.provider === "local-heuristic" || (preview.candidate.confidenceLabel ?? "low") === "low";
 }
