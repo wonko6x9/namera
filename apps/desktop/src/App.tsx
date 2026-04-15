@@ -439,6 +439,10 @@ function renderApp(appState: AppState): string {
   const acknowledgedWebdavHandoffPacketsMarkup = acknowledgedWebdavHandoffPackets.length
     ? `<ul>${acknowledgedWebdavHandoffPackets.map((packet) => `<li>${escapeHtml(packet.generatedAt)} • ${escapeHtml(packet.intentId)} • ${escapeHtml(packet.handoffReadiness)} • ${escapeHtml(`${packet.readyCount} ready, ${packet.blockedCount} blocked`)}</li>`).join("")}</ul>`
     : "<p>No acknowledged WebDAV handoff packets yet.</p>";
+  const readyWebdavHandoffPackets = webdavHandoffPacketHistory.filter((packet) => packet.handoffReadiness === "ready");
+  const readyWebdavHandoffPacketsMarkup = readyWebdavHandoffPackets.length
+    ? `<ul>${readyWebdavHandoffPackets.map((packet) => `<li>${escapeHtml(packet.generatedAt)} • ${escapeHtml(packet.intentId)} • ${escapeHtml(packet.status)} • ${escapeHtml(`${packet.readyCount} ready, ${packet.blockedCount} blocked`)}</li>`).join("")}</ul>`
+    : "<p>No handoff-ready WebDAV packets yet.</p>";
   const recentRootsMarkup = appState.recentIngestRoots.length
     ? `<ul>${appState.recentIngestRoots.map((root) => `<li>${escapeHtml(root)}</li>`).join("")}</ul>`
     : "<p>No recent ingest roots yet</p>";
@@ -766,6 +770,10 @@ function renderApp(appState: AppState): string {
       <section>
         <h2>Acknowledged WebDAV handoff packets</h2>
         ${acknowledgedWebdavHandoffPacketsMarkup}
+      </section>
+      <section>
+        <h2>Handoff-ready WebDAV packets</h2>
+        ${readyWebdavHandoffPacketsMarkup}
       </section>
       <section>
         <h2>Exported WebDAV transfer queue</h2>
