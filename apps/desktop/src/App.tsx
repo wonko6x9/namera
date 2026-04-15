@@ -500,6 +500,11 @@ function renderApp(appState: AppState): string {
           uploadTargets: readyOperations.flatMap((operation) => operation.actions.filter((action) => action.startsWith("Upload/copy renamed file to ")).map((action) => action.replace("Upload/copy renamed file to ", ""))),
           verifyTargets: readyOperations.flatMap((operation) => operation.actions.filter((action) => action.startsWith("Verify remote file exists")).map(() => operation.targetPath)),
         };
+        const stageItems = {
+          mkdir: readyOperations.filter((operation) => operation.actions.some((action) => action.startsWith("Create remote parent folders for "))),
+          upload: readyOperations.filter((operation) => operation.actions.some((action) => action.startsWith("Upload/copy renamed file to "))),
+          verify: readyOperations.filter((operation) => operation.actions.some((action) => action.startsWith("Verify remote file exists"))),
+        };
         const executionChecklist = [
           {
             stage: "assign",
@@ -594,7 +599,7 @@ function renderApp(appState: AppState): string {
               stage: "mkdir",
               targets: groupedOperations.mkdirTargets,
               count: groupedOperations.mkdirTargets.length,
-              items: readyOperations.map((operation) => ({
+              items: stageItems.mkdir.map((operation) => ({
                 input: operation.input,
                 detectedKind: operation.detectedKind,
                 targetPath: operation.targetPath,
@@ -604,7 +609,7 @@ function renderApp(appState: AppState): string {
               stage: "upload",
               targets: groupedOperations.uploadTargets,
               count: groupedOperations.uploadTargets.length,
-              items: readyOperations.map((operation) => ({
+              items: stageItems.upload.map((operation) => ({
                 input: operation.input,
                 detectedKind: operation.detectedKind,
                 targetPath: operation.targetPath,
@@ -614,7 +619,7 @@ function renderApp(appState: AppState): string {
               stage: "verify",
               targets: groupedOperations.verifyTargets,
               count: groupedOperations.verifyTargets.length,
-              items: readyOperations.map((operation) => ({
+              items: stageItems.verify.map((operation) => ({
                 input: operation.input,
                 detectedKind: operation.detectedKind,
                 targetPath: operation.targetPath,
@@ -635,7 +640,11 @@ function renderApp(appState: AppState): string {
           readyTargets: readyOperations.map((operation) => ({
             input: operation.input,
             targetPath: operation.targetPath,
-            stages: ["mkdir", "upload", "verify"],
+            stages: [
+              ...(operation.actions.some((action) => action.startsWith("Create remote parent folders for ")) ? ["mkdir" as const] : []),
+              ...(operation.actions.some((action) => action.startsWith("Upload/copy renamed file to ")) ? ["upload" as const] : []),
+              ...(operation.actions.some((action) => action.startsWith("Verify remote file exists")) ? ["verify" as const] : []),
+            ],
           })),
           blockers: blockedItems.map((item) => ({ input: item.input, reason: item.reason })),
           requiredActions: blockedChecks.length ? validationNextSteps : handoffSummaryAsks,
