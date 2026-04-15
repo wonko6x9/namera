@@ -27,6 +27,12 @@ export interface AppController {
   applyVisibleNativeBatch: () => Promise<void>;
 }
 
+interface NativeBatchResultItem {
+  input: string;
+  outcome: "applied" | "skipped" | "failed";
+  summary: string;
+}
+
 interface AppState {
   textInput: string;
   ingestedItems: IngestItem[];
@@ -37,6 +43,7 @@ interface AppState {
   reviewFilter: "all" | "needs-review" | "provider-backed";
   config: AppConfig;
   nativeExecutionMessage: string;
+  nativeBatchResults: NativeBatchResultItem[];
 }
 
 const state: AppState = {
@@ -51,6 +58,7 @@ const state: AppState = {
   nativeExecutionMessage: hasTauriInvoke()
     ? "Native execution available in Tauri runtime"
     : "Native execution unavailable in browser-only runtime",
+  nativeBatchResults: [],
 };
 
 export function App(): string {
@@ -132,8 +140,10 @@ export function createAppController(rerender: (markup: string) => void): AppCont
           pushExecutionLog(mapNativeLogEntry(batch.log_entry));
         }
         state.nativeExecutionMessage = batch.summary;
+        state.nativeBatchResults = [];
       } catch (error) {
         state.nativeExecutionMessage = `Native apply failed: ${error instanceof Error ? error.message : String(error)}`;
+        state.nativeBatchResults = [];
       }
       rerender(renderApp(state));
     },
@@ -155,8 +165,10 @@ export function createAppController(rerender: (markup: string) => void): AppCont
           pushExecutionLog(mapNativeLogEntry(batch.log_entry));
         }
         state.nativeExecutionMessage = batch.summary;
+        state.nativeBatchResults = [];
       } catch (error) {
         state.nativeExecutionMessage = `Native undo failed: ${error instanceof Error ? error.message : String(error)}`;
+        state.nativeBatchResults = [];
       }
       rerender(renderApp(state));
     },
@@ -171,6 +183,7 @@ export function createAppController(rerender: (markup: string) => void): AppCont
       let applied = 0;
       let skipped = 0;
       let failed = 0;
+      const batchResults: NativeBatchResultItem[] = [];
 
       for (const preview of previews) {
         try {
@@ -185,15 +198,23 @@ export function createAppController(rerender: (markup: string) => void): AppCont
           }
           if (batch.actions.some((action) => action.status === "skipped")) {
             skipped += 1;
+            batchResults.push({ input: preview.input, outcome: "skipped", summary: batch.summary });
           } else {
             applied += 1;
+            batchResults.push({ input: preview.input, outcome: "applied", summary: batch.summary });
           }
-        } catch {
+        } catch (error) {
           failed += 1;
+          batchResults.push({
+            input: preview.input,
+            outcome: "failed",
+            summary: error instanceof Error ? error.message : String(error),
+          });
         }
       }
 
       state.nativeExecutionMessage = `Batch apply finished: ${applied} applied, ${skipped} skipped, ${failed} failed`;
+      state.nativeBatchResults = batchResults;
       rerender(renderApp(state));
     },
   };
@@ -209,6 +230,14 @@ function renderApp(appState: AppState): string {
   const corrections = loadCorrections();
   const exportedPlans = exportPlanSet(previews.map((preview) => preview.plan));
   const providerSummary = providerStatus(appState.config.providers);
+  const batchResultsMarkup = appState.nativeBatchResults.length
+    ? `<ul>${appState.nativeBatchResults
+        .map(
+          (result) =>
+            `<li><strong>${escapeHtml(result.outcome)}:</strong> ${escapeHtml(result.input)} <small>${escapeHtml(result.summary)}</small></li>`,
+        )
+        .join("")}</ul>`
+    : "<p>No batch results yet</p>";
 
   const ingestMarkup = appState.ingestedItems
     .map(
@@ -313,6 +342,10 @@ function renderApp(appState: AppState): string {
         <p><strong>Ingest summary:</strong> ${escapeHtml(summarizeIngest(appState.ingestedItems))}</p>
         <p><strong>Live provider state:</strong> ${escapeHtml(appState.liveProviderMessage)}</p>
         <p><strong>Native execution state:</strong> ${escapeHtml(appState.nativeExecutionMessage)}</p>
+        <div>
+          <strong>Last batch details:</strong>
+          ${batchResultsMarkup}
+        </div>
       </section>
       <section>
         <h2>Configuration</h2>

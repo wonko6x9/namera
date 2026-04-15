@@ -431,6 +431,9 @@ describe("Namera MVP flow", () => {
 
     expect(invoke).toHaveBeenCalledTimes(4);
     expect(renders.at(-1)).toContain("Batch apply finished: 1 applied, 2 skipped, 1 failed");
+    expect(renders.at(-1)).toContain("<strong>applied:</strong> The.Matrix.1999.1080p.BluRay.mkv");
+    expect(renders.at(-1)).toContain("<strong>failed:</strong> Severance.S01E01.Good.News.About.Hell.2160p.WEB-DL.mkv");
+    expect(renders.at(-1)).toContain("<strong>skipped:</strong> Andor__S01E03---Reckoning..WEBRip.mp4");
   });
 
   it("surfaces configured collision policy in preview warnings", () => {
