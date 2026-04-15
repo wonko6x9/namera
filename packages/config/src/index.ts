@@ -267,3 +267,22 @@ export function acknowledgeWebdavTransferIntent(id: string, note: string, storag
   saveWebdavTransferIntents(next, storage);
   return next;
 }
+
+export function annotateWebdavTransferIntent(
+  id: string,
+  handoffOwner: string,
+  handoffNote: string,
+  storage: Storage = getStorage(),
+): WebdavTransferIntent[] {
+  const next = loadWebdavTransferIntents(storage).map((intent) =>
+    intent.id === id
+      ? {
+          ...intent,
+          handoffOwner,
+          handoffNote,
+        }
+      : intent,
+  );
+  saveWebdavTransferIntents(next, storage);
+  return next;
+}

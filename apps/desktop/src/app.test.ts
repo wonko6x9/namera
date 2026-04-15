@@ -214,6 +214,7 @@ describe("Namera MVP flow", () => {
     expect(App()).toContain("Visible WebDAV blocked reasons:</strong>");
     expect(App()).toContain('data-role="snapshot-webdav-queue"');
     expect(App()).toContain('data-role="save-latest-webdav-intent"');
+    expect(App()).toContain('data-role="assign-latest-webdav-intent"');
     expect(App()).toContain('data-role="acknowledge-latest-webdav-intent"');
     expect(App()).toContain("Saved WebDAV queue snapshots");
     expect(App()).toContain("Latest saved WebDAV queue snapshot");
@@ -505,6 +506,21 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("Latest saved WebDAV transfer intent");
     expect(renders.at(-1)).toContain('&quot;nextActions&quot;');
     expect(renders.at(-1)).toContain('&quot;prerequisites&quot;');
+  });
+
+  it("assigns the latest webdav transfer intent for manual handoff", () => {
+    const renders: string[] = [];
+    const controller = createAppController((markup) => renders.push(markup));
+
+    controller.setReviewFilter("webdav-ready");
+    controller.snapshotVisibleWebdavQueue();
+    controller.saveLatestWebdavIntent();
+    controller.assignLatestWebdavIntent();
+
+    expect(loadWebdavTransferIntents()[0]?.handoffOwner).toBe("remote-handoff");
+    expect(loadWebdavTransferIntents()[0]?.handoffNote).toContain("manual remote execution handoff");
+    expect(renders.at(-1)).toContain("Assigned WebDAV transfer intent");
+    expect(renders.at(-1)).toContain('&quot;handoffOwner&quot;: &quot;remote-handoff&quot;');
   });
 
   it("acknowledges the latest webdav transfer intent prerequisites", () => {

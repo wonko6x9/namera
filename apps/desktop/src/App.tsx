@@ -1,4 +1,4 @@
-import { acknowledgeWebdavTransferIntent, loadConfig, loadCorrections, loadExecutionLog, loadHistory, loadRecentIngestRoots, loadWebdavTransferIntents, loadWebdavTransferSnapshots, markExecutionUndone, pushExecutionLog, pushHistory, pushRecentIngestRoots, pushWebdavTransferIntent, pushWebdavTransferSnapshot, saveConfig, setCorrection } from "@namera/config";
+import { acknowledgeWebdavTransferIntent, annotateWebdavTransferIntent, loadConfig, loadCorrections, loadExecutionLog, loadHistory, loadRecentIngestRoots, loadWebdavTransferIntents, loadWebdavTransferSnapshots, markExecutionUndone, pushExecutionLog, pushHistory, pushRecentIngestRoots, pushWebdavTransferIntent, pushWebdavTransferSnapshot, saveConfig, setCorrection } from "@namera/config";
 import type { AppConfig, IngestItem, MatchCandidate, ParsedMedia, PreviewResult, ProviderDiagnostic, ReviewSummary } from "@namera/core";
 import { createPhase3DestinationPlan, createPhase3TransferPlan } from "@namera/destination";
 import { buildWebdavTransferQueue, createExecutionBatch, createExecutionRecord, createPlannedExecutions, exportPlanSet, exportReviewPlanSet, exportWebdavTransferQueue, summarizeExecutionActions, summarizeWebdavTransferActions, summarizeWebdavTransferQueue } from "@namera/exec";
@@ -27,6 +27,7 @@ export interface AppController {
   snapshotVisibleWebdavQueue: () => void;
   saveLatestWebdavIntent: () => void;
   acknowledgeLatestWebdavIntent: () => void;
+  assignLatestWebdavIntent: () => void;
   updateConfig: (patch: Partial<AppConfig>) => void;
   applyNativeExecution: (input: string) => Promise<void>;
   undoNativeExecution: (input: string) => Promise<void>;
@@ -275,6 +276,21 @@ export function createAppController(rerender: (markup: string) => void): AppCont
       state.nativeExecutionMessage = `Acknowledged WebDAV transfer intent ${intent.id}`;
       rerender(renderApp(state));
     },
+    assignLatestWebdavIntent() {
+      const intent = state.webdavTransferIntents[0];
+      if (!intent) {
+        state.nativeExecutionMessage = "No saved WebDAV transfer intent available to assign";
+        rerender(renderApp(state));
+        return;
+      }
+      state.webdavTransferIntents = annotateWebdavTransferIntent(
+        intent.id,
+        "remote-handoff",
+        "Queued for manual remote execution handoff once prerequisites are satisfied.",
+      );
+      state.nativeExecutionMessage = `Assigned WebDAV transfer intent ${intent.id} to remote-handoff`;
+      rerender(renderApp(state));
+    },
     updateConfig(patch: Partial<AppConfig>) {
       state.config = mergeConfig(state.config, patch);
       saveConfig(state.config);
@@ -377,7 +393,7 @@ function renderApp(appState: AppState): string {
     ? JSON.stringify(appState.webdavTransferSnapshots[0], null, 2)
     : "";
   const webdavIntentMarkup = appState.webdavTransferIntents.length
-    ? `<ul>${appState.webdavTransferIntents.slice(0, 5).map((intent) => `<li>${escapeHtml(intent.createdAt)} • snapshot=${escapeHtml(intent.snapshotId)} • ${escapeHtml(intent.status)} • ${escapeHtml(`${intent.summary.ready} ready, ${intent.summary.blocked} blocked, ${intent.itemCount} items`)} • ${escapeHtml(`${intent.prerequisites.filter((entry) => entry.status === "ready").length}/${intent.prerequisites.length} prerequisites ready`)}${intent.acknowledgedAt ? ` • acknowledged ${escapeHtml(intent.acknowledgedAt)}` : ""}</li>`).join("")}</ul>`
+    ? `<ul>${appState.webdavTransferIntents.slice(0, 5).map((intent) => `<li>${escapeHtml(intent.createdAt)} • snapshot=${escapeHtml(intent.snapshotId)} • ${escapeHtml(intent.status)} • ${escapeHtml(`${intent.summary.ready} ready, ${intent.summary.blocked} blocked, ${intent.itemCount} items`)} • ${escapeHtml(`${intent.prerequisites.filter((entry) => entry.status === "ready").length}/${intent.prerequisites.length} prerequisites ready`)}${intent.handoffOwner ? ` • owner ${escapeHtml(intent.handoffOwner)}` : ""}${intent.acknowledgedAt ? ` • acknowledged ${escapeHtml(intent.acknowledgedAt)}` : ""}</li>`).join("")}</ul>`
     : "<p>No pending WebDAV transfer intents yet.</p>";
   const latestWebdavIntentExport = appState.webdavTransferIntents.length
     ? JSON.stringify(appState.webdavTransferIntents[0], null, 2)
@@ -642,6 +658,7 @@ function renderApp(appState: AppState): string {
           <button data-role="preview-backend-webdav" type="button" ${appState.previewDestinationBackend === "webdav" ? "disabled" : ""}>Preview WebDAV destination</button>
           <button data-role="snapshot-webdav-queue" type="button">Save visible WebDAV queue</button>
           <button data-role="save-latest-webdav-intent" type="button" ${appState.webdavTransferSnapshots.length ? "" : "disabled"}>Save latest WebDAV intent</button>
+          <button data-role="assign-latest-webdav-intent" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Assign latest WebDAV intent</button>
           <button data-role="acknowledge-latest-webdav-intent" type="button" ${appState.webdavTransferIntents.length ? "" : "disabled"}>Acknowledge latest WebDAV intent</button>
           <button data-role="apply-visible-batch" type="button" ${hasTauriInvoke() ? "" : "disabled"}>Apply visible batch</button>
           <button data-role="retry-failed-batch" type="button" ${hasTauriInvoke() && failedBatchCount ? "" : "disabled"}>Retry failed batch</button>

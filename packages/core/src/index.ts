@@ -227,6 +227,8 @@ export interface WebdavTransferIntent {
     status: "ready" | "blocked";
     detail: string;
   }>;
+  handoffOwner?: string;
+  handoffNote?: string;
   acknowledgedAt?: string;
   acknowledgementNote?: string;
 }
