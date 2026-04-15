@@ -98,6 +98,7 @@
   - expand and harden provider support beyond MVP basics
   - better fallback ordering among providers
   - richer metadata pull for artwork and extended info
+  - default provider/search lane per file by detected media type instead of one generic flow: audio -> music search, `SxxEyy` patterns -> TV search, otherwise video -> movie search
 
 - **Music workflow maturity**
   - stronger music identification
