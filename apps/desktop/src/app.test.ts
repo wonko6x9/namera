@@ -37,6 +37,24 @@ describe("Namera MVP flow", () => {
     expect(candidate.reason).toContain("episode title");
   });
 
+  it("trims movie edition and part-disc junk out of the core title", () => {
+    const parsed = parseFilename("Blade.Runner.Final.Cut.2007.1080p.BluRay.Part.1.mkv");
+
+    expect(parsed.kind).toBe("movie");
+    expect(parsed.title).toBe("Blade Runner Final Cut");
+    expect(parsed.movie?.year).toBe(2007);
+  });
+
+  it("parses multi-episode markers without polluting the series title", () => {
+    const parsed = parseFilename("Battlestar.Galactica.S01E01E02.33.and.Water.1080p.BluRay.mkv");
+
+    expect(parsed.kind).toBe("episode");
+    expect(parsed.episode?.seriesTitle).toBe("Battlestar Galactica");
+    expect(parsed.episode?.season).toBe(1);
+    expect(parsed.episode?.episode).toBe(1);
+    expect(parsed.episode?.episodeTitle).toBe("33 And Water");
+  });
+
   it("exposes a phase 3 destination stub without pretending it works", () => {
     const parsed = parseFilename("The.Matrix.1999.1080p.BluRay.mkv");
     const candidate = rankCandidates(parsed)[0];

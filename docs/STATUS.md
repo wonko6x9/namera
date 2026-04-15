@@ -18,11 +18,11 @@ Phase 1 and Phase 2 wrapped to a defendable MVP baseline, Phase 3 scaffold start
 - Product direction is primarily media matching, renaming, and tagging, with Plex-friendly organization as an important workflow target
 
 ## Current next step
-Land native filesystem apply/undo in Tauri/Rust, then replace the honest execution-log scaffold with real end-to-end file operations.
+Finish phase-1 parser hardening against multi-episode / part-disc / edition junk and a broader sample sweep, then land native filesystem apply/undo in Tauri/Rust.
 
 ## Working implementation snapshot
 - TypeScript/Vite desktop MVP is real and runnable
-- Filename normalization handles dotted/ugly separators and basic release noise
+- Filename normalization handles dotted/ugly separators, common release noise, and the first pass of edition / part-disc junk trimming
 - Movie year extraction and `SxxExx` TV parsing work
 - Local heuristic ranking works for movie/episode happy paths
 - Plex-style rename-plan generation works
