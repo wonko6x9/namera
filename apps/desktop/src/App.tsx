@@ -305,6 +305,7 @@ function renderApp(appState: AppState): string {
   const webdavTransferSummary = summarizeWebdavTransferState(previews, appState.config);
   const webdavBlockedReasons = summarizeWebdavBlockedReasons(previews, appState.config);
   const webdavReadinessByKind = summarizeWebdavReadinessByKind(previews, appState.config);
+  const webdavNextActions = summarizeWebdavNextActions(filteredPreviews, appState.config);
   const failedBatchCount = appState.nativeBatchResults.filter((result) => result.outcome === "failed").length;
   const failedBatchExport = exportFailedBatchResults(appState.nativeBatchResults);
   const recentRootsMarkup = appState.recentIngestRoots.length
@@ -603,6 +604,12 @@ function renderApp(appState: AppState): string {
         <h2>Exported WebDAV transfer queue</h2>
         <p>Lists the currently visible items as a truthful remote transfer queue, marking each one as ready or blocked with concrete actions and reasons.</p>
         <p><strong>Visible queue summary:</strong> ${escapeHtml(`${webdavTransferQueueSummary.ready} ready, ${webdavTransferQueueSummary.blocked} blocked`)}</p>
+        <div>
+          <strong>Visible WebDAV next actions:</strong>
+          ${webdavNextActions.length
+            ? `<ul>${webdavNextActions.map((entry) => `<li>${escapeHtml(String(entry.count))} × ${escapeHtml(entry.action)}</li>`).join("")}</ul>`
+            : "<p>No visible WebDAV actions yet.</p>"}
+        </div>
         <pre>${escapeHtml(exportedWebdavTransferQueue)}</pre>
       </section>
       <section>
@@ -720,6 +727,20 @@ function summarizeWebdavReadinessByKind(previews: PreviewResult[], config: AppCo
   return Array.from(totals.entries())
     .map(([kind, counts]) => ({ kind, ...counts }))
     .sort((left, right) => left.kind.localeCompare(right.kind));
+}
+
+function summarizeWebdavNextActions(previews: PreviewResult[], config: AppConfig): Array<{ action: string; count: number }> {
+  const actionCounts = new Map<string, number>();
+
+  for (const transfer of previews.map((preview) => createPhase3TransferPlan(preview.plan, preview.parsed.kind, config.destinations))) {
+    for (const action of transfer.actions) {
+      actionCounts.set(action, (actionCounts.get(action) ?? 0) + 1);
+    }
+  }
+
+  return Array.from(actionCounts.entries())
+    .map(([action, count]) => ({ action, count }))
+    .sort((left, right) => right.count - left.count || left.action.localeCompare(right.action));
 }
 
 function matchesReviewFilter(preview: PreviewResult, filter: AppState["reviewFilter"]): boolean {

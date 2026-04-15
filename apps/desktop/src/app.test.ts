@@ -210,6 +210,7 @@ describe("Namera MVP flow", () => {
     expect(App()).toContain("WebDAV transfer readiness:</strong>");
     expect(App()).toContain("WebDAV blocked reasons:</strong>");
     expect(App()).toContain("WebDAV readiness by kind:</strong>");
+    expect(App()).toContain("Visible WebDAV next actions:</strong>");
   });
 
   it("builds useful manual search URLs for movies and TV", () => {
@@ -450,6 +451,7 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("Exported visible review plan set");
     expect(renders.at(-1)).toContain("Exported WebDAV transfer queue");
     expect(renders.at(-1)).toContain("Visible queue summary:</strong>");
+    expect(renders.at(-1)).toContain("Visible WebDAV next actions:</strong>");
     expect(renders.at(-1)).toContain("Exported ready WebDAV queue items");
     expect(renders.at(-1)).toContain("Exported blocked WebDAV queue items");
     expect(renders.at(-1)).toContain('&quot;backend&quot;: &quot;webdav&quot;');
@@ -891,6 +893,7 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("Exported visible review plan set");
     expect(renders.at(-1)).toContain('&quot;input&quot;: &quot;The.Matrix.1999.1080p.BluRay.mkv&quot;');
     expect(renders.at(-1)).toContain('&quot;state&quot;: &quot;ready&quot;');
+    expect(renders.at(-1)).toContain("Visible WebDAV next actions:</strong>");
     expect(renders.at(-1)).toContain("Exported ready WebDAV queue items");
 
     controller.setReviewFilter("webdav-blocked");
@@ -901,6 +904,7 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("1 × Phase 3 routing knows the media type, but no WebDAV root is configured for it yet.");
     expect(renders.at(-1)).toContain('&quot;input&quot;: &quot;Some.Confusing.File.Name.Thing.bin&quot;');
     expect(renders.at(-1)).toContain('&quot;state&quot;: &quot;blocked&quot;');
+    expect(renders.at(-1)).toContain("1 × Resolve a WebDAV root for unknown");
     expect(renders.at(-1)).toContain("Exported blocked WebDAV queue items");
   });
 
