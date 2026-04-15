@@ -318,6 +318,11 @@ export interface WebdavTransferHandoffPacket {
       stage: "mkdir" | "upload" | "verify";
       targets: string[];
       count: number;
+      items: Array<{
+        input: string;
+        detectedKind: MediaKind;
+        targetPath: string;
+      }>;
     }>;
     blockedItems: Array<{
       input: string;

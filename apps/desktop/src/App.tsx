@@ -590,9 +590,36 @@ function renderApp(appState: AppState): string {
             ? `Operation manifest prepared with ${readyOperations.length} ready target${readyOperations.length === 1 ? "" : "s"} and ${blockedItems.length} blocked item${blockedItems.length === 1 ? "" : "s"}.`
             : `Operation manifest ready with ${readyOperations.length} ready target${readyOperations.length === 1 ? "" : "s"}.`,
           stages: [
-            { stage: "mkdir", targets: groupedOperations.mkdirTargets, count: groupedOperations.mkdirTargets.length },
-            { stage: "upload", targets: groupedOperations.uploadTargets, count: groupedOperations.uploadTargets.length },
-            { stage: "verify", targets: groupedOperations.verifyTargets, count: groupedOperations.verifyTargets.length },
+            {
+              stage: "mkdir",
+              targets: groupedOperations.mkdirTargets,
+              count: groupedOperations.mkdirTargets.length,
+              items: readyOperations.map((operation) => ({
+                input: operation.input,
+                detectedKind: operation.detectedKind,
+                targetPath: operation.targetPath,
+              })),
+            },
+            {
+              stage: "upload",
+              targets: groupedOperations.uploadTargets,
+              count: groupedOperations.uploadTargets.length,
+              items: readyOperations.map((operation) => ({
+                input: operation.input,
+                detectedKind: operation.detectedKind,
+                targetPath: operation.targetPath,
+              })),
+            },
+            {
+              stage: "verify",
+              targets: groupedOperations.verifyTargets,
+              count: groupedOperations.verifyTargets.length,
+              items: readyOperations.map((operation) => ({
+                input: operation.input,
+                detectedKind: operation.detectedKind,
+                targetPath: operation.targetPath,
+              })),
+            },
           ],
           blockedItems: blockedItems.map((item) => ({ input: item.input, reason: item.reason })),
         } as const;
@@ -1063,7 +1090,7 @@ function renderApp(appState: AppState): string {
       <section>
         <h2>Latest WebDAV operation manifest</h2>
         ${latestWebdavHandoffPacket
-          ? `<p>${escapeHtml(latestWebdavHandoffPacket.operationManifest.summary)}</p><ul>${latestWebdavHandoffPacket.operationManifest.stages.map((stage) => `<li>${escapeHtml(stage.stage)} • ${escapeHtml(String(stage.count))} target${stage.count === 1 ? "" : "s"}</li>`).join("")}</ul><pre>${escapeHtml(latestWebdavOperationManifestExport)}</pre>`
+          ? `<p>${escapeHtml(latestWebdavHandoffPacket.operationManifest.summary)}</p><ul>${latestWebdavHandoffPacket.operationManifest.stages.map((stage) => `<li>${escapeHtml(stage.stage)} • ${escapeHtml(String(stage.count))} target${stage.count === 1 ? "" : "s"} • ${escapeHtml(stage.items.length ? `${stage.items[0]?.input} -> ${stage.items[0]?.targetPath}` : "no items")}</li>`).join("")}</ul><pre>${escapeHtml(latestWebdavOperationManifestExport)}</pre>`
           : "<p>No pending WebDAV transfer intents yet.</p>"}
       </section>
       <section>

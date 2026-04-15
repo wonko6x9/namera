@@ -533,6 +533,7 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain('&quot;remoteChecklist&quot;');
     expect(renders.at(-1)).toContain('&quot;handoffSummary&quot;');
     expect(renders.at(-1)).toContain('&quot;operationManifest&quot;');
+    expect(renders.at(-1)).toContain('&quot;items&quot;');
     expect(renders.at(-1)).toContain('&quot;nextSteps&quot;');
     expect(renders.at(-1)).toContain('&quot;readyOperations&quot;');
     expect(renders.at(-1)).toContain('&quot;blockedItems&quot;');
@@ -547,6 +548,7 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("Remote checklist is blocked on Intent assigned, Intent acknowledged.");
     expect(renders.at(-1)).toContain("Handoff summary needs work for unassigned.");
     expect(renders.at(-1)).toContain("Operation manifest prepared with 3 ready targets and 0 blocked items.");
+    expect(renders.at(-1)).toContain("The.Matrix.1999.1080p.BluRay.mkv -&gt; /dav/movies/The Matrix (1999)/The Matrix (1999).mkv");
     expect(renders.at(-1)).toContain("assign • blocked");
     expect(renders.at(-1)).toContain("Grouped operations:");
     expect(renders.at(-1)).toContain("3 upload targets");
@@ -597,6 +599,7 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("Remote checklist is ready for 3 targets.");
     expect(renders.at(-1)).toContain("Handoff summary ready for remote-handoff.");
     expect(renders.at(-1)).toContain("Operation manifest ready with 3 ready targets.");
+    expect(renders.at(-1)).toContain("The.Matrix.1999.1080p.BluRay.mkv -&gt; /dav/movies/The Matrix (1999)/The Matrix (1999).mkv");
     expect(renders.at(-1)).toContain("assign • ready");
     expect(renders.at(-1)).toContain("blocked-items • ready");
     expect(renders.at(-1)).toContain("3 upload targets");
@@ -626,6 +629,7 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("Remote checklist is blocked on Intent assigned, Intent acknowledged, Blocked items cleared.");
     expect(renders.at(-1)).toContain("Handoff summary needs work for unassigned.");
     expect(renders.at(-1)).toContain("Operation manifest prepared with 3 ready targets and 1 blocked item.");
+    expect(renders.at(-1)).toContain("The.Matrix.1999.1080p.BluRay.mkv -&gt; /dav/movies/The Matrix (1999)/The Matrix (1999).mkv");
     expect(renders.at(-1)).toContain("assign • blocked");
     expect(renders.at(-1)).toContain("blocked-items • blocked");
     expect(renders.at(-1)).toContain("3 upload targets");
