@@ -211,7 +211,7 @@ export interface WebdavTransferIntent {
   snapshotId: string;
   snapshotCreatedAt: string;
   filter: string;
-  status: "pending";
+  status: "pending" | "acknowledged";
   summary: WebdavTransferQueueSummary;
   itemCount: number;
   nextActions: Array<{
@@ -222,4 +222,6 @@ export interface WebdavTransferIntent {
     reason: string;
     count: number;
   }>;
+  acknowledgedAt?: string;
+  acknowledgementNote?: string;
 }

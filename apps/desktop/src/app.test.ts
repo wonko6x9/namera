@@ -214,6 +214,7 @@ describe("Namera MVP flow", () => {
     expect(App()).toContain("Visible WebDAV blocked reasons:</strong>");
     expect(App()).toContain('data-role="snapshot-webdav-queue"');
     expect(App()).toContain('data-role="save-latest-webdav-intent"');
+    expect(App()).toContain('data-role="acknowledge-latest-webdav-intent"');
     expect(App()).toContain("Saved WebDAV queue snapshots");
     expect(App()).toContain("Latest saved WebDAV queue snapshot");
     expect(App()).toContain("Saved WebDAV transfer intents");
@@ -502,6 +503,21 @@ describe("Namera MVP flow", () => {
     expect(renders.at(-1)).toContain("Saved WebDAV transfer intents");
     expect(renders.at(-1)).toContain("Latest saved WebDAV transfer intent");
     expect(renders.at(-1)).toContain('&quot;nextActions&quot;');
+  });
+
+  it("acknowledges the latest webdav transfer intent prerequisites", () => {
+    const renders: string[] = [];
+    const controller = createAppController((markup) => renders.push(markup));
+
+    controller.setReviewFilter("webdav-ready");
+    controller.snapshotVisibleWebdavQueue();
+    controller.saveLatestWebdavIntent();
+    controller.acknowledgeLatestWebdavIntent();
+
+    expect(loadWebdavTransferIntents()[0]?.status).toBe("acknowledged");
+    expect(loadWebdavTransferIntents()[0]?.acknowledgementNote).toContain("Prerequisites reviewed");
+    expect(renders.at(-1)).toContain("Acknowledged WebDAV transfer intent");
+    expect(renders.at(-1)).toContain('&quot;status&quot;: &quot;acknowledged&quot;');
   });
 
   it("removes a single ingest item from the queue", () => {

@@ -252,3 +252,18 @@ export function pushWebdavTransferIntent(intent: WebdavTransferIntent, storage: 
   saveWebdavTransferIntents(next, storage);
   return next;
 }
+
+export function acknowledgeWebdavTransferIntent(id: string, note: string, storage: Storage = getStorage()): WebdavTransferIntent[] {
+  const next = loadWebdavTransferIntents(storage).map((intent) =>
+    intent.id === id
+      ? {
+          ...intent,
+          status: "acknowledged",
+          acknowledgedAt: intent.acknowledgedAt ?? new Date().toISOString(),
+          acknowledgementNote: note,
+        }
+      : intent,
+  );
+  saveWebdavTransferIntents(next, storage);
+  return next;
+}

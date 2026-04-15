@@ -34,6 +34,7 @@ function wireApp(root: HTMLElement): void {
   const previewBackendWebdavButton = root.querySelector<HTMLButtonElement>("[data-role='preview-backend-webdav']");
   const snapshotWebdavQueueButton = root.querySelector<HTMLButtonElement>("[data-role='snapshot-webdav-queue']");
   const saveLatestWebdavIntentButton = root.querySelector<HTMLButtonElement>("[data-role='save-latest-webdav-intent']");
+  const acknowledgeLatestWebdavIntentButton = root.querySelector<HTMLButtonElement>("[data-role='acknowledge-latest-webdav-intent']");
   const movieRootInput = root.querySelector<HTMLInputElement>("[data-role='config-movie-root']");
   const tvRootInput = root.querySelector<HTMLInputElement>("[data-role='config-tv-root']");
   const musicRootInput = root.querySelector<HTMLInputElement>("[data-role='config-music-root']");
@@ -189,6 +190,10 @@ function wireApp(root: HTMLElement): void {
 
   saveLatestWebdavIntentButton?.addEventListener("click", () => {
     controller.saveLatestWebdavIntent();
+  });
+
+  acknowledgeLatestWebdavIntentButton?.addEventListener("click", () => {
+    controller.acknowledgeLatestWebdavIntent();
   });
 }
 
