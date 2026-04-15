@@ -295,6 +295,7 @@ function renderApp(appState: AppState): string {
   const corrections = loadCorrections();
   const exportedPlans = exportPlanSet(previews.map((preview) => preview.plan));
   const exportedReviewPlans = exportReviewPlanSet(previews, appState.config.destinations, appState.previewDestinationBackend);
+  const exportedVisibleReviewPlans = exportReviewPlanSet(filteredPreviews, appState.config.destinations, appState.previewDestinationBackend);
   const providerSummary = providerStatus(appState.config.providers);
   const webdavTransferSummary = summarizeWebdavTransferState(previews, appState.config);
   const failedBatchCount = appState.nativeBatchResults.filter((result) => result.outcome === "failed").length;
@@ -573,6 +574,11 @@ function renderApp(appState: AppState): string {
         <h2>Exported review plan set</h2>
         <p>Includes the currently selected destination preview backend and, when WebDAV preview is selected, the honest transfer contract or blocked reasons.</p>
         <pre>${escapeHtml(exportedReviewPlans)}</pre>
+      </section>
+      <section>
+        <h2>Exported visible review plan set</h2>
+        <p>Respects the current review filter so the user can export only the subset they are actively triaging.</p>
+        <pre>${escapeHtml(exportedVisibleReviewPlans)}</pre>
       </section>
     </main>
   `;
