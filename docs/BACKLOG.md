@@ -66,6 +66,7 @@
   - provider configuration surface if needed
   - local cache for provider responses
   - operation history
+  - make routing, provider defaults, search fallbacks, artwork/manual-search actions, and per-type WebDAV destinations configurable with sane defaults and importable/editable presets for different system preferences
 
 ### P1, strong MVP candidates
 
