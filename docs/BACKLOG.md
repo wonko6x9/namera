@@ -53,7 +53,7 @@
   - operation log
   - undo / revert history for completed operations
   - now the active implementation lane
-  - current honest state: first collision policy pass exists (`skip`, `overwrite`, `rename-new`) and undo validates some stale-file cases, but batch-wide sequencing/recovery is still a live seam
+  - current honest state: first collision policy pass exists (`skip`, `overwrite`, `rename-new`), undo validates some stale-file cases, visible-batch apply now reports per-item outcomes honestly, and subtitle sidecars preserve language qualifiers during rename planning, but batch-wide sequencing/recovery is still a live seam
 
 - **Plex-friendly default templates**
   - movie template
@@ -115,6 +115,7 @@
   - queue management
   - selective re-run of failed items
   - better partial-success recovery
+  - richer per-item review/export from batch execution results
 
 - **Import confidence improvements**
   - learning from user corrections within a batch or remembered local rules
