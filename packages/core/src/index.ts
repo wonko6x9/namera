@@ -222,6 +222,11 @@ export interface WebdavTransferIntent {
     reason: string;
     count: number;
   }>;
+  prerequisites: Array<{
+    name: string;
+    status: "ready" | "blocked";
+    detail: string;
+  }>;
   acknowledgedAt?: string;
   acknowledgementNote?: string;
 }

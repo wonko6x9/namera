@@ -256,6 +256,7 @@ export function createAppController(rerender: (markup: string) => void): AppCont
         itemCount: snapshot.items.length,
         nextActions: summarizeWebdavTransferActions(snapshot.items),
         blockers: snapshot.summary.blockedReasons,
+        prerequisites: buildWebdavIntentPrerequisites(snapshot),
       });
       state.nativeExecutionMessage = `Saved pending WebDAV transfer intent for snapshot ${snapshot.id}`;
       rerender(renderApp(state));
@@ -376,7 +377,7 @@ function renderApp(appState: AppState): string {
     ? JSON.stringify(appState.webdavTransferSnapshots[0], null, 2)
     : "";
   const webdavIntentMarkup = appState.webdavTransferIntents.length
-    ? `<ul>${appState.webdavTransferIntents.slice(0, 5).map((intent) => `<li>${escapeHtml(intent.createdAt)} • snapshot=${escapeHtml(intent.snapshotId)} • ${escapeHtml(intent.status)} • ${escapeHtml(`${intent.summary.ready} ready, ${intent.summary.blocked} blocked, ${intent.itemCount} items`)}${intent.acknowledgedAt ? ` • acknowledged ${escapeHtml(intent.acknowledgedAt)}` : ""}</li>`).join("")}</ul>`
+    ? `<ul>${appState.webdavTransferIntents.slice(0, 5).map((intent) => `<li>${escapeHtml(intent.createdAt)} • snapshot=${escapeHtml(intent.snapshotId)} • ${escapeHtml(intent.status)} • ${escapeHtml(`${intent.summary.ready} ready, ${intent.summary.blocked} blocked, ${intent.itemCount} items`)} • ${escapeHtml(`${intent.prerequisites.filter((entry) => entry.status === "ready").length}/${intent.prerequisites.length} prerequisites ready`)}${intent.acknowledgedAt ? ` • acknowledged ${escapeHtml(intent.acknowledgedAt)}` : ""}</li>`).join("")}</ul>`
     : "<p>No pending WebDAV transfer intents yet.</p>";
   const latestWebdavIntentExport = appState.webdavTransferIntents.length
     ? JSON.stringify(appState.webdavTransferIntents[0], null, 2)
@@ -839,6 +840,26 @@ function summarizeWebdavNextActions(previews: PreviewResult[], config: AppConfig
   return Array.from(actionCounts.entries())
     .map(([action, count]) => ({ action, count }))
     .sort((left, right) => right.count - left.count || left.action.localeCompare(right.action));
+}
+
+function buildWebdavIntentPrerequisites(snapshot: import("@namera/core").WebdavTransferQueueSnapshot): Array<{ name: string; status: "ready" | "blocked"; detail: string }> {
+  return [
+    {
+      name: "Snapshot captured",
+      status: "ready",
+      detail: `Saved ${snapshot.items.length} item${snapshot.items.length === 1 ? "" : "s"} from filter ${snapshot.filter}.`,
+    },
+    {
+      name: "Ready items available",
+      status: snapshot.summary.ready > 0 ? "ready" : "blocked",
+      detail: snapshot.summary.ready > 0 ? `${snapshot.summary.ready} item${snapshot.summary.ready === 1 ? " is" : "s are"} ready for later handoff.` : "No ready WebDAV items are available in this saved snapshot.",
+    },
+    {
+      name: "Blocked items resolved",
+      status: snapshot.summary.blocked === 0 ? "ready" : "blocked",
+      detail: snapshot.summary.blocked === 0 ? "No blocked WebDAV items remain in this saved snapshot." : `${snapshot.summary.blocked} blocked item${snapshot.summary.blocked === 1 ? " still needs" : "s still need"} prerequisite work before any later execution handoff.`,
+    },
+  ];
 }
 
 function matchesReviewFilter(preview: PreviewResult, filter: AppState["reviewFilter"]): boolean {

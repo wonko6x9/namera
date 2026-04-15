@@ -499,10 +499,12 @@ describe("Namera MVP flow", () => {
     expect(loadWebdavTransferIntents()[0]?.filter).toBe("webdav-ready");
     expect(loadWebdavTransferIntents()[0]?.status).toBe("pending");
     expect(loadWebdavTransferIntents()[0]?.nextActions.length).toBeGreaterThan(0);
+    expect(loadWebdavTransferIntents()[0]?.prerequisites.length).toBeGreaterThan(0);
     expect(renders.at(-1)).toContain("Saved pending WebDAV transfer intent");
     expect(renders.at(-1)).toContain("Saved WebDAV transfer intents");
     expect(renders.at(-1)).toContain("Latest saved WebDAV transfer intent");
     expect(renders.at(-1)).toContain('&quot;nextActions&quot;');
+    expect(renders.at(-1)).toContain('&quot;prerequisites&quot;');
   });
 
   it("acknowledges the latest webdav transfer intent prerequisites", () => {
