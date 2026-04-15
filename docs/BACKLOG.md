@@ -121,7 +121,7 @@
   - queue management
   - selective re-run of failed items beyond the current first-pass retry button (for example preserving richer context, retry policy choices, and exportable failure sets)
   - better partial-success recovery
-  - richer per-item review/export from batch execution results
+  - current honest state: failed batch sets can now be exported as structured JSON, but richer queue management and retry policy controls are still open
 
 - **Import confidence improvements**
   - learning from user corrections within a batch or remembered local rules

@@ -269,6 +269,7 @@ function renderApp(appState: AppState): string {
   const exportedPlans = exportPlanSet(previews.map((preview) => preview.plan));
   const providerSummary = providerStatus(appState.config.providers);
   const failedBatchCount = appState.nativeBatchResults.filter((result) => result.outcome === "failed").length;
+  const failedBatchExport = exportFailedBatchResults(appState.nativeBatchResults);
   const recentRootsMarkup = appState.recentIngestRoots.length
     ? `<ul>${appState.recentIngestRoots.map((root) => `<li>${escapeHtml(root)}</li>`).join("")}</ul>`
     : "<p>No recent ingest roots yet</p>";
@@ -397,6 +398,10 @@ function renderApp(appState: AppState): string {
         <div>
           <strong>Last batch details:</strong>
           ${batchResultsMarkup}
+        </div>
+        <div>
+          <strong>Failed batch export:</strong>
+          <pre>${escapeHtml(failedBatchExport || "No failed batch items to export")}</pre>
         </div>
       </section>
       <section>
@@ -663,6 +668,14 @@ export function buildArtworkSearchUrl(parsed: import("@namera/core").ParsedMedia
       : `${parsed.title} album cover`;
 
   return `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`;
+}
+
+export function exportFailedBatchResults(results: NativeBatchResultItem[]): string {
+  const failed = results
+    .filter((result) => result.outcome === "failed")
+    .map((result) => ({ input: result.input, summary: result.summary }));
+
+  return failed.length ? JSON.stringify(failed, null, 2) : "";
 }
 
 function getCandidateKey(candidate: MatchCandidate): string {
