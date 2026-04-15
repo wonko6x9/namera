@@ -24,6 +24,7 @@ const HISTORY_KEY = "namera.history";
 const EXECUTION_LOG_KEY = "namera.execution-log";
 const PROVIDER_CACHE_KEY = "namera.provider-cache";
 const CORRECTIONS_KEY = "namera.corrections";
+const RECENT_INGEST_ROOTS_KEY = "namera.recent-ingest-roots";
 const fallbackMemoryStorage = new Map<string, string>();
 
 function getStorage(): Storage {
@@ -183,5 +184,29 @@ export function setCorrection(record: CorrectionRecord, storage: Storage = getSt
     [record.key]: record,
   };
   saveCorrections(next, storage);
+  return next;
+}
+
+export function loadRecentIngestRoots(storage: Storage = getStorage()): string[] {
+  try {
+    const raw = storage.getItem(RECENT_INGEST_ROOTS_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw) as string[];
+  } catch {
+    return [];
+  }
+}
+
+export function saveRecentIngestRoots(roots: string[], storage: Storage = getStorage()): void {
+  storage.setItem(RECENT_INGEST_ROOTS_KEY, JSON.stringify(roots));
+}
+
+export function pushRecentIngestRoots(roots: string[], storage: Storage = getStorage()): string[] {
+  const next = [...roots, ...loadRecentIngestRoots(storage)]
+    .map((root) => root.trim())
+    .filter(Boolean)
+    .filter((root, index, all) => all.indexOf(root) === index)
+    .slice(0, 10);
+  saveRecentIngestRoots(next, storage);
   return next;
 }

@@ -73,7 +73,7 @@
 - **Folder ingest workflow**
   - select file(s) or folder(s)
   - batch process queue
-  - remember recent roots
+  - current honest state: recent ingest roots are now remembered, but queue management is still minimal
 
 - **Basic music organization groundwork**
   - parse artist/album/track when tags are available or filename is obvious

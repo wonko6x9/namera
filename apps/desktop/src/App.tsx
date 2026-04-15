@@ -1,4 +1,4 @@
-import { loadConfig, loadCorrections, loadExecutionLog, loadHistory, markExecutionUndone, pushExecutionLog, pushHistory, saveConfig, setCorrection } from "@namera/config";
+import { loadConfig, loadCorrections, loadExecutionLog, loadHistory, loadRecentIngestRoots, markExecutionUndone, pushExecutionLog, pushHistory, pushRecentIngestRoots, saveConfig, setCorrection } from "@namera/config";
 import type { AppConfig, IngestItem, MatchCandidate, ParsedMedia, PreviewResult, ProviderDiagnostic, ReviewSummary } from "@namera/core";
 import { createPhase3DestinationPlan, createPhase3TransferPlan } from "@namera/destination";
 import { createExecutionBatch, createExecutionRecord, createPlannedExecutions, exportPlanSet, summarizeExecutionActions } from "@namera/exec";
@@ -45,6 +45,7 @@ interface AppState {
   config: AppConfig;
   nativeExecutionMessage: string;
   nativeBatchResults: NativeBatchResultItem[];
+  recentIngestRoots: string[];
 }
 
 const state: AppState = {
@@ -60,6 +61,7 @@ const state: AppState = {
     ? "Native execution available in Tauri runtime"
     : "Native execution unavailable in browser-only runtime",
   nativeBatchResults: [],
+  recentIngestRoots: loadRecentIngestRoots(),
 };
 
 export function resetAppState(): void {
@@ -75,6 +77,7 @@ export function resetAppState(): void {
     ? "Native execution available in Tauri runtime"
     : "Native execution unavailable in browser-only runtime";
   state.nativeBatchResults = [];
+  state.recentIngestRoots = loadRecentIngestRoots();
 }
 
 export function App(): string {
@@ -131,6 +134,7 @@ export function createAppController(rerender: (markup: string) => void): AppCont
     async ingestFiles(files: File[]) {
       const fileItems = await parseFileListIngest(files);
       state.ingestedItems = fileItems.length ? fileItems : parseTextIngest(state.textInput);
+      state.recentIngestRoots = pushRecentIngestRoots(extractRecentRoots(fileItems));
       rerender(renderApp(state));
     },
     async refreshProviders() {
@@ -265,6 +269,9 @@ function renderApp(appState: AppState): string {
   const exportedPlans = exportPlanSet(previews.map((preview) => preview.plan));
   const providerSummary = providerStatus(appState.config.providers);
   const failedBatchCount = appState.nativeBatchResults.filter((result) => result.outcome === "failed").length;
+  const recentRootsMarkup = appState.recentIngestRoots.length
+    ? `<ul>${appState.recentIngestRoots.map((root) => `<li>${escapeHtml(root)}</li>`).join("")}</ul>`
+    : "<p>No recent ingest roots yet</p>";
   const batchResultsMarkup = appState.nativeBatchResults.length
     ? `<ul>${appState.nativeBatchResults
         .map(
@@ -475,6 +482,10 @@ function renderApp(appState: AppState): string {
         <div>
           <button data-role="refresh-providers" type="button">Try live metadata lookup</button>
         </div>
+        <div>
+          <strong>Recent ingest roots:</strong>
+          ${recentRootsMarkup}
+        </div>
         <ul>${ingestMarkup}</ul>
       </section>
       <section>
@@ -603,6 +614,14 @@ function mergeConfig(current: AppConfig, patch: Partial<AppConfig>): AppConfig {
       ...patch.providers,
     },
   };
+}
+
+function extractRecentRoots(items: IngestItem[]): string[] {
+  return items
+    .map((item) => item.pathHint)
+    .filter((pathHint): pathHint is string => Boolean(pathHint && pathHint.includes("/")))
+    .map((pathHint) => pathHint.split("/").slice(0, -1).join("/"))
+    .filter(Boolean);
 }
 
 export function buildMediaSearchUrl(parsed: ParsedMedia, config: AppConfig): string {

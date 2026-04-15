@@ -8,7 +8,7 @@ import { buildProviderCacheKey, buildProviderRequest, fetchProviderCandidates, f
 import { createExecutionBatch, createPlannedExecutions, exportPlanSet, listExecutionLog, summarizeExecutionActions } from "@namera/exec";
 import { looksLikeMediaFile, parseTextIngest } from "@namera/ingest";
 import { buildArtworkSearchUrl, buildMediaSearchUrl, buildPreview, createAppController, resetAppState, summarizeIngest, summarizeReview } from "./App";
-import { getCorrection, loadConfig, loadExecutionLog, pushExecutionLog } from "@namera/config";
+import { getCorrection, loadConfig, loadExecutionLog, loadRecentIngestRoots, pushExecutionLog } from "@namera/config";
 
 describe("Namera MVP flow", () => {
   beforeEach(() => {
@@ -345,6 +345,21 @@ describe("Namera MVP flow", () => {
     expect(config.providers.tvSearchProvider).toBe("google");
     expect(config.providers.musicSearchProvider).toBe("google");
     expect(renders.at(-1)).toContain("Configuration");
+  });
+
+  it("remembers recent ingest roots from file and folder picks", async () => {
+    const renders: string[] = [];
+    const controller = createAppController((markup) => renders.push(markup));
+    const files = [
+      { name: "The.Matrix.1999.1080p.BluRay.mkv", size: 1, webkitRelativePath: "incoming/movies/The.Matrix.1999.1080p.BluRay.mkv" },
+      { name: "Severance.S01E01.Good.News.About.Hell.2160p.WEB-DL.mkv", size: 1, webkitRelativePath: "incoming/tv/Severance.S01E01.Good.News.About.Hell.2160p.WEB-DL.mkv" },
+    ] as File[];
+
+    await controller.ingestFiles(files);
+
+    expect(loadRecentIngestRoots()).toEqual(["incoming/movies", "incoming/tv"]);
+    expect(renders.at(-1)).toContain("Recent ingest roots");
+    expect(renders.at(-1)).toContain("incoming/movies");
   });
 
   it("exposes a controller for live-provider refresh flow", async () => {
