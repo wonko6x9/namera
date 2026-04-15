@@ -23,6 +23,7 @@ export interface AppController {
   removeIngestItem: (input: string) => void;
   clearIngestedItems: () => void;
   setReviewFilter: (filter: AppState["reviewFilter"]) => void;
+  setPreviewDestinationBackend: (backend: AppState["previewDestinationBackend"]) => void;
   updateConfig: (patch: Partial<AppConfig>) => void;
   applyNativeExecution: (input: string) => Promise<void>;
   undoNativeExecution: (input: string) => Promise<void>;
@@ -44,6 +45,7 @@ interface AppState {
   providerDiagnosticsByInput: Record<string, ProviderDiagnostic[]>;
   selectedCandidateKeyByInput: Record<string, string>;
   reviewFilter: "all" | "needs-review" | "provider-backed" | "failed-batch";
+  previewDestinationBackend: "local" | "webdav";
   config: AppConfig;
   nativeExecutionMessage: string;
   nativeBatchResults: NativeBatchResultItem[];
@@ -58,6 +60,7 @@ const state: AppState = {
   providerDiagnosticsByInput: {},
   selectedCandidateKeyByInput: {},
   reviewFilter: "all",
+  previewDestinationBackend: "local",
   config: loadConfig(),
   nativeExecutionMessage: hasTauriInvoke()
     ? "Native execution available in Tauri runtime"
@@ -74,6 +77,7 @@ export function resetAppState(): void {
   state.providerDiagnosticsByInput = {};
   state.selectedCandidateKeyByInput = {};
   state.reviewFilter = "all";
+  state.previewDestinationBackend = "local";
   state.config = loadConfig();
   state.nativeExecutionMessage = hasTauriInvoke()
     ? "Native execution available in Tauri runtime"
@@ -206,6 +210,10 @@ export function createAppController(rerender: (markup: string) => void): AppCont
       state.reviewFilter = filter;
       rerender(renderApp(state));
     },
+    setPreviewDestinationBackend(backend: AppState["previewDestinationBackend"]) {
+      state.previewDestinationBackend = backend;
+      rerender(renderApp(state));
+    },
     updateConfig(patch: Partial<AppConfig>) {
       state.config = mergeConfig(state.config, patch);
       saveConfig(state.config);
@@ -311,8 +319,15 @@ function renderApp(appState: AppState): string {
 
   const previewMarkup = filteredPreviews
     .map((preview) => {
-      const destination = createPhase3DestinationPlan(preview.plan, preview.parsed.kind, appState.config.destinations, "webdav");
-      const transfer = createPhase3TransferPlan(preview.plan, preview.parsed.kind, appState.config.destinations);
+      const destination = createPhase3DestinationPlan(
+        preview.plan,
+        preview.parsed.kind,
+        appState.config.destinations,
+        appState.previewDestinationBackend,
+      );
+      const transfer = appState.previewDestinationBackend === "webdav"
+        ? createPhase3TransferPlan(preview.plan, preview.parsed.kind, appState.config.destinations)
+        : null;
       const request = buildProviderRequest(preview.parsed, appState.config.providers);
       const warningText = preview.plan.warnings.length ? preview.plan.warnings.join("; ") : "none";
       const diagnostics = appState.providerDiagnosticsByInput[preview.input] ?? [];
@@ -360,9 +375,10 @@ function renderApp(appState: AppState): string {
             .join("")}</ul>
           <p><strong>Provider request:</strong> <code>${escapeHtml(JSON.stringify(request))}</code></p>
           <p><strong>Provider diagnostics:</strong> ${escapeHtml(diagnosticsText)}</p>
+          <p><strong>Destination preview backend:</strong> ${escapeHtml(appState.previewDestinationBackend)}</p>
           <p><strong>Phase 3 destination:</strong> ${escapeHtml(destination.backend)} / ${escapeHtml(destination.status)} / ${escapeHtml(destination.note)}</p>
-          <p><strong>Phase 3 transfer:</strong> ${escapeHtml(transfer.status)} / ${escapeHtml(transfer.summary)}</p>
-          <ul>${transfer.actions.map((action) => `<li>${escapeHtml(action)}</li>`).join("")}</ul>
+          <p><strong>Phase 3 transfer:</strong> ${transfer ? `${escapeHtml(transfer.status)} / ${escapeHtml(transfer.summary)}` : "Not needed for local destination preview."}</p>
+          <ul>${transfer ? transfer.actions.map((action) => `<li>${escapeHtml(action)}</li>`).join("") : "<li>Local destination preview uses the proposed local path directly.</li>"}</ul>
           <div>
             <button data-role="open-search" data-url="${escapeHtmlAttribute(searchUrl)}" type="button">Search title</button>
             <button data-role="open-art-search" data-url="${escapeHtmlAttribute(artworkSearchUrl)}" type="button">Search poster/cover</button>
@@ -409,6 +425,7 @@ function renderApp(appState: AppState): string {
         <p><strong>Destination roots:</strong> Movies=${escapeHtml(appState.config.destinations.movieRoot)}, TV=${escapeHtml(appState.config.destinations.tvRoot)}, Music=${escapeHtml(appState.config.destinations.musicRoot)}</p>
         <p><strong>Execution roots:</strong> Source=${escapeHtml(appState.config.destinations.sourceRoot || ".")}, Target=${escapeHtml(appState.config.destinations.targetRoot || ".")}</p>
         <p><strong>WebDAV roots:</strong> Movies=${escapeHtml(appState.config.destinations.webdavMovieRoot || "(not set)")}, TV=${escapeHtml(appState.config.destinations.webdavTvRoot || "(not set)")}, Music=${escapeHtml(appState.config.destinations.webdavMusicRoot || "(not set)")}</p>
+        <p><strong>Destination preview mode:</strong> ${escapeHtml(appState.previewDestinationBackend)}</p>
         <p><strong>Collision policy:</strong> ${escapeHtml(appState.config.destinations.collisionPolicy || "skip")}</p>
         <p><strong>Providers:</strong> ${escapeHtml(providerSummary)}</p>
         <p><strong>Ingest summary:</strong> ${escapeHtml(summarizeIngest(appState.ingestedItems))}</p>
@@ -521,6 +538,8 @@ function renderApp(appState: AppState): string {
           <button data-role="filter-needs-review" type="button">Needs review</button>
           <button data-role="filter-provider-backed" type="button">Provider-backed</button>
           <button data-role="filter-failed-batch" type="button">Failed batch</button>
+          <button data-role="preview-backend-local" type="button" ${appState.previewDestinationBackend === "local" ? "disabled" : ""}>Preview local destination</button>
+          <button data-role="preview-backend-webdav" type="button" ${appState.previewDestinationBackend === "webdav" ? "disabled" : ""}>Preview WebDAV destination</button>
           <button data-role="apply-visible-batch" type="button" ${hasTauriInvoke() ? "" : "disabled"}>Apply visible batch</button>
           <button data-role="retry-failed-batch" type="button" ${hasTauriInvoke() && failedBatchCount ? "" : "disabled"}>Retry failed batch</button>
         </div>

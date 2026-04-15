@@ -28,6 +28,8 @@ function wireApp(root: HTMLElement): void {
   const filterNeedsReviewButton = root.querySelector<HTMLButtonElement>("[data-role='filter-needs-review']");
   const filterProviderBackedButton = root.querySelector<HTMLButtonElement>("[data-role='filter-provider-backed']");
   const filterFailedBatchButton = root.querySelector<HTMLButtonElement>("[data-role='filter-failed-batch']");
+  const previewBackendLocalButton = root.querySelector<HTMLButtonElement>("[data-role='preview-backend-local']");
+  const previewBackendWebdavButton = root.querySelector<HTMLButtonElement>("[data-role='preview-backend-webdav']");
   const movieRootInput = root.querySelector<HTMLInputElement>("[data-role='config-movie-root']");
   const tvRootInput = root.querySelector<HTMLInputElement>("[data-role='config-tv-root']");
   const musicRootInput = root.querySelector<HTMLInputElement>("[data-role='config-music-root']");
@@ -159,6 +161,14 @@ function wireApp(root: HTMLElement): void {
 
   filterFailedBatchButton?.addEventListener("click", () => {
     controller.setReviewFilter("failed-batch");
+  });
+
+  previewBackendLocalButton?.addEventListener("click", () => {
+    controller.setPreviewDestinationBackend("local");
+  });
+
+  previewBackendWebdavButton?.addEventListener("click", () => {
+    controller.setPreviewDestinationBackend("webdav");
   });
 }
 

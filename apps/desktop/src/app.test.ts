@@ -199,6 +199,14 @@ describe("Namera MVP flow", () => {
     expect(App()).toContain('data-role="remove-ingest-item"');
   });
 
+  it("exposes preview backend toggle controls", async () => {
+    const { App } = await import("./App");
+
+    expect(App()).toContain('data-role="preview-backend-local"');
+    expect(App()).toContain('data-role="preview-backend-webdav"');
+    expect(App()).toContain("Destination preview mode:</strong> local");
+  });
+
   it("builds useful manual search URLs for movies and TV", () => {
     const movie = parseFilename("The.Matrix.1999.1080p.BluRay.mkv");
     const episode = parseFilename("Severance.S01E01.Good.News.About.Hell.2160p.WEB-DL.mkv");
@@ -422,6 +430,21 @@ describe("Namera MVP flow", () => {
     controller.setReviewFilter("needs-review");
 
     expect(renders.at(-1)).toContain("Current filter:</strong> needs-review");
+  });
+
+  it("switches destination preview backend through the controller", () => {
+    const renders: string[] = [];
+    const controller = createAppController((markup) => renders.push(markup));
+
+    controller.setPreviewDestinationBackend("webdav");
+
+    expect(renders.at(-1)).toContain("Destination preview mode:</strong> webdav");
+    expect(renders.at(-1)).toContain("Phase 3 transfer:</strong> blocked /");
+
+    controller.setPreviewDestinationBackend("local");
+
+    expect(renders.at(-1)).toContain("Destination preview mode:</strong> local");
+    expect(renders.at(-1)).toContain("Not needed for local destination preview.");
   });
 
   it("removes a single ingest item from the queue", () => {
