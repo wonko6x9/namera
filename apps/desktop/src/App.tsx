@@ -493,11 +493,28 @@ function renderApp(appState: AppState): string {
               ? blockedChecks.map((check) => check.name).join(", ")
               : "Ready for remote handoff review.",
           },
+          validation: {
+            status: blockedChecks.length ? "fail" : "pass",
+            readyCount: readyOperations.length,
+            blockedCount: blockedItems.length,
+            failedChecks: blockedChecks.map((check) => check.name),
+            summary: blockedChecks.length
+              ? `Packet validation failed: ${blockedChecks.map((check) => check.name).join(", ")}`
+              : "Packet validation passed for remote handoff review.",
+          },
         };
       })()
     : null;
   const latestWebdavHandoffPacketExport = latestWebdavHandoffPacket
     ? JSON.stringify(latestWebdavHandoffPacket, null, 2)
+    : "";
+  const latestWebdavValidationExport = latestWebdavHandoffPacket
+    ? JSON.stringify({
+        generatedAt: latestWebdavHandoffPacket.generatedAt,
+        intentId: latestWebdavHandoffPacket.intent.id,
+        snapshotId: latestWebdavHandoffPacket.intent.snapshotId,
+        validation: latestWebdavHandoffPacket.validation,
+      }, null, 2)
     : "";
   const webdavHandoffPacketHistory: WebdavTransferHandoffPacketSummary[] = appState.webdavTransferIntents.slice(0, 5).map((intent) => ({
     generatedAt: intent.lifecycleEvents[0]?.at ?? intent.createdAt,
@@ -853,6 +870,12 @@ function renderApp(appState: AppState): string {
                 blockedItems: latestWebdavHandoffPacket.blockedItems,
               }, null, 2))}</pre>`
             : `<p>${escapeHtml(`No ready remote operations are packaged yet. ${latestWebdavHandoffPacket.blockedItems.length} blocked item${latestWebdavHandoffPacket.blockedItems.length === 1 ? " remains" : "s remain"}. Packet readiness: ${latestWebdavHandoffPacket.packetReadiness.status} (${latestWebdavHandoffPacket.packetReadiness.summary}).`)}</p><ul>${latestWebdavHandoffPacket.packetReadiness.checks.map((check) => `<li>${escapeHtml(check.name)} • ${escapeHtml(check.status)} • ${escapeHtml(check.detail)}</li>`).join("")}</ul>`
+          : "<p>No pending WebDAV transfer intents yet.</p>"}
+      </section>
+      <section>
+        <h2>Latest WebDAV handoff validation</h2>
+        ${latestWebdavHandoffPacket
+          ? `<p>${escapeHtml(`${latestWebdavHandoffPacket.validation.summary} (${latestWebdavHandoffPacket.validation.readyCount} ready, ${latestWebdavHandoffPacket.validation.blockedCount} blocked).`)}</p><pre>${escapeHtml(latestWebdavValidationExport)}</pre>`
           : "<p>No pending WebDAV transfer intents yet.</p>"}
       </section>
       <section>

@@ -265,6 +265,13 @@ export interface WebdavTransferHandoffPacket {
     }>;
     summary: string;
   };
+  validation: {
+    status: "pass" | "fail";
+    readyCount: number;
+    blockedCount: number;
+    failedChecks: string[];
+    summary: string;
+  };
 }
 
 export interface WebdavTransferHandoffPacketSummary {
