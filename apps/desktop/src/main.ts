@@ -15,6 +15,9 @@ function wireApp(root: HTMLElement): void {
   const candidateButtons = root.querySelectorAll<HTMLButtonElement>("[data-role='candidate-pick']");
   const rememberButtons = root.querySelectorAll<HTMLButtonElement>("[data-role='candidate-remember']");
   const saveConfigButton = root.querySelector<HTMLButtonElement>("[data-role='save-config']");
+  const filterAllButton = root.querySelector<HTMLButtonElement>("[data-role='filter-all']");
+  const filterNeedsReviewButton = root.querySelector<HTMLButtonElement>("[data-role='filter-needs-review']");
+  const filterProviderBackedButton = root.querySelector<HTMLButtonElement>("[data-role='filter-provider-backed']");
   const movieRootInput = root.querySelector<HTMLInputElement>("[data-role='config-movie-root']");
   const tvRootInput = root.querySelector<HTMLInputElement>("[data-role='config-tv-root']");
   const musicRootInput = root.querySelector<HTMLInputElement>("[data-role='config-music-root']");
@@ -61,6 +64,18 @@ function wireApp(root: HTMLElement): void {
         omdbApiKey: omdbKeyInput?.value || undefined,
       },
     });
+  });
+
+  filterAllButton?.addEventListener("click", () => {
+    controller.setReviewFilter("all");
+  });
+
+  filterNeedsReviewButton?.addEventListener("click", () => {
+    controller.setReviewFilter("needs-review");
+  });
+
+  filterProviderBackedButton?.addEventListener("click", () => {
+    controller.setReviewFilter("provider-backed");
   });
 }
 

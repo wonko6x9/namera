@@ -1,5 +1,5 @@
 import { loadConfig, loadCorrections, loadExecutionLog, loadHistory, pushHistory, saveConfig, setCorrection } from "@namera/config";
-import type { AppConfig, IngestItem, MatchCandidate, PreviewResult, ProviderDiagnostic } from "@namera/core";
+import type { AppConfig, IngestItem, MatchCandidate, PreviewResult, ProviderDiagnostic, ReviewSummary } from "@namera/core";
 import { createPhase3DestinationPlan } from "@namera/destination";
 import { createExecutionBatch, createExecutionRecord, createPlannedExecutions, exportPlanSet, summarizeExecutionActions } from "@namera/exec";
 import { parseFileListIngest, parseTextIngest } from "@namera/ingest";
@@ -19,6 +19,7 @@ export interface AppController {
   refreshProviders: () => Promise<void>;
   chooseCandidate: (input: string, candidateKey: string) => void;
   rememberCandidateChoice: (input: string, candidateKey: string) => void;
+  setReviewFilter: (filter: AppState["reviewFilter"]) => void;
   updateConfig: (patch: Partial<AppConfig>) => void;
 }
 
@@ -29,6 +30,7 @@ interface AppState {
   providerCandidatesByInput: Record<string, MatchCandidate[]>;
   providerDiagnosticsByInput: Record<string, ProviderDiagnostic[]>;
   selectedCandidateKeyByInput: Record<string, string>;
+  reviewFilter: "all" | "needs-review" | "provider-backed";
   config: AppConfig;
 }
 
@@ -39,6 +41,7 @@ const state: AppState = {
   providerCandidatesByInput: {},
   providerDiagnosticsByInput: {},
   selectedCandidateKeyByInput: {},
+  reviewFilter: "all",
   config: loadConfig(),
 };
 
@@ -100,6 +103,10 @@ export function createAppController(rerender: (markup: string) => void): AppCont
       }
       rerender(renderApp(state));
     },
+    setReviewFilter(filter: AppState["reviewFilter"]) {
+      state.reviewFilter = filter;
+      rerender(renderApp(state));
+    },
     updateConfig(patch: Partial<AppConfig>) {
       state.config = mergeConfig(state.config, patch);
       saveConfig(state.config);
@@ -117,6 +124,8 @@ function renderApp(appState: AppState): string {
       appState.config,
     ),
   );
+  const reviewSummary = summarizeReview(previews);
+  const filteredPreviews = previews.filter((preview) => matchesReviewFilter(preview, appState.reviewFilter));
   const persistedHistory = previews.map((preview) => pushHistory(createExecutionRecord(preview.plan)));
   const history = persistedHistory.at(-1) ?? loadHistory();
   const executionLog = loadExecutionLog();
@@ -132,7 +141,7 @@ function renderApp(appState: AppState): string {
     )
     .join("");
 
-  const previewMarkup = previews
+  const previewMarkup = filteredPreviews
     .map((preview) => {
       const destination = createPhase3DestinationPlan(preview.plan, "webdav");
       const request = buildProviderRequest(preview.parsed, appState.config.providers);
@@ -248,8 +257,15 @@ function renderApp(appState: AppState): string {
         <ul>${ingestMarkup}</ul>
       </section>
       <section>
-        <h2>Batch preview</h2>
-        ${previewMarkup}
+        <h2>Batch review</h2>
+        <p><strong>Summary:</strong> ${escapeHtml(formatReviewSummary(reviewSummary))}</p>
+        <div>
+          <button data-role="filter-all" type="button">All</button>
+          <button data-role="filter-needs-review" type="button">Needs review</button>
+          <button data-role="filter-provider-backed" type="button">Provider-backed</button>
+        </div>
+        <p><strong>Current filter:</strong> ${escapeHtml(appState.reviewFilter)}</p>
+        ${previewMarkup || "<p>No items match the current review filter.</p>"}
       </section>
       <section>
         <h2>Recent history</h2>
@@ -290,6 +306,34 @@ export function buildPreview(
 export function summarizeIngest(items: IngestItem[]): string {
   if (!items.length) return "No inputs ingested";
   return `${items.length} input${items.length === 1 ? "" : "s"} ingested`;
+}
+
+export function summarizeReview(previews: PreviewResult[]): ReviewSummary {
+  return previews.reduce<ReviewSummary>(
+    (summary, preview) => {
+      summary.total += 1;
+      if ((preview.candidate.confidenceLabel ?? "low") === "low" || preview.candidate.provider === "local-heuristic") {
+        summary.lowConfidence += 1;
+      }
+      if (preview.candidate.provider === "local-heuristic") {
+        summary.heuristicOnly += 1;
+      } else {
+        summary.providerBacked += 1;
+      }
+      return summary;
+    },
+    { total: 0, lowConfidence: 0, providerBacked: 0, heuristicOnly: 0 },
+  );
+}
+
+function formatReviewSummary(summary: ReviewSummary): string {
+  return `${summary.total} items, ${summary.lowConfidence} need review, ${summary.providerBacked} provider-backed, ${summary.heuristicOnly} heuristic-only`;
+}
+
+function matchesReviewFilter(preview: PreviewResult, filter: AppState["reviewFilter"]): boolean {
+  if (filter === "all") return true;
+  if (filter === "provider-backed") return preview.candidate.provider !== "local-heuristic";
+  return preview.candidate.provider === "local-heuristic" || (preview.candidate.confidenceLabel ?? "low") === "low";
 }
 
 function reorderCandidates(candidates: MatchCandidate[], selectedKey?: string): MatchCandidate[] {

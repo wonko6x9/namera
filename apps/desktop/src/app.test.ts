@@ -6,7 +6,7 @@ import { createPhase3DestinationPlan } from "@namera/destination";
 import { buildProviderCacheKey, buildProviderRequest, fetchProviderCandidates, fetchProviderLookup, providerStatus } from "@namera/provider";
 import { createExecutionBatch, createPlannedExecutions, exportPlanSet, listExecutionLog, summarizeExecutionActions } from "@namera/exec";
 import { looksLikeMediaFile, parseTextIngest } from "@namera/ingest";
-import { buildPreview, createAppController, summarizeIngest } from "./App";
+import { buildPreview, createAppController, summarizeIngest, summarizeReview } from "./App";
 import { getCorrection, loadConfig, loadExecutionLog, pushExecutionLog } from "@namera/config";
 
 describe("Namera MVP flow", () => {
@@ -243,6 +243,27 @@ describe("Namera MVP flow", () => {
 
     expect(getCorrection(correctionKey)?.candidateKey).toBe("local-heuristic:The Matrix (1999)");
     expect(renders.at(-1)).toContain("Remembered corrections");
+  });
+
+  it("summarizes batch review state for triage", () => {
+    const previews = [
+      buildPreview("The.Matrix.1999.1080p.BluRay.mkv"),
+      buildPreview("Some.Confusing.File.Name.Thing.bin"),
+    ];
+
+    const summary = summarizeReview(previews);
+    expect(summary.total).toBe(2);
+    expect(summary.lowConfidence).toBeGreaterThan(0);
+    expect(summary.heuristicOnly).toBe(2);
+  });
+
+  it("updates the review filter through the controller", () => {
+    const renders: string[] = [];
+    const controller = createAppController((markup) => renders.push(markup));
+
+    controller.setReviewFilter("needs-review");
+
+    expect(renders.at(-1)).toContain("Current filter:</strong> needs-review");
   });
 
   it("shapes episode provider requests around the series title", () => {

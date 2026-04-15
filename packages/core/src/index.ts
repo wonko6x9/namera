@@ -60,6 +60,13 @@ export interface PreviewResult {
   candidates?: MatchCandidate[];
 }
 
+export interface ReviewSummary {
+  total: number;
+  lowConfidence: number;
+  providerBacked: number;
+  heuristicOnly: number;
+}
+
 export interface HistoryEntry {
   sourceName: string;
   proposedPath: string;
