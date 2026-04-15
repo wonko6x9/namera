@@ -13,6 +13,7 @@ function wireApp(root: HTMLElement): void {
   const folderInput = root.querySelector<HTMLInputElement>("[data-role='folder-input']");
   const providerButton = root.querySelector<HTMLButtonElement>("[data-role='refresh-providers']");
   const candidateButtons = root.querySelectorAll<HTMLButtonElement>("[data-role='candidate-pick']");
+  const rememberButtons = root.querySelectorAll<HTMLButtonElement>("[data-role='candidate-remember']");
   const saveConfigButton = root.querySelector<HTMLButtonElement>("[data-role='save-config']");
   const movieRootInput = root.querySelector<HTMLInputElement>("[data-role='config-movie-root']");
   const tvRootInput = root.querySelector<HTMLInputElement>("[data-role='config-tv-root']");
@@ -38,6 +39,14 @@ function wireApp(root: HTMLElement): void {
       const input = button.dataset.input ?? "";
       const candidateKey = button.dataset.key ?? "";
       controller.chooseCandidate(input, candidateKey);
+    });
+  });
+
+  rememberButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const input = button.dataset.input ?? "";
+      const candidateKey = button.dataset.key ?? "";
+      controller.rememberCandidateChoice(input, candidateKey);
     });
   });
 

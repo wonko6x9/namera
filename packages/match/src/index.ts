@@ -1,13 +1,54 @@
+import { getCorrection } from "@namera/config";
 import type { MatchCandidate, ParsedMedia } from "@namera/core";
 
 export function rankCandidates(parsed: ParsedMedia, providerCandidates: MatchCandidate[] = []): MatchCandidate[] {
   const localCandidates = buildLocalCandidates(parsed);
-  return dedupeCandidates([...providerCandidates, ...localCandidates])
+  const ranked = dedupeCandidates([...providerCandidates, ...localCandidates])
     .map((candidate) => ({
       ...candidate,
       confidenceLabel: labelConfidence(candidate.score),
     }))
     .sort(compareCandidates);
+
+  return applyCorrectionPreference(parsed, ranked);
+}
+
+export function buildCorrectionKey(parsed: ParsedMedia): string {
+  if (parsed.kind === "episode" && parsed.episode) {
+    return [parsed.kind, parsed.episode.seriesTitle ?? parsed.title, parsed.episode.season, parsed.episode.episode]
+      .map((part) => String(part).trim().toLowerCase())
+      .join("|");
+  }
+
+  return [parsed.kind, parsed.title, parsed.movie?.year ?? ""]
+    .map((part) => String(part).trim().toLowerCase())
+    .join("|");
+}
+
+export function getCandidateKey(candidate: MatchCandidate): string {
+  return `${candidate.provider}:${candidate.providerId ?? candidate.displayName}`;
+}
+
+function applyCorrectionPreference(parsed: ParsedMedia, candidates: MatchCandidate[]): MatchCandidate[] {
+  const correction = getCorrection(buildCorrectionKey(parsed));
+  if (!correction) {
+    return candidates;
+  }
+
+  const selectedIndex = candidates.findIndex((candidate) => getCandidateKey(candidate) === correction.candidateKey);
+  if (selectedIndex <= 0) {
+    return candidates;
+  }
+
+  const next = [...candidates];
+  const [selected] = next.splice(selectedIndex, 1);
+  if (selected) {
+    next.unshift({
+      ...selected,
+      reason: `${selected.reason} (remembered correction)`,
+    });
+  }
+  return next;
 }
 
 function buildLocalCandidates(parsed: ParsedMedia): MatchCandidate[] {

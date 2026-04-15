@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { parseFilename } from "@namera/parse";
-import { rankCandidates } from "@namera/match";
+import { buildCorrectionKey, rankCandidates } from "@namera/match";
 import { buildPlan } from "@namera/plan";
 import { createPhase3DestinationPlan } from "@namera/destination";
 import { buildProviderCacheKey, buildProviderRequest, fetchProviderCandidates, fetchProviderLookup, providerStatus } from "@namera/provider";
 import { createExecutionBatch, createPlannedExecutions, exportPlanSet, listExecutionLog, summarizeExecutionActions } from "@namera/exec";
 import { looksLikeMediaFile, parseTextIngest } from "@namera/ingest";
 import { buildPreview, createAppController, summarizeIngest } from "./App";
-import { loadConfig, loadExecutionLog, pushExecutionLog } from "@namera/config";
+import { getCorrection, loadConfig, loadExecutionLog, pushExecutionLog } from "@namera/config";
 
 describe("Namera MVP flow", () => {
   beforeEach(() => {
@@ -230,6 +230,19 @@ describe("Namera MVP flow", () => {
     controller.chooseCandidate("The.Matrix.1999.1080p.BluRay.mkv", "local-heuristic:The Matrix (1999)");
 
     expect(renders.at(-1)).toContain("Candidate override");
+  });
+
+  it("remembers manual candidate corrections for future ranking", () => {
+    const renders: string[] = [];
+    const controller = createAppController((markup) => renders.push(markup));
+    const input = "The.Matrix.1999.1080p.BluRay.mkv";
+    const parsed = parseFilename(input);
+    const correctionKey = buildCorrectionKey(parsed);
+
+    controller.rememberCandidateChoice(input, "local-heuristic:The Matrix (1999)");
+
+    expect(getCorrection(correctionKey)?.candidateKey).toBe("local-heuristic:The Matrix (1999)");
+    expect(renders.at(-1)).toContain("Remembered corrections");
   });
 
   it("shapes episode provider requests around the series title", () => {

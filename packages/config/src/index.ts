@@ -1,4 +1,4 @@
-import type { AppConfig, ExecutionLogEntry, HistoryEntry } from "@namera/core";
+import type { AppConfig, CorrectionRecord, ExecutionLogEntry, HistoryEntry } from "@namera/core";
 
 export const DEFAULT_CONFIG: AppConfig = {
   destinations: {
@@ -13,6 +13,7 @@ const CONFIG_KEY = "namera.config";
 const HISTORY_KEY = "namera.history";
 const EXECUTION_LOG_KEY = "namera.execution-log";
 const PROVIDER_CACHE_KEY = "namera.provider-cache";
+const CORRECTIONS_KEY = "namera.corrections";
 const fallbackMemoryStorage = new Map<string, string>();
 
 function getStorage(): Storage {
@@ -131,5 +132,34 @@ export function setProviderCacheEntry(key: string, value: string, storage: Stora
     [key]: value,
   };
   saveProviderCache(next, storage);
+  return next;
+}
+
+export type CorrectionStore = Record<string, CorrectionRecord>;
+
+export function loadCorrections(storage: Storage = getStorage()): CorrectionStore {
+  try {
+    const raw = storage.getItem(CORRECTIONS_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw) as CorrectionStore;
+  } catch {
+    return {};
+  }
+}
+
+export function saveCorrections(corrections: CorrectionStore, storage: Storage = getStorage()): void {
+  storage.setItem(CORRECTIONS_KEY, JSON.stringify(corrections));
+}
+
+export function getCorrection(key: string, storage: Storage = getStorage()): CorrectionRecord | undefined {
+  return loadCorrections(storage)[key];
+}
+
+export function setCorrection(record: CorrectionRecord, storage: Storage = getStorage()): CorrectionStore {
+  const next = {
+    ...loadCorrections(storage),
+    [record.key]: record,
+  };
+  saveCorrections(next, storage);
   return next;
 }

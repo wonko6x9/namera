@@ -111,6 +111,14 @@ export interface ProviderDiagnostic {
   cached?: boolean;
 }
 
+export interface CorrectionRecord {
+  key: string;
+  candidateKey: string;
+  displayName: string;
+  provider: string;
+  updatedAt: string;
+}
+
 export interface AppConfig {
   destinations: DestinationProfile;
   providers: ProviderConfig;

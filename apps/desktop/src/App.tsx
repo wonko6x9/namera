@@ -1,9 +1,9 @@
-import { loadConfig, loadExecutionLog, loadHistory, pushHistory, saveConfig } from "@namera/config";
+import { loadConfig, loadCorrections, loadExecutionLog, loadHistory, pushHistory, saveConfig, setCorrection } from "@namera/config";
 import type { AppConfig, IngestItem, MatchCandidate, PreviewResult, ProviderDiagnostic } from "@namera/core";
 import { createPhase3DestinationPlan } from "@namera/destination";
 import { createExecutionBatch, createExecutionRecord, createPlannedExecutions, exportPlanSet, summarizeExecutionActions } from "@namera/exec";
 import { parseFileListIngest, parseTextIngest } from "@namera/ingest";
-import { rankCandidates } from "@namera/match";
+import { buildCorrectionKey, getCandidateKey, rankCandidates } from "@namera/match";
 import { parseFilename } from "@namera/parse";
 import { buildPlan } from "@namera/plan";
 import { buildProviderRequest, fetchProviderLookup, providerStatus } from "@namera/provider";
@@ -18,6 +18,7 @@ export interface AppController {
   ingestFiles: (files: File[]) => Promise<void>;
   refreshProviders: () => Promise<void>;
   chooseCandidate: (input: string, candidateKey: string) => void;
+  rememberCandidateChoice: (input: string, candidateKey: string) => void;
   updateConfig: (patch: Partial<AppConfig>) => void;
 }
 
@@ -83,6 +84,22 @@ export function createAppController(rerender: (markup: string) => void): AppCont
       state.selectedCandidateKeyByInput[input] = candidateKey;
       rerender(renderApp(state));
     },
+    rememberCandidateChoice(input: string, candidateKey: string) {
+      state.selectedCandidateKeyByInput[input] = candidateKey;
+      const parsed = parseFilename(input);
+      const candidates = rankCandidates(parsed, state.providerCandidatesByInput[input] ?? []);
+      const chosen = candidates.find((candidate) => getCandidateKey(candidate) === candidateKey);
+      if (chosen) {
+        setCorrection({
+          key: buildCorrectionKey(parsed),
+          candidateKey,
+          displayName: chosen.displayName,
+          provider: chosen.provider,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+      rerender(renderApp(state));
+    },
     updateConfig(patch: Partial<AppConfig>) {
       state.config = mergeConfig(state.config, patch);
       saveConfig(state.config);
@@ -103,6 +120,7 @@ function renderApp(appState: AppState): string {
   const persistedHistory = previews.map((preview) => pushHistory(createExecutionRecord(preview.plan)));
   const history = persistedHistory.at(-1) ?? loadHistory();
   const executionLog = loadExecutionLog();
+  const corrections = loadCorrections();
   const exportedPlans = exportPlanSet(previews.map((preview) => preview.plan));
   const providerSummary = providerStatus(appState.config.providers);
 
@@ -129,10 +147,10 @@ function renderApp(appState: AppState): string {
       const undoBatch = createExecutionBatch(preview.plan, "undo");
       const candidateList = (preview.candidates ?? [])
         .slice(0, 5)
-        .map(
-          (candidate) =>
-            `<button data-role="candidate-pick" data-input="${escapeHtmlAttribute(preview.input)}" data-key="${escapeHtmlAttribute(getCandidateKey(candidate))}" type="button" title="${escapeHtmlAttribute(candidate.reason)}">${escapeHtml(candidate.displayName)} (${escapeHtml(candidate.provider)}, ${candidate.score}%, ${escapeHtml(candidate.confidenceLabel ?? "unknown")})</button>`,
-        )
+        .map((candidate) => {
+          const key = getCandidateKey(candidate);
+          return `<button data-role="candidate-pick" data-input="${escapeHtmlAttribute(preview.input)}" data-key="${escapeHtmlAttribute(key)}" type="button" title="${escapeHtmlAttribute(candidate.reason)}">${escapeHtml(candidate.displayName)} (${escapeHtml(candidate.provider)}, ${candidate.score}%, ${escapeHtml(candidate.confidenceLabel ?? "unknown")})</button> <button data-role="candidate-remember" data-input="${escapeHtmlAttribute(preview.input)}" data-key="${escapeHtmlAttribute(key)}" type="button">Remember</button>`;
+        })
         .join(" ");
 
       return `
@@ -241,6 +259,11 @@ function renderApp(appState: AppState): string {
         <h2>Execution log</h2>
         <p>Apply and undo actions are now persisted as an honest local log, even before native filesystem execution lands.</p>
         <ul>${executionLogMarkup || "<li>No execution records yet</li>"}</ul>
+      </section>
+      <section>
+        <h2>Remembered corrections</h2>
+        <p>Sticky corrections now bias future candidate ranking for the same parsed title or episode key.</p>
+        <ul>${Object.values(corrections).length ? Object.values(corrections).map((correction) => `<li>${escapeHtml(correction.key)} → ${escapeHtml(correction.displayName)} (${escapeHtml(correction.provider)})</li>`).join("") : "<li>No remembered corrections yet</li>"}</ul>
       </section>
       <section>
         <h2>Exported plan set</h2>
