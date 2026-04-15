@@ -195,3 +195,12 @@ export interface WebdavTransferQueueSummary {
     count: number;
   }>;
 }
+
+export interface WebdavTransferQueueSnapshot {
+  id: string;
+  createdAt: string;
+  backend: "webdav";
+  filter: string;
+  summary: WebdavTransferQueueSummary;
+  items: WebdavTransferQueueItem[];
+}

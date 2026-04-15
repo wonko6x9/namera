@@ -32,6 +32,7 @@ function wireApp(root: HTMLElement): void {
   const filterWebdavBlockedButton = root.querySelector<HTMLButtonElement>("[data-role='filter-webdav-blocked']");
   const previewBackendLocalButton = root.querySelector<HTMLButtonElement>("[data-role='preview-backend-local']");
   const previewBackendWebdavButton = root.querySelector<HTMLButtonElement>("[data-role='preview-backend-webdav']");
+  const snapshotWebdavQueueButton = root.querySelector<HTMLButtonElement>("[data-role='snapshot-webdav-queue']");
   const movieRootInput = root.querySelector<HTMLInputElement>("[data-role='config-movie-root']");
   const tvRootInput = root.querySelector<HTMLInputElement>("[data-role='config-tv-root']");
   const musicRootInput = root.querySelector<HTMLInputElement>("[data-role='config-music-root']");
@@ -179,6 +180,10 @@ function wireApp(root: HTMLElement): void {
 
   previewBackendWebdavButton?.addEventListener("click", () => {
     controller.setPreviewDestinationBackend("webdav");
+  });
+
+  snapshotWebdavQueueButton?.addEventListener("click", () => {
+    controller.snapshotVisibleWebdavQueue();
   });
 }
 

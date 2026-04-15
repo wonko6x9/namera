@@ -1,4 +1,4 @@
-import { loadConfig, loadCorrections, loadExecutionLog, loadHistory, loadRecentIngestRoots, markExecutionUndone, pushExecutionLog, pushHistory, pushRecentIngestRoots, saveConfig, setCorrection } from "@namera/config";
+import { loadConfig, loadCorrections, loadExecutionLog, loadHistory, loadRecentIngestRoots, loadWebdavTransferSnapshots, markExecutionUndone, pushExecutionLog, pushHistory, pushRecentIngestRoots, pushWebdavTransferSnapshot, saveConfig, setCorrection } from "@namera/config";
 import type { AppConfig, IngestItem, MatchCandidate, ParsedMedia, PreviewResult, ProviderDiagnostic, ReviewSummary } from "@namera/core";
 import { createPhase3DestinationPlan, createPhase3TransferPlan } from "@namera/destination";
 import { buildWebdavTransferQueue, createExecutionBatch, createExecutionRecord, createPlannedExecutions, exportPlanSet, exportReviewPlanSet, exportWebdavTransferQueue, summarizeExecutionActions, summarizeWebdavTransferQueue } from "@namera/exec";
@@ -24,6 +24,7 @@ export interface AppController {
   clearIngestedItems: () => void;
   setReviewFilter: (filter: AppState["reviewFilter"]) => void;
   setPreviewDestinationBackend: (backend: AppState["previewDestinationBackend"]) => void;
+  snapshotVisibleWebdavQueue: () => void;
   updateConfig: (patch: Partial<AppConfig>) => void;
   applyNativeExecution: (input: string) => Promise<void>;
   undoNativeExecution: (input: string) => Promise<void>;
@@ -50,6 +51,7 @@ interface AppState {
   nativeExecutionMessage: string;
   nativeBatchResults: NativeBatchResultItem[];
   recentIngestRoots: string[];
+  webdavTransferSnapshots: import("@namera/core").WebdavTransferQueueSnapshot[];
 }
 
 const state: AppState = {
@@ -67,6 +69,7 @@ const state: AppState = {
     : "Native execution unavailable in browser-only runtime",
   nativeBatchResults: [],
   recentIngestRoots: loadRecentIngestRoots(),
+  webdavTransferSnapshots: loadWebdavTransferSnapshots(),
 };
 
 export function resetAppState(): void {
@@ -84,6 +87,7 @@ export function resetAppState(): void {
     : "Native execution unavailable in browser-only runtime";
   state.nativeBatchResults = [];
   state.recentIngestRoots = loadRecentIngestRoots();
+  state.webdavTransferSnapshots = loadWebdavTransferSnapshots();
 }
 
 export function App(): string {
@@ -214,6 +218,21 @@ export function createAppController(rerender: (markup: string) => void): AppCont
       state.previewDestinationBackend = backend;
       rerender(renderApp(state));
     },
+    snapshotVisibleWebdavQueue() {
+      const previews = getVisiblePreviews(state);
+      const items = buildWebdavTransferQueue(previews, state.config.destinations);
+      const summary = summarizeWebdavTransferQueue(items);
+      state.webdavTransferSnapshots = pushWebdavTransferSnapshot({
+        id: `webdav-queue-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        backend: "webdav",
+        filter: state.reviewFilter,
+        summary,
+        items,
+      });
+      state.nativeExecutionMessage = `Saved WebDAV queue snapshot for ${previews.length} visible item${previews.length === 1 ? "" : "s"}`;
+      rerender(renderApp(state));
+    },
     updateConfig(patch: Partial<AppConfig>) {
       state.config = mergeConfig(state.config, patch);
       saveConfig(state.config);
@@ -309,6 +328,9 @@ function renderApp(appState: AppState): string {
   const visibleBlockedReasons = summarizeWebdavBlockedReasons(filteredPreviews, appState.config);
   const failedBatchCount = appState.nativeBatchResults.filter((result) => result.outcome === "failed").length;
   const failedBatchExport = exportFailedBatchResults(appState.nativeBatchResults);
+  const webdavSnapshotMarkup = appState.webdavTransferSnapshots.length
+    ? `<ul>${appState.webdavTransferSnapshots.slice(0, 5).map((snapshot) => `<li>${escapeHtml(snapshot.createdAt)} • filter=${escapeHtml(snapshot.filter)} • ${escapeHtml(`${snapshot.summary.ready} ready, ${snapshot.summary.blocked} blocked`)}</li>`).join("")}</ul>`
+    : "<p>No saved WebDAV queue snapshots yet.</p>";
   const recentRootsMarkup = appState.recentIngestRoots.length
     ? `<ul>${appState.recentIngestRoots.map((root) => `<li>${escapeHtml(root)}</li>`).join("")}</ul>`
     : "<p>No recent ingest roots yet</p>";
@@ -567,6 +589,7 @@ function renderApp(appState: AppState): string {
           <button data-role="filter-webdav-blocked" type="button">WebDAV blocked</button>
           <button data-role="preview-backend-local" type="button" ${appState.previewDestinationBackend === "local" ? "disabled" : ""}>Preview local destination</button>
           <button data-role="preview-backend-webdav" type="button" ${appState.previewDestinationBackend === "webdav" ? "disabled" : ""}>Preview WebDAV destination</button>
+          <button data-role="snapshot-webdav-queue" type="button">Save visible WebDAV queue</button>
           <button data-role="apply-visible-batch" type="button" ${hasTauriInvoke() ? "" : "disabled"}>Apply visible batch</button>
           <button data-role="retry-failed-batch" type="button" ${hasTauriInvoke() && failedBatchCount ? "" : "disabled"}>Retry failed batch</button>
         </div>
@@ -600,6 +623,10 @@ function renderApp(appState: AppState): string {
         <h2>Exported visible review plan set</h2>
         <p>Respects the current review filter so the user can export only the subset they are actively triaging.</p>
         <pre>${escapeHtml(exportedVisibleReviewPlans)}</pre>
+      </section>
+      <section>
+        <h2>Saved WebDAV queue snapshots</h2>
+        ${webdavSnapshotMarkup}
       </section>
       <section>
         <h2>Exported WebDAV transfer queue</h2>
