@@ -24,7 +24,15 @@ A cross-platform desktop app and local engine for:
 
 ## Current status
 
-Real TypeScript/Vite MVP in progress. Parser, local heuristic matching, rename-plan generation, preview UI, editable config for destination roots and OMDb key, config/history scaffolding, exportable plan sets, real file/folder ingest, first OMDb live-lookup wiring, provider-backed preview selection, local provider-response caching, cleaner deduplicated candidate stacks, visible match explanations and confidence labels, manual candidate override controls, richer TV episode parsing/naming, and an explicit local execution contract with dry-run/apply/undo batch modeling are all working. Configured destination roots now affect actual plan generation. Apply/undo actions are now persisted into an honest local execution log, the Tauri/native side exposes an execution-batch preview command, local batch recovery state now persists across runs, and the desktop flow now surfaces diagnostics plus recovery guidance for local execution troubleshooting. The phase-3 WebDAV lane has moved beyond a pure stub into truthful handoff/state exports with explicit stage progress and blocked-stage reporting, but it is now a deliberately low-priority lane rather than the success path for the product. The next useful step is Windows install readiness and local workflow polish, plus richer provider-backed episode metadata. The Tauri app now also carries real Windows bundle metadata, icon wiring, and explicit `pnpm build:desktop` / `pnpm build:windows` entry points so installer-oriented validation stops depending on ad-hoc manual commands. It also now has a portable-first build path via `pnpm build:portable`, which produces a runnable app folder without needing installer generation.
+Real TypeScript/Vite MVP in progress. Parser, local heuristic matching, rename-plan generation, preview UI, editable config for destination roots and OMDb key, config/history scaffolding, exportable plan sets, real file/folder ingest, first OMDb live-lookup wiring, provider-backed preview selection, local provider-response caching, cleaner deduplicated candidate stacks, visible match explanations and confidence labels, manual candidate override controls, richer TV episode parsing/naming, and an explicit local execution contract with dry-run/apply/undo batch modeling are all working. Configured destination roots now affect actual plan generation. Apply/undo actions are now persisted into an honest local execution log, the Tauri/native side exposes an execution-batch preview command, local batch recovery state now persists across runs, and the desktop flow now surfaces diagnostics plus recovery guidance for local execution troubleshooting. The phase-3 WebDAV lane has moved beyond a pure stub into truthful handoff/state exports with explicit stage progress and blocked-stage reporting, but it is now a deliberately low-priority lane rather than the success path for the product. The next useful step is Windows packaging polish and local workflow hardening, with portable EXE delivery now the default initial Windows install path and installer bundles deferred unless they prove necessary.
+
+## Build entry points
+
+- `pnpm build` - build the frontend bundle only
+- `pnpm build:desktop` - build the frontend and run the Tauri desktop bundle flow
+- `pnpm build:portable` - build a portable Tauri app folder under `dist-portable/<platform>/Namera`
+- `pnpm build:windows` - Windows-first default for initial installs, currently mapped to the portable EXE/app-folder flow
+- `pnpm build:windows:installer` - optional later Windows installer targets (`nsis`, `msi`) from the Tauri app on a Windows host
 
 ## Key docs
 
@@ -73,9 +81,3 @@ Still intentionally stubbed:
 
 Keep pushing the local/native execution lane until batch sequencing, collision handling, recovery, interruption behavior, and Windows install readiness are genuinely trustworthy. WebDAV can stay paused as a low-priority later lane while the core local product becomes solid.
 
-## Build entry points
-
-- `pnpm build` - build the frontend bundle only
-- `pnpm build:desktop` - build the frontend and run the Tauri desktop bundle flow
-- `pnpm build:portable` - build a portable Tauri app folder under `dist-portable/<platform>/Namera`
-- `pnpm build:windows` - build the frontend and produce Windows installer targets (`nsis`, `msi`) from the Tauri app on a Windows host

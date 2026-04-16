@@ -16,6 +16,7 @@
     "test:ui": "pnpm --filter desktop test",
     "build:desktop": "pnpm --filter desktop build:app",
     "build:portable": "pnpm --filter desktop build:portable",
-    "build:windows": "pnpm --filter desktop build:windows"
+    "build:windows": "pnpm --filter desktop build:windows",
+    "build:windows:installer": "pnpm --filter desktop build:windows:installer"
   }
 }
