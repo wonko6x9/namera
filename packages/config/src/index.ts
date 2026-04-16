@@ -29,7 +29,15 @@ const LOCAL_BATCH_RUNS_KEY = "namera.local-batch-runs";
 const DIAGNOSTIC_LOG_KEY = "namera.diagnostic-log";
 const WEBDAV_TRANSFER_SNAPSHOTS_KEY = "namera.webdav-transfer-snapshots";
 const WEBDAV_TRANSFER_INTENTS_KEY = "namera.webdav-transfer-intents";
-const fallbackMemoryStorage = new Map<string, string>();
+const FALLBACK_STORAGE_KEY = "__nameraFallbackMemoryStorage";
+
+function getFallbackMemoryStorage(): Map<string, string> {
+  const scope = globalThis as typeof globalThis & { [FALLBACK_STORAGE_KEY]?: Map<string, string> };
+  if (!scope[FALLBACK_STORAGE_KEY]) {
+    scope[FALLBACK_STORAGE_KEY] = new Map<string, string>();
+  }
+  return scope[FALLBACK_STORAGE_KEY];
+}
 
 function getStorage(): Storage {
   if (typeof localStorage !== "undefined") {
@@ -37,19 +45,19 @@ function getStorage(): Storage {
   }
 
   return {
-    getItem: (key) => fallbackMemoryStorage.get(key) ?? null,
+    getItem: (key) => getFallbackMemoryStorage().get(key) ?? null,
     setItem: (key, value) => {
-      fallbackMemoryStorage.set(key, value);
+      getFallbackMemoryStorage().set(key, value);
     },
     removeItem: (key) => {
-      fallbackMemoryStorage.delete(key);
+      getFallbackMemoryStorage().delete(key);
     },
     clear: () => {
-      fallbackMemoryStorage.clear();
+      getFallbackMemoryStorage().clear();
     },
-    key: (index) => Array.from(fallbackMemoryStorage.keys())[index] ?? null,
+    key: (index) => Array.from(getFallbackMemoryStorage().keys())[index] ?? null,
     get length() {
-      return fallbackMemoryStorage.size;
+      return getFallbackMemoryStorage().size;
     },
   } satisfies Storage;
 }
@@ -74,6 +82,10 @@ export function loadConfig(storage: Storage = getStorage()): AppConfig {
   } catch {
     return DEFAULT_CONFIG;
   }
+}
+
+export function resetPersistedState(storage: Storage = getStorage()): void {
+  storage.clear();
 }
 
 export function saveConfig(config: AppConfig, storage: Storage = getStorage()): void {

@@ -812,8 +812,9 @@ describe("Namera MVP flow", () => {
         targetRoot: expect.any(String),
       }),
     );
-    expect(loadExecutionLog()[0]?.mode).toBe("apply");
-    expect(loadExecutionLog()[0]?.sourceSizeBytes).toBe(6);
+    const applyEntry = loadExecutionLog().find((entry) => entry.id === "test-id");
+    expect(applyEntry?.mode).toBe("apply");
+    expect(applyEntry?.sourceSizeBytes).toBe(6);
     expect(renders.at(-1)).toContain("Applied 2 actions");
   });
 
@@ -858,7 +859,8 @@ describe("Namera MVP flow", () => {
 
     await controller.undoNativeExecution("The.Matrix.1999.1080p.BluRay.mkv");
 
-    const [undoEntry, applyEntry] = loadExecutionLog();
+    const undoEntry = loadExecutionLog().find((entry) => entry.id === "undo-1");
+    const applyEntry = loadExecutionLog().find((entry) => entry.id === "apply-1");
     expect(invoke).toHaveBeenCalledWith(
       "undo_execution_batch_command",
       expect.objectContaining({ expectedLogId: "apply-1", expectedSizeBytes: 6, appliedPath: "/library/Movies/The Matrix (1999)/The Matrix (1999).mkv" }),
