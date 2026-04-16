@@ -14,14 +14,15 @@ Phases 1 and 2 are at a defendable MVP baseline, Phase 4 local execution is now 
 - macOS is low priority
 - Achieve parity before major enhancements
 - Robust dotted/scene filename normalization is required in MVP
-- WebDAV destination support reached an honest preview/handoff boundary in phase 3, but real transfer execution is deferred until local execution is stronger
+- WebDAV destination support reached an honest preview/handoff boundary in phase 3, but real transfer execution is deferred and now explicitly low priority
 - Product direction is primarily media matching, renaming, and tagging, with Plex-friendly organization as an important workflow target
+- Product success does not depend on shipping WebDAV support; the local-first workflow is the primary lane
 
 ## Current next step
-Stay focused on Milestone 4 until local execution is boringly trustworthy: tighten batch sequencing, collision reporting, partial-success recovery, and interruption-safe behavior. The newest local slices are persisted batch recovery state, stronger exec-layer coverage for rename-new collisions, stale undo refusal when the source path reappears, apply/undo/reapply cycles, a lightweight diagnostics log for provider/config/execution/recovery troubleshooting, and actionable recovery guidance that turns the latest batch state plus diagnostics into concrete next steps. The next likely move is sharper resume controls or deeper recovery-specific diagnostics. WebDAV remote execution stays explicitly deferred until the local lane is solid.
+Stay focused on Milestone 4 until local execution is boringly trustworthy: tighten batch sequencing, collision reporting, partial-success recovery, interruption-safe behavior, and Windows install readiness. The newest local slices are persisted batch recovery state, stronger exec-layer coverage for rename-new collisions, stale undo refusal when the source path reappears, apply/undo/reapply cycles, a lightweight diagnostics log for provider/config/execution/recovery troubleshooting, actionable recovery guidance that turns the latest batch state plus diagnostics into concrete next steps, and now a first honest Windows bundle/build surface (real Tauri bundle metadata, Windows icon wiring, and explicit `pnpm build:desktop` / `pnpm build:windows` entry points). The next likely move is validating the actual Windows bundle command on a Windows-capable box or tightening resume controls further. WebDAV remote execution remains explicitly deferred as a low-priority later lane.
 
 ## Working implementation snapshot
-- TypeScript/Vite desktop MVP is real and runnable
+- TypeScript/Vite desktop MVP is real and runnable, and the Tauri shell is now configured for actual installer-oriented bundle builds instead of only a loose dev shell
 - Filename normalization handles dotted/ugly separators, common release noise, multi-episode markers, and the first pass of edition / part-disc junk trimming
 - Filename normalization handles dotted/ugly separators, common release noise, multi-episode markers, the first pass of edition / part-disc junk trimming, subtitle sidecar qualifiers, and basic audio-file classification into the music lane
 - Movie year extraction and `SxxExx` TV parsing work
@@ -48,3 +49,9 @@ If work resumes after interruption, start by reading:
 6. `docs/REPO-STRUCTURE.md`
 
 Then continue from the next implementation step instead of re-discovering the plan from chat.
+
+## Latest Windows build-readiness slice
+- Tauri config now enables bundling instead of leaving it disabled.
+- Windows installer targets are explicitly set to `nsis` and `msi`.
+- A Windows `.ico` bundle icon is now present and wired into both the general bundle icon list and NSIS installer config.
+- Workspace scripts now expose `pnpm build:desktop` and `pnpm build:windows` so install-test work has one obvious entry point.

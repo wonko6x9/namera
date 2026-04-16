@@ -18,6 +18,7 @@
   - initialize repo structure for Tauri app + Rust core
   - baseline build targets for Windows and Linux
   - durable docs and backlog checked in
+  - current honest state: Tauri bundle metadata and explicit Windows installer entry points now exist (`pnpm build:desktop`, `pnpm build:windows`), but a real Windows-host bundle run and installer smoke test are still needed before calling install readiness done
 
 - **Robust filename normalization**
   - treat dots, underscores, and repeated punctuation as separators by default

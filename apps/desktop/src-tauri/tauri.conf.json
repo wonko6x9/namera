@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "identifier": "org.namera.app",
   "build": {
-    "beforeDevCommand": "",
-    "beforeBuildCommand": "",
+    "beforeDevCommand": "pnpm --dir .. dev",
+    "beforeBuildCommand": "pnpm --dir .. build",
     "frontendDist": "../dist"
   },
   "app": {
@@ -13,12 +13,30 @@
       {
         "title": "Namera",
         "width": 1200,
-        "height": 800
+        "height": 800,
+        "minWidth": 1024,
+        "minHeight": 720,
+        "resizable": true
       }
     ]
   },
   "bundle": {
-    "active": false,
-    "targets": "all"
+    "active": true,
+    "targets": ["nsis", "msi"],
+    "shortDescription": "Cross-platform Plex-focused media matching, renaming, and tagging tool.",
+    "longDescription": "Namera is a local-first desktop tool for matching media files, previewing rename and move plans, and applying safer Plex-friendly organization workflows.",
+    "windows": {
+      "wix": {
+        "language": "en-US"
+      },
+      "nsis": {
+        "displayLanguageSelector": false,
+        "installerIcon": "icons/icon.ico"
+      }
+    },
+    "icon": [
+      "icons/icon.png",
+      "icons/icon.ico"
+    ]
   }
 }
